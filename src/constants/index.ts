@@ -1,4 +1,5 @@
-// src/constants/index.ts
+import { colors } from '../theme';
+
 export const APP_CONFIG = {
   VERSION: '1.0.0',
   MIN_PLAYERS_PER_SESSION: 4,
@@ -23,19 +24,17 @@ export const GENDER_OPTIONS = [
   { label: 'Other', value: 'other' },
 ] as const;
 
-export const COURT_COLORS = [
-  colors.court1,
-  colors.court2,
-  colors.court3,
-  colors.court4,
-  colors.court5,
-  colors.court6,
-];
-
 export const DEFAULT_COURTS = [
   { number: 1, minimumRating: undefined, isActive: true },
   { number: 2, minimumRating: undefined, isActive: true },
   { number: 3, minimumRating: undefined, isActive: true },
 ];
 
-
+// export const COURT_COLORS = [
+//   colors.court1,
+//   colors.court2,
+//   colors.court3,
+//   colors.court4,
+//   colors.court5,
+//   colors.court6,
+// ];

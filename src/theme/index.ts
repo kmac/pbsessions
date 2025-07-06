@@ -33,15 +33,8 @@ export const colors = {
   warning: '#ea580c',
   error: '#dc2626',
   info: '#2563eb',
-
-  // Court colors (for visual differentiation)
-  court1: '#3b82f6',        // Blue
-  court2: '#059669',        // Green
-  court3: '#dc2626',        // Red
-  court4: '#ea580c',        // Orange
-  court5: '#7c3aed',        // Purple
-  court6: '#db2777',        // Pink
 };
+
 
 export const spacing = {
   xs: 4,
@@ -100,3 +93,12 @@ export const shadows = {
     elevation: 5,
   },
 };
+
+export const COURT_COLORS = [
+  '#3b82f6',  // Blue
+  '#059669',  // Green
+  '#dc2626',  // Red
+  '#ea580c',  // Orange
+  '#7c3aed',  // Purple
+  '#db2777',  // Pink
+];

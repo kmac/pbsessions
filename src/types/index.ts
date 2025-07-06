@@ -77,3 +77,12 @@ export interface PlayerStats {
   averageRating?: number;
 }
 
+export interface GameAssignment {
+  court: Court;
+  serveTeam: [Player, Player];
+  receiveTeam: [Player, Player];
+  sittingOut: Player[];
+}
+
+// Re-export all existing types plus the new GameAssignment
+export * from './index';
