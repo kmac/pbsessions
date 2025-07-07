@@ -6,7 +6,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { Player } from '../types';
 import PlayerForm from '../components/PlayerForm';
 import BulkAddModal from '../components/BulkAddModal';
 import { colors } from '../theme';
+import { Alert } from '../utils/alert'
 
 export default function PlayersScreen() {
   const dispatch = useDispatch();

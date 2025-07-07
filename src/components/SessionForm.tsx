@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +27,7 @@ import { validateSessionSize } from '../utils/validation';
 import SessionPlayerManager from './SessionPlayerManager';
 import CourtManager from './CourtManager';
 import { colors } from '../theme';
+import { Alert } from '../utils/alert'
 
 interface SessionFormProps {
   session?: Session | null;
@@ -40,7 +40,7 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
   const { groups } = useAppSelector((state) => state.groups);
 
   const [formData, setFormData] = useState({
-    name: '',
+    name: `${new Date().toDateString()}`,
     dateTime: new Date().toISOString(),
     playerIds: [] as string[],
     courts: [

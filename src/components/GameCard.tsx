@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import {
   Play,
@@ -19,6 +18,7 @@ import {
 } from 'lucide-react-native';
 import { Game, Player } from '../types';
 import { colors } from '../theme';
+import { Alert } from '../utils/alert'
 
 interface GameCardProps {
   game: Game;

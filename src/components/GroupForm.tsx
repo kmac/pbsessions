@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Save } from 'lucide-react-native';
 import { Group } from '../types';
 import { colors } from '../theme';
+import { Alert } from '../utils/alert'
 
 interface GroupFormProps {
   group?: Group | null;

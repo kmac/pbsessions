@@ -1,11 +1,12 @@
 // app/(tabs)/configuration.tsx
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Settings, Download, Upload, Trash2 } from 'lucide-react-native';
 import { RootState } from '../../src/store';
 import { StorageManager } from '../../src/utils/storage';
 import { colors } from '../../src/theme';
+import { Alert } from '../../src/utils/alert'
 
 export default function ConfigurationTab() {
   const dispatch = useDispatch();

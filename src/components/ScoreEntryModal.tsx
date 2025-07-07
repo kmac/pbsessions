@@ -7,12 +7,12 @@ import {
   StyleSheet,
   Modal,
   TextInput,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Save, Trophy, Plus, Minus } from 'lucide-react-native';
 import { Game, Player } from '../types';
 import { colors } from '../theme';
+import { Alert } from '../utils/alert'
 
 interface ScoreEntryModalProps {
   visible: boolean;

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
@@ -15,6 +14,7 @@ import { X, Save, UserPlus } from 'lucide-react-native';
 import { Player } from '../types';
 import { validatePlayerName, validateEmail, validatePhone, validateRating } from '../utils/validation';
 import { colors } from '../theme';
+import { Alert } from '../utils/alert'
 
 interface QuickPlayerFormProps {
   onSave: (player: Omit<Player, 'id' | 'createdAt' | 'updatedAt'>) => void;

@@ -6,7 +6,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { Group } from '../../src/types';
 import GroupForm from '../../src/components/GroupForm';
 import GroupPlayerManager from '../../src/components/GroupPlayerManager';
 import { colors } from '../../src/theme';
+import { Alert } from '../../src/utils/alert'
 
 export default function GroupsTab() {
   const dispatch = useAppDispatch();

@@ -8,7 +8,7 @@ export const APP_CONFIG = {
   MAX_COURTS: 6,
   DEFAULT_GAME_SCORE: 11,
   MIN_RATING: 0.0,
-  MAX_RATING: 10.0,
+  MAX_RATING: 7.0,
   RATING_DECIMAL_PLACES: 1,
 };
 
@@ -29,12 +29,3 @@ export const DEFAULT_COURTS = [
   { number: 2, minimumRating: undefined, isActive: true },
   { number: 3, minimumRating: undefined, isActive: true },
 ];
-
-// export const COURT_COLORS = [
-//   colors.court1,
-//   colors.court2,
-//   colors.court3,
-//   colors.court4,
-//   colors.court5,
-//   colors.court6,
-// ];

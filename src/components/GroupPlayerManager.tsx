@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Modal,
   FlatList,
-  Alert,
   TextInput,
   ScrollView,
 } from 'react-native';
@@ -29,6 +28,7 @@ import { addPlayer } from '../store/slices/playersSlice';
 import { Group, Player } from '../types';
 import QuickPlayerForm from './QuickPlayerForm';
 import { colors } from '../theme';
+import { Alert } from '../utils/alert'
 
 interface GroupPlayerManagerProps {
   visible: boolean;

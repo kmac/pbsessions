@@ -9,7 +9,6 @@ import {
   ScrollView,
   TextInput,
   Switch,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -25,6 +24,7 @@ import {
 import { Court } from '../types';
 import { colors, COURT_COLORS } from '../theme';
 import { APP_CONFIG } from '../constants';
+import { Alert } from '../utils/alert'
 
 interface CourtManagerProps {
   visible: boolean;

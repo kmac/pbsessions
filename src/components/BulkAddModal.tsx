@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
@@ -16,6 +15,7 @@ import { X, Plus, Trash2, Users } from 'lucide-react-native';
 import { addMultiplePlayers } from '../store/slices/playersSlice';
 import { Player } from '../types';
 import { colors } from '../theme';
+import { Alert } from '../utils/alert'
 
 interface BulkAddModalProps {
   visible: boolean;

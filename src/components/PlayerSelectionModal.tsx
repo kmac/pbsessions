@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Modal,
   FlatList,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
@@ -16,6 +15,7 @@ import { RootState } from '../store';
 import { addPlayerToGroup, removePlayerFromGroup } from '../store/slices/groupsSlice';
 import { Group, Player } from '../types';
 import { colors } from '../theme';
+import { Alert } from '../utils/alert'
 
 interface PlayerSelectionModalProps {
   visible: boolean;

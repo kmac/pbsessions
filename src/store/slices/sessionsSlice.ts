@@ -22,7 +22,7 @@ const sessionsSlice = createSlice({
       const now = new Date().toISOString();
       const newSession: Session = {
         ...action.payload,
-        id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
         createdAt: now,
         updatedAt: now,
       };

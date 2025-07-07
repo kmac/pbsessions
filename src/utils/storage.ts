@@ -99,12 +99,30 @@ export class StorageManager {
     return groups || [];
   }
 
+  async saveSessions(sessions: Session[]): Promise<void> {
+    await this.saveData(STORAGE_KEYS.SESSIONS, sessions);
+  }
+
+  async loadSessions(): Promise<Session[]> {
+    const sessions = await this.loadData<Session[]>(STORAGE_KEYS.SESSIONS);
+    return sessions || [];
+  }
+
+  async saveLiveSession(liveSession: LiveSession): Promise<void> {
+    await this.saveData(STORAGE_KEYS.LIVE_SESSION, liveSession);
+  }
+
+  async loadLiveSession(): Promise<LiveSession|null> {
+    const liveSession = await this.loadData<LiveSession>(STORAGE_KEYS.LIVE_SESSION)
+    return liveSession;
+  }
+
   async exportAllData(): Promise<StoredData> {
     const [players, groups, sessions, liveSession] = await Promise.all([
       this.loadPlayers(),
       this.loadGroups(),
-      this.loadData<Session[]>(STORAGE_KEYS.SESSIONS) || [],
-      this.loadData<LiveSession>(STORAGE_KEYS.LIVE_SESSION),
+      this.loadSessions(),
+      this.loadLiveSession()
     ]);
 
     return {
@@ -134,5 +152,3 @@ export class StorageManager {
     }
   }
 }
-
-

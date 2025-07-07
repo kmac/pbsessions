@@ -22,7 +22,7 @@ const groupsSlice = createSlice({
       const now = new Date().toISOString();
       const newGroup: Group = {
         ...action.payload,
-        id: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `group_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
         createdAt: now,
         updatedAt: now,
       };

@@ -22,7 +22,7 @@ const playersSlice = createSlice({
       const now = new Date().toISOString();
       const newPlayer: Player = {
         ...action.payload,
-        id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
         createdAt: now,
         updatedAt: now,
       };
@@ -44,7 +44,7 @@ const playersSlice = createSlice({
       const now = new Date().toISOString();
       const newPlayers = action.payload.map((player, index) => ({
         ...player,
-        id: `player_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `player_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 11)}`,
         createdAt: now,
         updatedAt: now,
       }));

@@ -6,7 +6,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { Group } from '../types';
 import GroupForm from '../components/GroupForm';
 import PlayerSelectionModal from '../components/PlayerSelectionModal';
 import { colors } from '../theme';
+import { Alert } from '../utils/alert'
 
 export default function GroupsScreen() {
   const dispatch = useDispatch();
