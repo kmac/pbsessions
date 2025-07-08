@@ -1,4 +1,4 @@
-// src/utils/enhancedSessionAlgorithm.ts
+// src/utils/enhancedSessionAlgorithm.ts (Updated with better stats management)
 import { Player, Game, PlayerStats, Court } from '../types';
 
 export interface GameAssignment {
@@ -252,6 +252,7 @@ export class EnhancedSessionAlgorithm {
     return -timesPartnered;
   }
 
+  // Updated updatePlayerStats method with better tracking
   updatePlayerStats(game: Game, score?: { serveScore: number; receiveScore: number }): void {
     const allGamePlayerIds = [
       game.serveTeam.player1Id,
@@ -262,14 +263,19 @@ export class EnhancedSessionAlgorithm {
 
     // Update stats for playing players
     allGamePlayerIds.forEach(playerId => {
-      const stats = this.playerStats.get(playerId)!;
+      const stats = this.playerStats.get(playerId);
+      if (!stats) {
+        console.warn(`No stats found for player ${playerId}`);
+        return;
+      }
+
       stats.gamesPlayed++;
 
-      // Update partnership counts
-      const teammateIds = this.getTeammateIds(game, playerId);
-      teammateIds.forEach(teammateId => {
+      // Update partnership counts - only with actual teammate
+      const teammateId = this.getTeammateId(game, playerId);
+      if (teammateId) {
         stats.partners[teammateId] = (stats.partners[teammateId] || 0) + 1;
-      });
+      }
 
       // Update score if provided
       if (score) {
@@ -285,20 +291,28 @@ export class EnhancedSessionAlgorithm {
         stats.gamesSatOut++;
       }
     });
+
+    // Debug logging
+    console.log('Updated player stats:', this.getPlayerStats().map(s => ({
+      playerId: s.playerId,
+      gamesPlayed: s.gamesPlayed,
+      gamesSatOut: s.gamesSatOut,
+      partnerships: Object.keys(s.partners).length
+    })));
   }
 
-  private getTeammateIds(game: Game, playerId: string): string[] {
-    // Determine which team the player is on and return their teammate
+  private getTeammateId(game: Game, playerId: string): string | null {
+    // Determine which team the player is on and return their teammate ID
     if (game.serveTeam.player1Id === playerId) {
-      return [game.serveTeam.player2Id];
+      return game.serveTeam.player2Id;
     } else if (game.serveTeam.player2Id === playerId) {
-      return [game.serveTeam.player1Id];
+      return game.serveTeam.player1Id;
     } else if (game.receiveTeam.player1Id === playerId) {
-      return [game.receiveTeam.player2Id];
+      return game.receiveTeam.player2Id;
     } else if (game.receiveTeam.player2Id === playerId) {
-      return [game.receiveTeam.player1Id];
+      return game.receiveTeam.player1Id;
     }
-    return [];
+    return null;
   }
 
   private getPlayerScore(game: Game, playerId: string, score: { serveScore: number; receiveScore: number }): number {
@@ -306,8 +320,16 @@ export class EnhancedSessionAlgorithm {
     return isOnServeTeam ? score.serveScore : score.receiveScore;
   }
 
+  // This is the key method - it returns the current stats
   getPlayerStats(): PlayerStats[] {
     return Array.from(this.playerStats.values());
+  }
+
+  // Method to sync stats from external source (Redux store)
+  syncPlayerStats(externalStats: PlayerStats[]): void {
+    externalStats.forEach(stats => {
+      this.playerStats.set(stats.playerId, { ...stats });
+    });
   }
 
   getTeamBalance(team1: Player[], team2: Player[]): TeamBalance | null {
@@ -323,20 +345,6 @@ export class EnhancedSessionAlgorithm {
       team2Rating,
       difference: Math.abs(team1Rating - team2Rating),
     };
-  }
-
-  // Utility method for manual adjustments (for future UI features)
-  swapPlayers(assignments: GameAssignment[], court1Index: number, player1Index: number,
-             court2Index: number, player2Index: number): GameAssignment[] {
-    const newAssignments = JSON.parse(JSON.stringify(assignments)); // Deep clone
-
-    // Extract players from their current positions
-    const court1Assignment = newAssignments[court1Index];
-    const court2Assignment = newAssignments[court2Index];
-
-    // This would be more complex in practice, handling team swaps
-    // For now, return the original assignments
-    return assignments;
   }
 
   // Statistical methods for analysis
@@ -365,7 +373,9 @@ export class EnhancedSessionAlgorithm {
     // Calculate fairness score based on standard deviation of games played
     const gamesPlayedArray = stats.map(s => s.gamesPlayed);
     const mean = averageGamesPerPlayer;
-    const variance = gamesPlayedArray.reduce((sum, games) => sum + Math.pow(games - mean, 2), 0) / gamesPlayedArray.length;
+    const variance = gamesPlayedArray.length > 0
+      ? gamesPlayedArray.reduce((sum, games) => sum + Math.pow(games - mean, 2), 0) / gamesPlayedArray.length
+      : 0;
     const stdDev = Math.sqrt(variance);
 
     // Fairness score: closer to 0 standard deviation = closer to 1 fairness
@@ -426,31 +436,3 @@ export class EnhancedSessionAlgorithm {
     };
   }
 }
-
-// Export utility functions for testing
-export const algorithmUtils = {
-  calculateTeamBalance: (team1: Player[], team2: Player[]): TeamBalance | null => {
-    if (!team1.every(p => p.rating) || !team2.every(p => p.rating)) {
-      return null;
-    }
-
-    const team1Rating = team1.reduce((sum, p) => sum + p.rating!, 0) / team1.length;
-    const team2Rating = team2.reduce((sum, p) => sum + p.rating!, 0) / team2.length;
-
-    return {
-      team1Rating,
-      team2Rating,
-      difference: Math.abs(team1Rating - team2Rating),
-    };
-  },
-
-  generateMockStats: (players: Player[], gamesCount: number = 5): PlayerStats[] => {
-    return players.map(player => ({
-      playerId: player.id,
-      gamesPlayed: Math.floor(Math.random() * gamesCount) + 1,
-      gamesSatOut: Math.floor(Math.random() * 2),
-      partners: {},
-      totalScore: Math.floor(Math.random() * 50) + 20,
-    }));
-  },
-};

@@ -1,4 +1,4 @@
-// app/live-session.tsx (Updated for Round-Based Management)
+// app/live-session.tsx (Updated with proper stats integration)
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -28,7 +28,8 @@ import {
   startRound,
   completeRound,
   endLiveSession,
-  updateRoundScores
+  updateRoundScores,
+  updatePlayerStats as updatePlayerStatsInStore
 } from '../src/store/slices/liveSessionSlice';
 import { EnhancedSessionAlgorithm } from '../src/utils/enhancedSessionAlgorithm';
 import { Game, Player } from '../src/types';
@@ -41,6 +42,8 @@ import { colors, COURT_COLORS } from '../src/theme';
 
 export default function LiveSessionScreen() {
   const dispatch = useAppDispatch();
+
+  // Pull data from the store
   const { currentSession } = useAppSelector((state) => state.liveSession);
   const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
@@ -50,7 +53,13 @@ export default function LiveSessionScreen() {
   const [betweenRoundsVisible, setBetweenRoundsVisible] = useState(false);
   const [roundStartTime, setRoundStartTime] = useState<Date | null>(null);
 
-  if (!currentSession) {
+  // Create algorithm instance with current stats
+  const sessionPlayers = players.filter(p => currentSession?.sessionId &&
+    sessions.find(s => s.id === currentSession.sessionId)?.playerIds.includes(p.id));
+  const session = sessions.find(s => s.id === currentSession?.sessionId);
+
+  // Handle no sessions
+  if (!currentSession || !session) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
@@ -66,24 +75,6 @@ export default function LiveSessionScreen() {
     );
   }
 
-  const session = sessions.find(s => s.id === currentSession.sessionId);
-  if (!session) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Session not found</Text>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backButtonText}>Back to Sessions</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const sessionPlayers = players.filter(p => session.playerIds.includes(p.id));
   const algorithm = new EnhancedSessionAlgorithm(
     sessionPlayers,
     session.courts,
@@ -135,13 +126,18 @@ export default function LiveSessionScreen() {
   };
 
   const handleRoundScoresSubmitted = (scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }) => {
+    // Update the round completion in store
     dispatch(completeRound({ scores }));
 
-    // Update algorithm stats
+    // Update algorithm stats for each completed game
     currentRoundGames.forEach(game => {
       const score = scores[game.id];
       algorithm.updatePlayerStats(game, score || undefined);
     });
+
+    // Get updated stats from algorithm and save to store
+    const updatedStats = algorithm.getPlayerStats();
+    dispatch(updatePlayerStatsInStore(updatedStats));
 
     setScoreModalVisible(false);
     setRoundStartTime(null);
@@ -207,7 +203,7 @@ export default function LiveSessionScreen() {
         <View style={styles.roundCompletedContainer}>
           <View style={styles.roundCompletedBadge}>
             <Trophy size={16} color={colors.green} />
-            <Text style={styles.roundCompletedText}>Round {currentSession.currentGameNumber} Completed</Text>
+            <Text style={styles.roundCompletedText}>Round {currentSession.currentGameNumber - 1} Completed</Text>
           </View>
           <TouchableOpacity
             style={styles.generateRoundButton}
@@ -318,7 +314,7 @@ export default function LiveSessionScreen() {
         {hasActiveRound && (
           <View style={styles.gamesSection}>
             <Text style={styles.sectionTitle}>
-              Round {currentSession.currentGameNumber} Games
+              Round {isRoundCompleted ? currentSession.currentGameNumber - 1 : currentSession.currentGameNumber} Games
             </Text>
             {currentRoundGames.map((game, index) => (
               <RoundGameCard
@@ -386,7 +382,7 @@ export default function LiveSessionScreen() {
       {/* Between Rounds Modal */}
       <BetweenRoundsModal
         visible={betweenRoundsVisible}
-        currentRound={currentSession.currentGameNumber}
+        currentRound={isRoundCompleted ? currentSession.currentGameNumber : currentSession.currentGameNumber}
         games={currentRoundGames}
         allPlayers={sessionPlayers}
         onStartRound={handleStartRound}

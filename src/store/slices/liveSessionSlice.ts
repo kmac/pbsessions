@@ -90,8 +90,8 @@ const liveSessionSlice = createSlice({
       });
     },
     updatePlayerStats: (state, action: PayloadAction<PlayerStats[]>) => {
-      Alert.alert(`updatePlayerStats: ${state}, ${action}`);
       if (!state.currentSession) return;
+      Alert.alert(`updatePlayerStats: ${action.payload}`);
       state.currentSession.playerStats = action.payload;
     },
     endLiveSession: (state) => {
