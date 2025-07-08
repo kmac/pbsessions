@@ -1,4 +1,4 @@
-// app/live-session.tsx (Complete Live Session Management)
+// app/live-session.tsx (Updated for Round-Based Management)
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,29 +15,29 @@ import { useAppSelector, useAppDispatch } from '../src/store';
 import {
   X,
   Play,
-  Pause,
-  SkipForward,
-  RotateCcw,
+  Square,
+  Clock,
   Users,
   Trophy,
-  Clock,
+  RotateCcw,
   Settings,
-  Edit
+  Timer
 } from 'lucide-react-native';
 import {
-  generateNextGame,
-  completeGame,
+  generateNextRound,
+  startRound,
+  completeRound,
   endLiveSession,
-  updateGameScore,
-  swapPlayers
+  updateRoundScores
 } from '../src/store/slices/liveSessionSlice';
 import { EnhancedSessionAlgorithm } from '../src/utils/enhancedSessionAlgorithm';
-import { Game, Player, Court } from '../src/types';
-import GameCard from '../src/components/GameCard';
-import ScoreEntryModal from '../src/components/ScoreEntryModal';
+import { Game, Player } from '../src/types';
+import RoundGameCard from '../src/components/RoundGameCard';
+import RoundScoreEntryModal from '../src/components/RoundScoreEntryModal';
 import PlayerStatsModal from '../src/components/PlayerStatsModal';
+import BetweenRoundsModal from '../src/components/BetweenRoundsModal';
+import RoundTimer from '../src/components/RoundTimer';
 import { colors, COURT_COLORS } from '../src/theme';
-import { Alert } from '../src/utils/alert'
 
 export default function LiveSessionScreen() {
   const dispatch = useAppDispatch();
@@ -46,8 +47,8 @@ export default function LiveSessionScreen() {
 
   const [scoreModalVisible, setScoreModalVisible] = useState(false);
   const [statsModalVisible, setStatsModalVisible] = useState(false);
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
-  const [gameInProgress, setGameInProgress] = useState<{ [gameId: string]: boolean }>({});
+  const [betweenRoundsVisible, setBetweenRoundsVisible] = useState(false);
+  const [roundStartTime, setRoundStartTime] = useState<Date | null>(null);
 
   if (!currentSession) {
     return (
@@ -89,61 +90,73 @@ export default function LiveSessionScreen() {
     currentSession.playerStats
   );
 
-  const handleStartNextGame = () => {
-    if (currentSession.activeGames.some(g => !g.isCompleted)) {
-      Alert.alert(
-        'Games in Progress',
-        'Complete all current games before starting the next round.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
+  // Current round state
+  const currentRoundGames = currentSession.activeGames || [];
+  const isRoundInProgress = currentRoundGames.length > 0 &&
+    currentRoundGames.some(g => g.startedAt && !g.isCompleted);
+  const isRoundCompleted = currentRoundGames.length > 0 &&
+    currentRoundGames.every(g => g.isCompleted);
+  const hasActiveRound = currentRoundGames.length > 0;
 
+  // Statistics
+  const activeCourts = session.courts.filter(c => c.isActive);
+  const playingPlayersThisRound = isRoundInProgress ? activeCourts.length * 4 : 0;
+  const sittingOutThisRound = hasActiveRound
+    ? currentRoundGames[0]?.sittingOutIds.length || 0
+    : 0;
+  const completedRounds = currentSession.currentGameNumber - 1;
+
+  const handleGenerateNewRound = () => {
     const assignments = algorithm.generateGameAssignments(currentSession.currentGameNumber);
 
     if (assignments.length === 0) {
       Alert.alert(
-        'Cannot Generate Games',
+        'Cannot Generate Round',
         'Unable to create game assignments. Check player and court availability.',
         [{ text: 'OK' }]
       );
       return;
     }
 
-    dispatch(generateNextGame({ assignments }));
+    dispatch(generateNextRound({ assignments }));
+    setBetweenRoundsVisible(true);
   };
 
-  const handleGameStart = (game: Game) => {
-    setGameInProgress({ ...gameInProgress, [game.id]: true });
+  const handleStartRound = () => {
+    dispatch(startRound());
+    setRoundStartTime(new Date());
+    setBetweenRoundsVisible(false);
   };
 
-  const handleGameComplete = (game: Game, score?: { serveScore: number; receiveScore: number }) => {
-    dispatch(completeGame({
-      gameId: game.id,
-      score
-    }));
+  const handleCompleteRound = () => {
+    if (!isRoundInProgress) return;
 
-    const newInProgress = { ...gameInProgress };
-    delete newInProgress[game.id];
-    setGameInProgress(newInProgress);
-
-    // Update algorithm stats
-    // TODO
-    algorithm.updatePlayerStats(game, true);
-  };
-
-  const handleScoreEntry = (game: Game) => {
-    setSelectedGame(game);
     setScoreModalVisible(true);
   };
 
-  const handleEndSession = () => {
-    const incompleteGames = currentSession.activeGames.filter(g => !g.isCompleted);
+  const handleRoundScoresSubmitted = (scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }) => {
+    dispatch(completeRound({ scores }));
 
-    if (incompleteGames.length > 0) {
+    // Update algorithm stats
+    currentRoundGames.forEach(game => {
+      const score = scores[game.id];
+      algorithm.updatePlayerStats(game, score || undefined);
+    });
+
+    setScoreModalVisible(false);
+    setRoundStartTime(null);
+
+    // Show between rounds modal after a brief delay
+    setTimeout(() => {
+      setBetweenRoundsVisible(true);
+    }, 500);
+  };
+
+  const handleEndSession = () => {
+    if (isRoundInProgress) {
       Alert.alert(
-        'Games in Progress',
-        `There are ${incompleteGames.length} incomplete games. End session anyway?`,
+        'Round in Progress',
+        'There is a round currently in progress. End session anyway?',
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -174,13 +187,62 @@ export default function LiveSessionScreen() {
     }
   };
 
-  const activeGames = currentSession.activeGames || [];
-  const completedGames = activeGames.filter(g => g.isCompleted);
-  const inProgressGames = activeGames.filter(g => !g.isCompleted);
-  const canStartNext = inProgressGames.length === 0;
-  const totalGamesPlayed = completedGames.length;
-  const playingPlayers = inProgressGames.length * 4;
-  const sittingOutPlayers = sessionPlayers.length - playingPlayers;
+  const getRoundActionButton = () => {
+    if (!hasActiveRound) {
+      return (
+        <TouchableOpacity
+          style={styles.generateRoundButton}
+          onPress={handleGenerateNewRound}
+        >
+          <Play size={20} color="white" />
+          <Text style={styles.generateRoundButtonText}>
+            {completedRounds === 0 ? 'Generate First Round' : 'Generate Next Round'}
+          </Text>
+        </TouchableOpacity>
+      );
+    }
+
+    if (isRoundCompleted) {
+      return (
+        <View style={styles.roundCompletedContainer}>
+          <View style={styles.roundCompletedBadge}>
+            <Trophy size={16} color={colors.green} />
+            <Text style={styles.roundCompletedText}>Round {currentSession.currentGameNumber} Completed</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.generateRoundButton}
+            onPress={handleGenerateNewRound}
+          >
+            <Play size={20} color="white" />
+            <Text style={styles.generateRoundButtonText}>Generate Next Round</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (isRoundInProgress) {
+      return (
+        <TouchableOpacity
+          style={styles.completeRoundButton}
+          onPress={handleCompleteRound}
+        >
+          <Square size={20} color="white" />
+          <Text style={styles.completeRoundButtonText}>Complete Round</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    // Round generated but not started
+    return (
+      <TouchableOpacity
+        style={styles.startRoundButton}
+        onPress={handleStartRound}
+      >
+        <Play size={20} color="white" />
+        <Text style={styles.startRoundButtonText}>Start Round {currentSession.currentGameNumber}</Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -190,7 +252,9 @@ export default function LiveSessionScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>{session.name}</Text>
-          <Text style={styles.subtitle}>Game {currentSession.currentGameNumber}</Text>
+          <Text style={styles.subtitle}>
+            {hasActiveRound ? `Round ${currentSession.currentGameNumber}` : `${completedRounds} rounds completed`}
+          </Text>
         </View>
         <TouchableOpacity onPress={handleEndSession} style={styles.endButton}>
           <Text style={styles.endButtonText}>End</Text>
@@ -205,42 +269,29 @@ export default function LiveSessionScreen() {
             <Text style={styles.statLabel}>Total Players</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{session.courts.filter(c => c.isActive).length}</Text>
+            <Text style={styles.statNumber}>{activeCourts.length}</Text>
             <Text style={styles.statLabel}>Active Courts</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{totalGamesPlayed}</Text>
-            <Text style={styles.statLabel}>Games Completed</Text>
+            <Text style={styles.statNumber}>{completedRounds}</Text>
+            <Text style={styles.statLabel}>Completed Rounds</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{sittingOutPlayers}</Text>
+            <Text style={styles.statNumber}>{sittingOutThisRound}</Text>
             <Text style={styles.statLabel}>Sitting Out</Text>
           </View>
         </View>
 
-        {/* Action Buttons */}
+        {/* Timer Display */}
+        {isRoundInProgress && roundStartTime && (
+          <View style={styles.timerContainer}>
+            <RoundTimer startTime={roundStartTime} />
+          </View>
+        )}
+
+        {/* Round Action Button */}
         <View style={styles.actionContainer}>
-          {canStartNext ? (
-            <TouchableOpacity
-              style={styles.startGameButton}
-              onPress={handleStartNextGame}
-            >
-              <Play size={20} color="white" />
-              <Text style={styles.startGameButtonText}>
-                {activeGames.length === 0 ? 'Start First Game' : 'Start Next Game'}
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.waitingButton}
-              disabled
-            >
-              <Clock size={20} color={colors.gray} />
-              <Text style={styles.waitingButtonText}>
-                Waiting for games to complete...
-              </Text>
-            </TouchableOpacity>
-          )}
+          {getRoundActionButton()}
 
           <View style={styles.secondaryActions}>
             <TouchableOpacity
@@ -250,16 +301,43 @@ export default function LiveSessionScreen() {
               <Trophy size={16} color={colors.primary} />
               <Text style={styles.secondaryButtonText}>Player Stats</Text>
             </TouchableOpacity>
+
+            {hasActiveRound && !isRoundInProgress && (
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() => setBetweenRoundsVisible(true)}
+              >
+                <Settings size={16} color={colors.primary} />
+                <Text style={styles.secondaryButtonText}>Adjust Round</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
+        {/* Current Round Games */}
+        {hasActiveRound && (
+          <View style={styles.gamesSection}>
+            <Text style={styles.sectionTitle}>
+              Round {currentSession.currentGameNumber} Games
+            </Text>
+            {currentRoundGames.map((game, index) => (
+              <RoundGameCard
+                key={game.id}
+                game={game}
+                players={sessionPlayers}
+                courtColor={COURT_COLORS[index % COURT_COLORS.length]}
+                roundStatus={isRoundInProgress ? 'in-progress' : isRoundCompleted ? 'completed' : 'pending'}
+              />
+            ))}
+          </View>
+        )}
+
         {/* Sitting Out Players */}
-        {sittingOutPlayers > 0 && inProgressGames.length > 0 && (
+        {hasActiveRound && sittingOutThisRound > 0 && (
           <View style={styles.sittingSection}>
-            <Text style={styles.sectionTitle}>Sitting Out This Game</Text>
+            <Text style={styles.sectionTitle}>Sitting Out This Round</Text>
             <View style={styles.sittingPlayers}>
-              {/* Get sitting out players from first game (they're all the same) */}
-              {inProgressGames[0]?.sittingOutIds.map(playerId => {
+              {currentRoundGames[0]?.sittingOutIds.map(playerId => {
                 const player = sessionPlayers.find(p => p.id === playerId);
                 return player ? (
                   <View key={player.id} style={styles.sittingPlayerChip}>
@@ -272,64 +350,48 @@ export default function LiveSessionScreen() {
           </View>
         )}
 
-        {/* Active Games */}
-        {inProgressGames.length > 0 && (
-          <View style={styles.gamesSection}>
-            <Text style={styles.sectionTitle}>Current Games</Text>
-            {inProgressGames.map((game, index) => (
-              <ActiveGameCard
-                key={game.id}
-                game={game}
-                players={sessionPlayers}
-                courtColor={COURT_COLORS[index % COURT_COLORS.length]}
-                isInProgress={gameInProgress[game.id]}
-                onStart={() => handleGameStart(game)}
-                onComplete={(score) => handleGameComplete(game, score)}
-                onScoreEntry={() => handleScoreEntry(game)}
-              />
-            ))}
-          </View>
-        )}
-
-        {/* Completed Games History */}
-        {completedGames.length > 0 && (
-          <View style={styles.gamesSection}>
-            <Text style={styles.sectionTitle}>Completed Games ({completedGames.length})</Text>
-            {completedGames.slice().reverse().map((game, index) => (
-              <GameCard
-                key={game.id}
-                game={game}
-                players={sessionPlayers}
-                courtColor={COURT_COLORS[index % COURT_COLORS.length]}
-                isCompleted={true}
-                onScoreEntry={() => handleScoreEntry(game)}
-              />
-            ))}
+        {/* Previous Rounds Summary */}
+        {completedRounds > 0 && (
+          <View style={styles.historySection}>
+            <Text style={styles.sectionTitle}>Session History</Text>
+            <View style={styles.historyCard}>
+              <View style={styles.historyRow}>
+                <Text style={styles.historyLabel}>Rounds Completed:</Text>
+                <Text style={styles.historyValue}>{completedRounds}</Text>
+              </View>
+              <View style={styles.historyRow}>
+                <Text style={styles.historyLabel}>Total Games:</Text>
+                <Text style={styles.historyValue}>{completedRounds * activeCourts.length}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.viewHistoryButton}
+                onPress={() => setStatsModalVisible(true)}
+              >
+                <Text style={styles.viewHistoryButtonText}>View Detailed Stats</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </ScrollView>
 
-      {/* Score Entry Modal */}
-      {selectedGame && (
-        <ScoreEntryModal
-          visible={scoreModalVisible}
-          game={selectedGame}
-          players={sessionPlayers}
-          onSave={(score) => {
-            if (!selectedGame.isCompleted) {
-              handleGameComplete(selectedGame, score);
-            } else {
-              dispatch(updateGameScore({ gameId: selectedGame.id, score }));
-            }
-            setScoreModalVisible(false);
-            setSelectedGame(null);
-          }}
-          onClose={() => {
-            setScoreModalVisible(false);
-            setSelectedGame(null);
-          }}
-        />
-      )}
+      {/* Round Score Entry Modal */}
+      <RoundScoreEntryModal
+        visible={scoreModalVisible}
+        games={currentRoundGames}
+        players={sessionPlayers}
+        onSave={handleRoundScoresSubmitted}
+        onClose={() => setScoreModalVisible(false)}
+      />
+
+      {/* Between Rounds Modal */}
+      <BetweenRoundsModal
+        visible={betweenRoundsVisible}
+        currentRound={currentSession.currentGameNumber}
+        games={currentRoundGames}
+        allPlayers={sessionPlayers}
+        onStartRound={handleStartRound}
+        onClose={() => setBetweenRoundsVisible(false)}
+      />
 
       {/* Player Stats Modal */}
       <PlayerStatsModal
@@ -409,10 +471,28 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
+  timerContainer: {
+    marginBottom: 16,
+  },
   actionContainer: {
     marginBottom: 24,
   },
-  startGameButton: {
+  generateRoundButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 12,
+  },
+  generateRoundButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  startRoundButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -422,25 +502,43 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 12,
   },
-  startGameButtonText: {
+  startRoundButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
-  waitingButton: {
+  completeRoundButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.grayLight,
+    backgroundColor: colors.orange,
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
     marginBottom: 12,
   },
-  waitingButtonText: {
-    color: colors.gray,
+  completeRoundButtonText: {
+    color: 'white',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  roundCompletedContainer: {
+    marginBottom: 12,
+  },
+  roundCompletedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.greenLight,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+    marginBottom: 12,
+  },
+  roundCompletedText: {
+    color: colors.green,
+    fontSize: 16,
+    fontWeight: '600',
   },
   secondaryActions: {
     flexDirection: 'row',
@@ -491,6 +589,38 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '500',
   },
+  historySection: {
+    marginBottom: 24,
+  },
+  historyCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  historyLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  historyValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  viewHistoryButton: {
+    alignItems: 'center',
+    marginTop: 8,
+    paddingVertical: 8,
+  },
+  viewHistoryButtonText: {
+    color: colors.primary,
+    fontWeight: '500',
+  },
   errorContainer: {
     flex: 1,
     alignItems: 'center',
@@ -508,4 +638,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

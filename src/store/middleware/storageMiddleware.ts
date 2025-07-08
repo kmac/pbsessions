@@ -1,4 +1,3 @@
-// src/store/middleware/storageMiddleware.ts
 import { Middleware } from '@reduxjs/toolkit';
 import { StorageManager } from '../../utils/storage';
 
@@ -29,5 +28,3 @@ export const storageMiddleware: Middleware = (store) => (next) => async (action)
 
   return result;
 };
-
-

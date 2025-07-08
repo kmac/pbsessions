@@ -1,6 +1,7 @@
-// src/store/slices/liveSessionSlice.ts (Complete Implementation)
+// src/store/slices/liveSessionSlice.ts (Updated for Round Management)
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { LiveSession, Game, PlayerStats, GameAssignment } from '../../types';
+import { Alert } from '../../utils/alert';
 
 interface LiveSessionState {
   currentSession: LiveSession | null;
@@ -21,12 +22,12 @@ const liveSessionSlice = createSlice({
     setCurrentSession: (state, action: PayloadAction<LiveSession>) => {
       state.currentSession = action.payload;
     },
-    generateNextGame: (state, action: PayloadAction<{ assignments: GameAssignment[] }>) => {
+    generateNextRound: (state, action: PayloadAction<{ assignments: GameAssignment[] }>) => {
       if (!state.currentSession) return;
 
       const now = new Date().toISOString();
       const newGames: Game[] = action.payload.assignments.map((assignment, index) => ({
-        id: `game_${state.currentSession!.currentGameNumber}_${assignment.court.id}_${Date.now()}`,
+        id: `game_${state.currentSession!.currentGameNumber}_${assignment.court.id}_${Date.now()}_${index}`,
         sessionId: state.currentSession!.sessionId,
         gameNumber: state.currentSession!.currentGameNumber,
         courtId: assignment.court.id,
@@ -40,12 +41,63 @@ const liveSessionSlice = createSlice({
         },
         sittingOutIds: assignment.sittingOut.map(p => p.id),
         isCompleted: false,
-        startedAt: now,
       }));
 
       state.currentSession.activeGames = newGames;
+    },
+    startRound: (state) => {
+      if (!state.currentSession) return;
+
+      const now = new Date().toISOString();
+
+      // Mark all games in the round as started
+      state.currentSession.activeGames.forEach(game => {
+        game.startedAt = now;
+      });
+    },
+    completeRound: (state, action: PayloadAction<{
+      scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }
+    }>) => {
+      if (!state.currentSession) return;
+
+      const now = new Date().toISOString();
+
+      // Mark all games as completed and apply scores
+      state.currentSession.activeGames.forEach(game => {
+        game.isCompleted = true;
+        game.completedAt = now;
+
+        const score = action.payload.scores[game.id];
+        if (score) {
+          game.score = score;
+        }
+      });
+
+      // Increment the round number for the next round
       state.currentSession.currentGameNumber += 1;
     },
+    updateRoundScores: (state, action: PayloadAction<{
+      scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }
+    }>) => {
+      if (!state.currentSession) return;
+
+      // Update scores for completed round
+      state.currentSession.activeGames.forEach(game => {
+        const score = action.payload.scores[game.id];
+        if (score) {
+          game.score = score;
+        }
+      });
+    },
+    updatePlayerStats: (state, action: PayloadAction<PlayerStats[]>) => {
+      Alert.alert(`updatePlayerStats: ${state}, ${action}`);
+      if (!state.currentSession) return;
+      state.currentSession.playerStats = action.payload;
+    },
+    endLiveSession: (state) => {
+      state.currentSession = null;
+    },
+    // Keep for backward compatibility but not used in round mode
     completeGame: (state, action: PayloadAction<{
       gameId: string;
       score?: { serveScore: number; receiveScore: number }
@@ -72,26 +124,6 @@ const liveSessionSlice = createSlice({
         game.score = action.payload.score;
       }
     },
-    swapPlayers: (state, action: PayloadAction<{
-      gameId: string;
-      player1Id: string;
-      player2Id: string;
-    }>) => {
-      if (!state.currentSession) return;
-
-      const game = state.currentSession.activeGames.find(g => g.id === action.payload.gameId);
-      if (!game) return;
-
-      // Implementation for swapping players between teams/courts
-      // This would be more complex in practice
-    },
-    updatePlayerStats: (state, action: PayloadAction<PlayerStats[]>) => {
-      if (!state.currentSession) return;
-      state.currentSession.playerStats = action.payload;
-    },
-    endLiveSession: (state) => {
-      state.currentSession = null;
-    },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
@@ -103,12 +135,14 @@ const liveSessionSlice = createSlice({
 
 export const {
   setCurrentSession,
-  generateNextGame,
-  completeGame,
-  updateGameScore,
-  swapPlayers,
+  generateNextRound,
+  startRound,
+  completeRound,
+  updateRoundScores,
   updatePlayerStats,
   endLiveSession,
+  completeGame, // Legacy - for compatibility
+  updateGameScore,
   setLoading,
   setError,
 } = liveSessionSlice.actions;
