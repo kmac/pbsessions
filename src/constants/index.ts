@@ -2,6 +2,7 @@ import { colors } from '../theme';
 
 export const APP_CONFIG = {
   VERSION: '1.0.0',
+  MIN_PLAYERS_PER_GAME: 4,
   MIN_PLAYERS_PER_SESSION: 4,
   MAX_PLAYERS_PER_SESSION: 24,
   MIN_COURTS: 1,

@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
 import { X, Plus, Trash2, Users } from 'lucide-react-native';
+import { Picker } from '@react-native-picker/picker';
 import { addMultiplePlayers } from '../store/slices/playersSlice';
 import { Player } from '../types';
 import { colors } from '../theme';
@@ -26,18 +27,20 @@ interface PlayerInput {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  gender?: 'male' | 'female' | 'other';
   rating: string;
 }
 
 export default function BulkAddModal({ visible, onClose }: BulkAddModalProps) {
   const dispatch = useDispatch();
   const [players, setPlayers] = useState<PlayerInput[]>([
-    { id: '1', name: '', email: '', rating: '' },
+    { id: '1', name: '', email: '', phone: '', gender: undefined, rating: '' },
   ]);
 
   const addPlayerRow = () => {
     const newId = (players.length + 1).toString();
-    setPlayers([...players, { id: newId, name: '', email: '', rating: '' }]);
+    setPlayers([...players, { id: newId, name: '', email: '', phone: '', gender: undefined, rating: '' }]);
   };
 
   const removePlayerRow = (id: string) => {
@@ -154,6 +157,32 @@ export default function BulkAddModal({ visible, onClose }: BulkAddModalProps) {
                     autoCapitalize="none"
                   />
                 </View>
+                <View style={[styles.inputGroup, { flex: 2 }]}>
+                  <Text style={styles.inputLabel}>Phone</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={player.phone}
+                    onChangeText={(text) => updatePlayer(player.id, 'phone', text)}
+                    placeholder="Phone (optional)"
+                    keyboardType="phone-pad"
+                    autoCapitalize="none"
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>Gender (optional)</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker
+                      selectedValue={player.gender}
+                      onValueChange={(value) => updatePlayer(player.id, 'gender', value)}
+                      style={styles.picker}
+                    >
+                      <Picker.Item label="Select gender" value="" />
+                      <Picker.Item label="Male" value="male" />
+                      <Picker.Item label="Female" value="female" />
+                      <Picker.Item label="Other" value="other" />
+                    </Picker>
+                  </View>
+                </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.inputLabel}>Rating</Text>
                   <TextInput
@@ -266,6 +295,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.text,
     marginBottom: 4,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    backgroundColor: 'white',
+  },
+  picker: {
+    height: 50,
   },
   input: {
     borderWidth: 1,

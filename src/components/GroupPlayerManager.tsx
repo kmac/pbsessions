@@ -289,6 +289,7 @@ export default function GroupPlayerManager({
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color={colors.text} />
+            <Text style={styles.header}>Save</Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={styles.title}>{group.name}</Text>

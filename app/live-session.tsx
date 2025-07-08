@@ -128,6 +128,7 @@ export default function LiveSessionScreen() {
     setGameInProgress(newInProgress);
 
     // Update algorithm stats
+    // TODO
     algorithm.updatePlayerStats(game, true);
   };
 
@@ -252,25 +253,6 @@ export default function LiveSessionScreen() {
           </View>
         </View>
 
-        {/* Active Games */}
-        {inProgressGames.length > 0 && (
-          <View style={styles.gamesSection}>
-            <Text style={styles.sectionTitle}>Current Games</Text>
-            {inProgressGames.map((game, index) => (
-              <GameCard
-                key={game.id}
-                game={game}
-                players={sessionPlayers}
-                courtColor={COURT_COLORS[index % COURT_COLORS.length]}
-                isInProgress={gameInProgress[game.id]}
-                onStart={() => handleGameStart(game)}
-                onComplete={(score) => handleGameComplete(game, score)}
-                onScoreEntry={() => handleScoreEntry(game)}
-              />
-            ))}
-          </View>
-        )}
-
         {/* Sitting Out Players */}
         {sittingOutPlayers > 0 && inProgressGames.length > 0 && (
           <View style={styles.sittingSection}>
@@ -287,6 +269,25 @@ export default function LiveSessionScreen() {
                 ) : null;
               })}
             </View>
+          </View>
+        )}
+
+        {/* Active Games */}
+        {inProgressGames.length > 0 && (
+          <View style={styles.gamesSection}>
+            <Text style={styles.sectionTitle}>Current Games</Text>
+            {inProgressGames.map((game, index) => (
+              <ActiveGameCard
+                key={game.id}
+                game={game}
+                players={sessionPlayers}
+                courtColor={COURT_COLORS[index % COURT_COLORS.length]}
+                isInProgress={gameInProgress[game.id]}
+                onStart={() => handleGameStart(game)}
+                onComplete={(score) => handleGameComplete(game, score)}
+                onScoreEntry={() => handleScoreEntry(game)}
+              />
+            ))}
           </View>
         )}
 

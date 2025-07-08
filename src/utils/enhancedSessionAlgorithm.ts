@@ -98,6 +98,10 @@ export class EnhancedSessionAlgorithm {
     const courtAssignments: Player[][] = Array(this.courts.length).fill(null).map(() => []);
     const remainingPlayers = [...playingPlayers];
 
+    // TODO: it looks to me that we'll have to sort the courts by minimum
+    // rating first, so that higher rating players get selected for higher
+    // courts first.
+
     // Step 1: Assign players to courts with rating requirements first
     this.courts.forEach((court, courtIndex) => {
       if (court.minimumRating && remainingPlayers.length >= 4) {
