@@ -92,7 +92,6 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
       dateTime: formData.dateTime,
       playerIds: formData.playerIds,
       courts: formData.courts,
-      isLive: false,
     };
 
     if (session) {

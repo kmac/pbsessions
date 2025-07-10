@@ -42,7 +42,7 @@ export default function ConfigurationTab() {
             try {
               const storage = StorageManager.getInstance();
               await storage.clearAllData();
-              // In a real app, you'd dispatch actions to clear Redux state too
+              // TODO? In a real app, you'd dispatch actions to clear Redux state too
               Alert.alert('Success', 'All data cleared');
             } catch (error) {
               Alert.alert('Error', 'Failed to clear data');

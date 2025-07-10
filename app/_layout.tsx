@@ -12,6 +12,8 @@ import { store } from '../src/store';
 import { StorageManager } from '../src/utils/storage';
 import { setPlayers } from '../src/store/slices/playersSlice';
 import { setGroups } from '../src/store/slices/groupsSlice';
+import { setSessions } from '../src/store/slices/sessionsSlice';
+import { setCurrentSession } from '../src/store/slices/liveSessionSlice';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -34,13 +36,19 @@ function StorageLoader() {
       const storage = StorageManager.getInstance();
 
       try {
-        const [players, groups] = await Promise.all([
+        const [players, groups, sessions, liveSession] = await Promise.all([
           storage.loadPlayers(),
           storage.loadGroups(),
+          storage.loadSessions(),
+          storage.loadLiveSession(),
         ]);
 
         dispatch(setPlayers(players));
         dispatch(setGroups(groups));
+        dispatch(setSessions(sessions));
+        if (liveSession) {
+          dispatch(setCurrentSession(liveSession));
+        }
       } catch (error) {
         console.error('Error loading initial data:', error);
       }

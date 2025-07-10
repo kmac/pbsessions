@@ -43,14 +43,12 @@ const sessionsSlice = createSlice({
     startLiveSession: (state, action: PayloadAction<string>) => {
       const session = state.sessions.find(s => s.id === action.payload);
       if (session) {
-        session.isLive = true;
         session.updatedAt = new Date().toISOString();
       }
     },
     endLiveSession: (state, action: PayloadAction<string>) => {
       const session = state.sessions.find(s => s.id === action.payload);
       if (session) {
-        session.isLive = false;
         session.updatedAt = new Date().toISOString();
       }
     },

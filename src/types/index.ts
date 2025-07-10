@@ -32,9 +32,17 @@ export interface Session {
   dateTime: string;
   playerIds: string[];
   courts: Court[];
-  isLive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// TODO should we merge this with the Session??
+export interface LiveSession {
+  sessionId: string;
+  currentGameNumber: number;
+  activeGames: Game[];
+  playerStats: PlayerStats[];
+  isActive: boolean;
 }
 
 export interface Game {
@@ -60,14 +68,6 @@ export interface Game {
   completedAt?: string;
 }
 
-export interface LiveSession {
-  sessionId: string;
-  currentGameNumber: number;
-  activeGames: Game[];
-  playerStats: PlayerStats[];
-  isActive: boolean;
-}
-
 export interface PlayerStats {
   playerId: string;
   gamesPlayed: number;
@@ -83,6 +83,3 @@ export interface GameAssignment {
   receiveTeam: [Player, Player];
   sittingOut: Player[];
 }
-
-// Re-export all existing types plus the new GameAssignment
-export * from './index';

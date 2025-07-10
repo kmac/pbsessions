@@ -51,8 +51,11 @@ export default function SessionsTab() {
     setModalVisible(false);
   };
 
+  //const isSessionLive = (sessionId: string, liveSessions: LiveSession[]) => liveSessions.some(ls => ls.sessionId === sessionId && ls.isActive);
+  const isSessionLive = (sessionId: string) => currentSession ? sessionId === currentSession.sessionId : false;
+
   const handleDeleteSession = (session: Session) => {
-    if (session.isLive) {
+    if (isSessionLive(session.id)) {
       Alert.alert(
         'Cannot Delete',
         'Cannot delete a live session. End the session first.',
@@ -76,7 +79,7 @@ export default function SessionsTab() {
   };
 
   const handleEditSession = (session: Session) => {
-    if (session.isLive) {
+    if (isSessionLive(session.id)) {
       Alert.alert(
         'Cannot Edit',
         'Cannot edit a live session. End the session first.',
@@ -161,11 +164,11 @@ export default function SessionsTab() {
   const renderSession = ({ item }: { item: Session }) => {
     const sessionPlayers = getSessionPlayers(item);
     const activeCourts = item.courts.filter(c => c.isActive);
-    const isCurrentLive = currentSession?.sessionId === item.id;
+    const isCurrentLive = isSessionLive(item.id)
 
     return (
-      <View style={[styles.sessionCard, item.isLive && styles.liveSessionCard]}>
-        {item.isLive && (
+      <View style={[styles.sessionCard, isCurrentLive && styles.liveSessionCard]}>
+        {isCurrentLive && (
           <View style={styles.liveIndicator}>
             <View style={styles.liveDot} />
             <Text style={styles.liveText}>LIVE</Text>
@@ -215,7 +218,7 @@ export default function SessionsTab() {
         )}
 
         <View style={styles.sessionActions}>
-          {item.isLive ? (
+          {isCurrentLive ? (
             <TouchableOpacity
               style={[styles.actionButton, styles.continueButton]}
               onPress={() => router.push('/live-session')}

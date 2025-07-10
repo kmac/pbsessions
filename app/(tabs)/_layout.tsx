@@ -34,17 +34,17 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Players',
-          tabBarIcon: ({ color, size }) => <Users color={color} size={size || 24} />,
-        }}
-      />
-      <Tabs.Screen
         name="groups"
         options={{
           title: 'Groups',
           tabBarIcon: ({ color, size }) => <Users2 color={color} size={size || 24} />,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Players',
+          tabBarIcon: ({ color, size }) => <Users color={color} size={size || 24} />,
         }}
       />
       <Tabs.Screen
@@ -57,7 +57,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="configuration"
         options={{
-          title: 'Configuration',
+          title: 'Settings',
           tabBarIcon: ({ color, size }) => <Settings color={color} size={size || 24} />,
         }}
       />
