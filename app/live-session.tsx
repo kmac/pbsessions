@@ -46,7 +46,7 @@ BetweenRoundsModal
          --> dispatch(endLiveSession());
 
 */
-import { EnhancedSessionAlgorithm } from '../src/utils/enhancedSessionAlgorithm';
+import { SessionRoundManager } from '../src/utils/sessionRoundManager';
 import RoundGameCard from '../src/components/RoundGameCard';
 import RoundScoreEntryModal from '../src/components/RoundScoreEntryModal';
 import PlayerStatsModal from '../src/components/PlayerStatsModal';
@@ -90,7 +90,7 @@ export default function LiveSessionScreen() {
     );
   }
 
-  const algorithm = new EnhancedSessionAlgorithm(
+  const roundAssigner = new SessionRoundManager(
     sessionPlayers,
     session.courts,
     currentSession.playerStats
@@ -111,7 +111,7 @@ export default function LiveSessionScreen() {
   const completedRounds = currentSession.currentGameNumber - 1;
 
   const handleGenerateNewRound = () => {
-    const assignments = algorithm.generateGameAssignments(currentSession.currentGameNumber);
+    const assignments = roundAssigner.generateGameAssignments(currentSession.currentGameNumber);
 
     if (assignments.length === 0) {
       Alert.alert(
@@ -124,7 +124,7 @@ export default function LiveSessionScreen() {
 
     dispatch(generateNextRound({ assignments }));
 
-    // do we always want to do this????
+    // TODO do we always want to do this????
     setBetweenRoundsVisible(true);
   };
 
@@ -135,7 +135,9 @@ export default function LiveSessionScreen() {
   };
 
   const handleCompleteRound = () => {
-    if (!isRoundInProgress) return;
+    if (!isRoundInProgress) {
+      return;
+    }
     setScoreModalVisible(true);
   };
 
@@ -146,11 +148,11 @@ export default function LiveSessionScreen() {
     // Update algorithm stats for each completed game
     currentRoundGames.forEach(game => {
       const score = scores[game.id];
-      algorithm.updatePlayerStatsForGame(game, score || undefined);
+      roundAssigner.updatePlayerStatsForGame(game, score || undefined);
     });
 
     // Get updated stats from algorithm and save to store
-    const updatedStats = algorithm.getPlayerStats();
+    const updatedStats = roundAssigner.getPlayerStats();
     dispatch(updatePlayerStatsInStore(updatedStats));
 
     setScoreModalVisible(false);

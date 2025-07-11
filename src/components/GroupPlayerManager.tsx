@@ -1,4 +1,8 @@
 // src/components/GroupPlayerManager.tsx
+
+// Manages player configuration from the 'Groups' tab.
+// Each group has a 'Manage Players' button which invokes this screen
+
 import React, { useState } from 'react';
 import {
   View,
@@ -46,28 +50,29 @@ export default function GroupPlayerManager({
   const dispatch = useAppDispatch();
   const { players } = useAppSelector((state) => state.players);
 
+  const currentGroup = useAppSelector((state) =>
+    state.groups.groups.find(g => g.id === group.id)
+  ) || group;
+
   const [viewMode, setViewMode] = useState<ViewMode>('select');
   const [searchQuery, setSearchQuery] = useState('');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   const isPlayerInGroup = (playerId: string) => {
-    return group.playerIds.includes(playerId);
+    return currentGroup.playerIds.includes(playerId);
   };
 
   const handleTogglePlayer = (player: Player) => {
     if (isPlayerInGroup(player.id)) {
-      dispatch(removePlayerFromGroup({ groupId: group.id, playerId: player.id }));
+      dispatch(removePlayerFromGroup({ groupId: currentGroup.id, playerId: player.id }));
     } else {
-      dispatch(addPlayerToGroup({ groupId: group.id, playerId: player.id }));
+      dispatch(addPlayerToGroup({ groupId: currentGroup.id, playerId: player.id }));
     }
   };
 
   const handleQuickAddPlayer = (playerData: Omit<Player, 'id' | 'createdAt' | 'updatedAt'>) => {
     // Add player to store
     dispatch(addPlayer(playerData));
-
-    // Get the new player ID (this is a simplified approach - in production you'd handle this better)
-    const newPlayerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Add to group immediately
     setTimeout(() => {
@@ -105,7 +110,7 @@ export default function GroupPlayerManager({
         <View style={styles.playerInfo}>
           <View style={styles.playerHeader}>
             <Text style={[styles.playerName, isSelected && styles.playerNameSelected]}>
-              {item.name}
+              GPM {item.name}
             </Text>
             {item.rating && (
               <View style={styles.ratingBadge}>

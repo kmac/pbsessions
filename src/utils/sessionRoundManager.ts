@@ -1,4 +1,3 @@
-// src/utils/enhancedSessionAlgorithm.ts (Updated with better stats management)
 import { Player, Game, PlayerStats, Court } from '../types';
 
 export interface GameAssignment {
@@ -14,7 +13,7 @@ export interface TeamBalance {
   difference: number;
 }
 
-export class EnhancedSessionAlgorithm {
+export class SessionRoundManager {
   private players: Player[];
   private courts: Court[];
   private playerStats: Map<string, PlayerStats>;

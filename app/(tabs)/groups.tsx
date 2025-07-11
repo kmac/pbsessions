@@ -162,6 +162,18 @@ export default function GroupsTab() {
     </View>
   );
 
+  const handleSaveGroup = (groupData: Group | Omit<Group, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (editingGroup) {
+      // For updates, we know groupData has all required fields
+      dispatch(updateGroup(groupData as Group));
+      setEditingGroup(null);
+    } else {
+      // For new groups, we know groupData omits id, createdAt, updatedAt
+      dispatch(addGroup(groupData as Omit<Group, 'id' | 'createdAt' | 'updatedAt'>));
+    }
+    setModalVisible(false);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -210,7 +222,7 @@ export default function GroupsTab() {
       >
         <GroupForm
           group={editingGroup}
-          onSave={editingGroup ? handleUpdateGroup : handleAddGroup}
+          onSave={handleSaveGroup}
           onCancel={() => {
             setModalVisible(false);
             setEditingGroup(null);

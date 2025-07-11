@@ -18,6 +18,7 @@ import PlayerForm from '../components/PlayerForm';
 import BulkAddModal from '../components/BulkAddModal';
 import { colors } from '../theme';
 import { Alert } from '../utils/alert'
+import { APP_CONFIG } from '../../src/constants';
 
 export default function PlayersScreen() {
   const dispatch = useDispatch();
@@ -77,23 +78,33 @@ export default function PlayersScreen() {
     return groups.filter(group => group.playerIds.includes(playerId)).length;
   };
 
+  const getPlayerDetails = (item: Player) => {
+    let details = "";
+    let separator = "";
+    if (item.gender) {
+      details = `${item.gender}`;
+      separator = ", "
+    }
+    if (item.email) {
+      details = details + separator + `${item.email}`;
+      separator = ", "
+    }
+    if (item.phone) {
+      details = details + separator + `${item.phone}`;
+      separator = ", "
+    }
+    return details;
+  };
+
   const renderPlayer = ({ item }: { item: Player }) => (
     <View style={styles.playerCard}>
       <View style={styles.playerInfo}>
         <Text style={styles.playerName}>{item.name}</Text>
         <View style={styles.playerDetails}>
           {item.rating && (
-            <Text style={styles.rating}>Rating: {item.rating.toFixed(1)}</Text>
+            <Text style={styles.rating}>Rating: {item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}</Text>
           )}
-          {item.gender && (
-            <Text style={styles.detail}>{item.gender}</Text>
-          )}
-          {item.email && (
-            <Text style={styles.detail}>{item.email}</Text>
-          )}
-          {item.phone && (
-            <Text style={styles.detail}>{item.phone}</Text>
-          )}
+          <Text style={styles.detail}>{getPlayerDetails(item)}</Text>
         </View>
         <View style={styles.groupInfo}>
           <Users size={14} color={colors.gray} />
@@ -131,6 +142,12 @@ export default function PlayersScreen() {
             <Text style={styles.bulkButtonText}>Bulk Add</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            style={[styles.addButton, styles.bulkButton]}
+            onPress={() => {}}
+          >
+            <Text style={styles.bulkButtonText}>Import</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.addButton}
             onPress={() => setModalVisible(true)}
           >
@@ -141,7 +158,7 @@ export default function PlayersScreen() {
       </View>
 
       <FlatList
-        data={players}
+        data={[...players].sort((a, b) => a.name.localeCompare(b.name))}
         renderItem={renderPlayer}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
@@ -213,6 +230,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   bulkButton: {
+    backgroundColor: colors.secondary,
+  },
+  importButton: {
     backgroundColor: colors.secondary,
   },
   addButtonText: {

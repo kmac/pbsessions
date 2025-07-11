@@ -288,7 +288,8 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
         )}
       </ScrollView>
 
-      {/* Player Manager Modal */}
+      {/* Player Manager Modal
+      TODO this is sort of a duplicate - but this one works */}
       <SessionPlayerManager
         visible={showPlayerManager}
         selectedPlayerIds={formData.playerIds}
