@@ -25,7 +25,6 @@ const liveSessionSlice = createSlice({
     generateNextRound: (state, action: PayloadAction<{ assignments: GameAssignment[] }>) => {
       if (!state.currentSession) return;
 
-      const now = new Date().toISOString();
       const newGames: Game[] = action.payload.assignments.map((assignment, index) => ({
         id: `game_${state.currentSession!.currentGameNumber}_${assignment.court.id}_${Date.now()}_${index}`,
         sessionId: state.currentSession!.sessionId,
@@ -76,19 +75,19 @@ const liveSessionSlice = createSlice({
       // Increment the round number for the next round
       state.currentSession.currentGameNumber += 1;
     },
-    updateRoundScores: (state, action: PayloadAction<{
-      scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }
-    }>) => {
-      if (!state.currentSession) return;
+    // updateRoundScores: (state, action: PayloadAction<{
+    //   scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }
+    // }>) => {
+    //   if (!state.currentSession) return;
 
-      // Update scores for completed round
-      state.currentSession.activeGames.forEach(game => {
-        const score = action.payload.scores[game.id];
-        if (score) {
-          game.score = score;
-        }
-      });
-    },
+    //   // Update scores for completed round
+    //   state.currentSession.activeGames.forEach(game => {
+    //     const score = action.payload.scores[game.id];
+    //     if (score) {
+    //       game.score = score;
+    //     }
+    //   });
+    // },
     updatePlayerStats: (state, action: PayloadAction<PlayerStats[]>) => {
       if (!state.currentSession) return;
       console.log(`updatePlayerStats: ${action.payload}`);
@@ -98,21 +97,21 @@ const liveSessionSlice = createSlice({
       state.currentSession = null;
     },
     // Keep for backward compatibility but not used in round mode
-    completeGame: (state, action: PayloadAction<{
-      gameId: string;
-      score?: { serveScore: number; receiveScore: number }
-    }>) => {
-      if (!state.currentSession) return;
+    // completeGame: (state, action: PayloadAction<{
+    //   gameId: string;
+    //   score?: { serveScore: number; receiveScore: number }
+    // }>) => {
+    //   if (!state.currentSession) return;
 
-      const game = state.currentSession.activeGames.find(g => g.id === action.payload.gameId);
-      if (game) {
-        game.isCompleted = true;
-        game.completedAt = new Date().toISOString();
-        if (action.payload.score) {
-          game.score = action.payload.score;
-        }
-      }
-    },
+    //   const game = state.currentSession.activeGames.find(g => g.id === action.payload.gameId);
+    //   if (game) {
+    //     game.isCompleted = true;
+    //     game.completedAt = new Date().toISOString();
+    //     if (action.payload.score) {
+    //       game.score = action.payload.score;
+    //     }
+    //   }
+    // },
     updateGameScore: (state, action: PayloadAction<{
       gameId: string;
       score: { serveScore: number; receiveScore: number }
@@ -138,10 +137,10 @@ export const {
   generateNextRound,
   startRound,
   completeRound,
-  updateRoundScores,
+  // updateRoundScores,
   updatePlayerStats,
   endLiveSession,
-  completeGame, // Legacy - for compatibility
+  // completeGame, // Legacy - for compatibility
   updateGameScore,
   setLoading,
   setError,

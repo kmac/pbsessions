@@ -27,11 +27,26 @@ import {
   startRound,
   completeRound,
   endLiveSession,
-  updateRoundScores,
+  // updateRoundScores,
   updatePlayerStats as updatePlayerStatsInStore
 } from '../src/store/slices/liveSessionSlice';
+/*
+
+Modals:
+RoundScoreEntryModal
+PlayerStatsModal
+BetweenRoundsModal
+
+  󰊕  handleGenerateNewRound       --> setBetweenRoundsVisible(true);
+  󰊕  handleStartRound             --> setBetweenRoundsVisible(false);
+  󰊕  handleCompleteRound          --> setScoreModalVisible(true);
+  󰊕  handleRoundScoresSubmitted   --> setScoreModalVisible(false)
+                                  --> setBetweenRoundsVisible(true);
+  󰊕  handleEndSession
+         --> dispatch(endLiveSession());
+
+*/
 import { EnhancedSessionAlgorithm } from '../src/utils/enhancedSessionAlgorithm';
-import { Game, Player } from '../src/types';
 import RoundGameCard from '../src/components/RoundGameCard';
 import RoundScoreEntryModal from '../src/components/RoundScoreEntryModal';
 import PlayerStatsModal from '../src/components/PlayerStatsModal';
@@ -89,7 +104,7 @@ export default function LiveSessionScreen() {
 
   // Statistics
   const activeCourts = session.courts.filter(c => c.isActive);
-  const playingPlayersThisRound = isRoundInProgress ? activeCourts.length * 4 : 0;
+  // const playingPlayersThisRound = isRoundInProgress ? activeCourts.length * 4 : 0;
   const sittingOutThisRound = hasActiveRound
     ? currentRoundGames[0]?.sittingOutIds.length || 0
     : 0;
@@ -108,6 +123,8 @@ export default function LiveSessionScreen() {
     }
 
     dispatch(generateNextRound({ assignments }));
+
+    // do we always want to do this????
     setBetweenRoundsVisible(true);
   };
 
@@ -119,7 +136,6 @@ export default function LiveSessionScreen() {
 
   const handleCompleteRound = () => {
     if (!isRoundInProgress) return;
-
     setScoreModalVisible(true);
   };
 
@@ -141,9 +157,9 @@ export default function LiveSessionScreen() {
     setRoundStartTime(null);
 
     // Show between rounds modal after a brief delay
-    setTimeout(() => {
-      setBetweenRoundsVisible(true);
-    }, 500);
+    // setTimeout(() => {
+    //   setBetweenRoundsVisible(true);
+    // }, 500);
   };
 
   const handleEndSession = () => {

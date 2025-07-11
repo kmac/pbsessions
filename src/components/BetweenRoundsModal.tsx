@@ -112,6 +112,7 @@ export default function BetweenRoundsModal({
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={styles.title}>Round {currentRound} Ready</Text>
+            {/* This is UNIQUE */}
             <Text style={styles.subtitle}>Review assignments and start when ready</Text>
           </View>
           <View style={styles.placeholder} />
