@@ -36,7 +36,6 @@ export interface Session {
   updatedAt: string;
 }
 
-// TODO should we merge this with the Session??
 export interface LiveSession {
   sessionId: string;
   currentGameNumber: number;

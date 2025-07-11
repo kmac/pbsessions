@@ -252,8 +252,7 @@ export class EnhancedSessionAlgorithm {
     return -timesPartnered;
   }
 
-  // Updated updatePlayerStats method with better tracking
-  updatePlayerStats(game: Game, score?: { serveScore: number; receiveScore: number }): void {
+  updatePlayerStatsForGame(game: Game, score?: { serveScore: number; receiveScore: number }): void {
     const allGamePlayerIds = [
       game.serveTeam.player1Id,
       game.serveTeam.player2Id,
@@ -264,31 +263,39 @@ export class EnhancedSessionAlgorithm {
     // Update stats for playing players
     allGamePlayerIds.forEach(playerId => {
       const stats = this.playerStats.get(playerId);
+
       if (!stats) {
         console.warn(`No stats found for player ${playerId}`);
         return;
       }
 
-      stats.gamesPlayed++;
+      const mutableStats = {
+        ...stats,
+        partners: { ...stats.partners }
+      };
+      mutableStats.gamesPlayed++;
 
       // Update partnership counts - only with actual teammate
       const teammateId = this.getTeammateId(game, playerId);
       if (teammateId) {
-        stats.partners[teammateId] = (stats.partners[teammateId] || 0) + 1;
+        mutableStats.partners[teammateId] = (mutableStats.partners[teammateId] || 0) + 1;
       }
 
       // Update score if provided
       if (score) {
         const playerScore = this.getPlayerScore(game, playerId, score);
-        stats.totalScore += playerScore;
+        mutableStats.totalScore += playerScore;
       }
+      this.playerStats.set(playerId, mutableStats);
     });
 
     // Update sit-out stats
     game.sittingOutIds.forEach(playerId => {
       const stats = this.playerStats.get(playerId);
       if (stats) {
-        stats.gamesSatOut++;
+        const mutableStats = { ...stats };
+        mutableStats.gamesSatOut++;
+        this.playerStats.set(playerId, mutableStats);
       }
     });
 

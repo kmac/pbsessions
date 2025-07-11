@@ -51,7 +51,6 @@ export default function SessionsTab() {
     setModalVisible(false);
   };
 
-  //const isSessionLive = (sessionId: string, liveSessions: LiveSession[]) => liveSessions.some(ls => ls.sessionId === sessionId && ls.isActive);
   const isSessionLive = (sessionId: string) => currentSession ? sessionId === currentSession.sessionId : false;
 
   const handleDeleteSession = (session: Session) => {
@@ -159,6 +158,18 @@ export default function SessionsTab() {
       hour: 'numeric',
       minute: '2-digit',
     });
+  };
+
+  const handleSaveSession = (sessionData: Session | Omit<Session, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (editingSession) {
+      // For updates, we know sessionData has all required fields
+      dispatch(updateSession(sessionData as Session));
+      setEditingSession(null);
+    } else {
+      // For new sessions, we know sessionData omits id, createdAt, updatedAt
+      dispatch(addSession(sessionData as Omit<Session, 'id' | 'createdAt' | 'updatedAt'>));
+    }
+    setModalVisible(false);
   };
 
   const renderSession = ({ item }: { item: Session }) => {
@@ -347,7 +358,7 @@ export default function SessionsTab() {
       >
         <SessionForm
           session={editingSession}
-          onSave={editingSession ? handleUpdateSession : handleAddSession}
+          onSave={handleSaveSession}
           onCancel={() => {
             setModalVisible(false);
             setEditingSession(null);

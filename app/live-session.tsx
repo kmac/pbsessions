@@ -83,10 +83,8 @@ export default function LiveSessionScreen() {
 
   // Current round state
   const currentRoundGames = currentSession.activeGames || [];
-  const isRoundInProgress = currentRoundGames.length > 0 &&
-    currentRoundGames.some(g => g.startedAt && !g.isCompleted);
-  const isRoundCompleted = currentRoundGames.length > 0 &&
-    currentRoundGames.every(g => g.isCompleted);
+  const isRoundInProgress = currentRoundGames.length > 0 && currentRoundGames.some(g => g.startedAt && !g.isCompleted);
+  const isRoundCompleted = currentRoundGames.length > 0 && currentRoundGames.every(g => g.isCompleted);
   const hasActiveRound = currentRoundGames.length > 0;
 
   // Statistics
@@ -132,7 +130,7 @@ export default function LiveSessionScreen() {
     // Update algorithm stats for each completed game
     currentRoundGames.forEach(game => {
       const score = scores[game.id];
-      algorithm.updatePlayerStats(game, score || undefined);
+      algorithm.updatePlayerStatsForGame(game, score || undefined);
     });
 
     // Get updated stats from algorithm and save to store
@@ -253,7 +251,7 @@ export default function LiveSessionScreen() {
           </Text>
         </View>
         <TouchableOpacity onPress={handleEndSession} style={styles.endButton}>
-          <Text style={styles.endButtonText}>End</Text>
+          <Text style={styles.endButtonText}>End Session</Text>
         </TouchableOpacity>
       </View>
 
