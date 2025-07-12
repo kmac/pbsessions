@@ -238,7 +238,7 @@ export default function SessionPlayerManager({
             <X size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.title}>Select Players</Text>
+            <Text style={styles.title}>SessionPlayerManager: Select Players</Text>
             <Text style={styles.subtitle}>
               {selectedPlayers.length} player{selectedPlayers.length !== 1 ? 's' : ''} selected
             </Text>

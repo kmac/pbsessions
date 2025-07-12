@@ -96,16 +96,31 @@ export default function PlayersScreen() {
     return details;
   };
 
+  const getShortGender = (gender: 'male' | 'female' | 'other' | undefined) => {
+    switch (gender) {
+      case 'male':
+        return '(M)';
+      case 'female':
+        return '(F)';
+      case 'other':
+        return '(O)';
+      default:
+        return '';
+    }
+  }
+
   const renderPlayer = ({ item }: { item: Player }) => (
     <View style={styles.playerCard}>
       <View style={styles.playerInfo}>
         <Text style={styles.playerName}>{item.name}</Text>
-        <View style={styles.playerDetails}>
+          <Text>
           {item.rating && (
             <Text style={styles.rating}>Rating: {item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}</Text>
           )}
-          <Text style={styles.detail}>{getPlayerDetails(item)}</Text>
-        </View>
+          {item.gender && (<Text style={styles.playerDetails}>{getShortGender(item.gender)}</Text>)}
+          {item.email && (<Text style={styles.playerDetails}>{item.email}</Text>)}
+          {item.phone && (<Text style={styles.playerDetails}>{item.phone}</Text>)}
+          </Text>
         <View style={styles.groupInfo}>
           <Users size={14} color={colors.gray} />
           <Text style={styles.groupCount}>
@@ -268,23 +283,21 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   playerDetails: {
-    marginBottom: 8,
-  },
-  rating: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.primary,
-    marginBottom: 2,
-  },
-  detail: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginBottom: 2,
+    marginBottom: 8,
+    marginRight: 4,
+  },
+  rating: {
+    fontWeight: '500',
+    color: colors.primary,
+    marginRight: 8,
   },
   groupInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    marginTop: 6,
   },
   groupCount: {
     fontSize: 12,

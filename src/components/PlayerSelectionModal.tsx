@@ -88,7 +88,7 @@ export default function PlayerSelectionModal({
             <X size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.title}>{group.name}</Text>
+            <Text style={styles.title}>PlayerSelectionModal: {group.name}</Text>
             <Text style={styles.subtitle}>
               {groupPlayerCount} player{groupPlayerCount !== 1 ? 's' : ''} selected
             </Text>

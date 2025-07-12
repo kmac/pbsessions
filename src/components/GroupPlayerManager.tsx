@@ -33,6 +33,7 @@ import { Group, Player } from '../types';
 import QuickPlayerForm from './QuickPlayerForm';
 import { colors } from '../theme';
 import { Alert } from '../utils/alert'
+import { APP_CONFIG } from '@/constants';
 
 interface GroupPlayerManagerProps {
   visible: boolean;
@@ -107,20 +108,30 @@ export default function GroupPlayerManager({
         onPress={() => showActions && handleTogglePlayer(item)}
         disabled={!showActions}
       >
+
+        {/*
+        TODO EXTRACT the user row into a common builder method that can be re-used across these different screens
+
+        Note how the ratingBadge in this screen is part of the playerHeader - this works well
+
+
+        */}
+
         <View style={styles.playerInfo}>
           <View style={styles.playerHeader}>
             <Text style={[styles.playerName, isSelected && styles.playerNameSelected]}>
-              GPM {item.name}
+              {item.name}
             </Text>
             {item.rating && (
               <View style={styles.ratingBadge}>
                 <Star size={12} color={colors.orange} />
-                <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
+                <Text style={styles.ratingText}>{item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}</Text>
               </View>
             )}
           </View>
 
           <View style={styles.playerDetails}>
+            {/*
             {item.email && (
               <View style={styles.detailRow}>
                 <Mail size={12} color={colors.gray} />
@@ -137,6 +148,7 @@ export default function GroupPlayerManager({
                 </Text>
               </View>
             )}
+            */}
             {item.gender && (
               <Text style={[styles.genderText, isSelected && styles.detailTextSelected]}>
                 {item.gender}
@@ -202,7 +214,7 @@ export default function GroupPlayerManager({
             Selected Players ({groupPlayers.length})
           </Text>
           <FlatList
-            data={groupPlayers}
+            data={[...groupPlayers].sort((a, b) => a.name.localeCompare(b.name))}
             renderItem={({ item }) => renderPlayerItem({ item })}
             keyExtractor={(item) => `selected-${item.id}`}
             scrollEnabled={false}
@@ -234,7 +246,7 @@ export default function GroupPlayerManager({
           </View>
         ) : (
           <FlatList
-            data={availablePlayers}
+            data={[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name))}
             renderItem={({ item }) => renderPlayerItem({ item })}
             keyExtractor={(item) => `available-${item.id}`}
             scrollEnabled={false}
@@ -265,7 +277,7 @@ export default function GroupPlayerManager({
       {groupPlayers.length > 0 && (
         <View style={styles.currentPlayersPreview}>
           <Text style={styles.previewTitle}>Current players in this group:</Text>
-          <ScrollView style={styles.previewScroll} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.previewScroll} showsVerticalScrollIndicator={true}>
             {groupPlayers.map(player => (
               <View key={player.id} style={styles.previewPlayerItem}>
                 <Text style={styles.previewPlayerName}>{player.name}</Text>
@@ -294,10 +306,9 @@ export default function GroupPlayerManager({
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color={colors.text} />
-            <Text style={styles.header}>Save</Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.title}>{group.name}</Text>
+            <Text style={styles.title}>GroupPlayerManager: {group.name}</Text>
             <Text style={styles.subtitle}>
               {groupPlayerCount} player{groupPlayerCount !== 1 ? 's' : ''}
             </Text>
