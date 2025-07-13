@@ -46,14 +46,14 @@ BetweenRoundsModal
          --> dispatch(endLiveSession());
 
 */
-import { SessionRoundManager } from '../src/utils/sessionRoundManager';
-import RoundGameCard from '../src/components/RoundGameCard';
-import RoundScoreEntryModal from '../src/components/RoundScoreEntryModal';
-import PlayerStatsModal from '../src/components/PlayerStatsModal';
-import BetweenRoundsModal from '../src/components/BetweenRoundsModal';
-import RoundTimer from '../src/components/RoundTimer';
-import { colors, COURT_COLORS } from '../src/theme';
-import { Alert } from '../src/utils/alert';
+import { SessionRoundManager } from '@/src/utils/sessionRoundManager';
+import RoundGameCard from '@/src/components/RoundGameCard';
+import RoundScoreEntryModal from '@/src/components/RoundScoreEntryModal';
+import PlayerStatsModal from '@/src/components/PlayerStatsModal';
+import BetweenRoundsModal from '@/src/components/BetweenRoundsModal';
+import RoundTimer from '@/src/components/RoundTimer';
+import { colors, COURT_COLORS } from '@/src/theme';
+import { Alert } from '@/src/utils/alert';
 
 export default function LiveSessionScreen() {
   const dispatch = useAppDispatch();

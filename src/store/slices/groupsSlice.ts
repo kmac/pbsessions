@@ -1,6 +1,5 @@
-// src/store/slices/groupsSlice.ts (Complete version with missing actions)
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Group } from '../../types';
+import { Group } from '@/src/types';
 
 interface GroupsState {
   groups: Group[];
@@ -79,4 +78,3 @@ export const {
 } = groupsSlice.actions;
 
 export default groupsSlice.reducer;
-

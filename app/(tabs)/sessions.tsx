@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../../src/store';
+import { useAppDispatch, useAppSelector } from '@/src/store';
 import {
   Plus,
   Calendar,
@@ -23,12 +23,12 @@ import {
   ExternalLink,
   Settings
 } from 'lucide-react-native';
-import { addSession, updateSession, removeSession, startLiveSession } from '../../src/store/slices/sessionsSlice';
-import { setCurrentSession } from '../../src/store/slices/liveSessionSlice';
-import { Session } from '../../src/types';
-import SessionForm from '../../src/components/SessionForm';
-import { colors } from '../../src/theme';
-import { Alert } from '../../src/utils/alert'
+import { addSession, updateSession, removeSession, startLiveSession } from '@/src/store/slices/sessionsSlice';
+import { setCurrentSession } from '@/src/store/slices/liveSessionSlice';
+import { Session } from '@/src/types';
+import SessionForm from '@/src/components/SessionForm';
+import { colors } from '@/src/theme';
+import { Alert } from '@/src/utils/alert'
 
 export default function SessionsTab() {
   const dispatch = useAppDispatch();

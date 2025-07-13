@@ -1,4 +1,3 @@
-// app/_layout.tsx (Root Layout)
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -8,12 +7,12 @@ import { useEffect } from 'react';
 import { Provider as StoreProvider, useDispatch } from 'react-redux';
 import { useColorScheme } from 'react-native';
 
-import { store } from '../src/store';
-import { StorageManager } from '../src/utils/storage';
-import { setPlayers } from '../src/store/slices/playersSlice';
-import { setGroups } from '../src/store/slices/groupsSlice';
-import { setSessions } from '../src/store/slices/sessionsSlice';
-import { setCurrentSession } from '../src/store/slices/liveSessionSlice';
+import { store } from '@/src/store';
+import { StorageManager } from '@/src/utils/storage';
+import { setPlayers } from '@/src/store/slices/playersSlice';
+import { setGroups } from '@/src/store/slices/groupsSlice';
+import { setSessions } from '@/src/store/slices/sessionsSlice';
+import { setCurrentSession } from '@/src/store/slices/liveSessionSlice';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -55,6 +54,7 @@ function StorageLoader() {
     };
 
     loadInitialData();
+
   }, [dispatch]);
 
   return null;
@@ -89,7 +89,6 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
 

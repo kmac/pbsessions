@@ -1,4 +1,3 @@
-// src/screens/PlayersScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -11,16 +10,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import { Plus, Edit2, Trash2, Users } from 'lucide-react-native';
-import { RootState } from '../store';
-import { addPlayer, updatePlayer, removePlayer } from '../store/slices/playersSlice';
-import { Player } from '../types';
-import PlayerForm from '../components/PlayerForm';
-import BulkAddModal from '../components/BulkAddModal';
-import { colors } from '../theme';
-import { Alert } from '../utils/alert'
-import { APP_CONFIG } from '../../src/constants';
+import { RootState } from '@/src/store';
+import { addPlayer, updatePlayer, removePlayer } from '@/src/store/slices/playersSlice';
+import { Player } from '@/src/types';
+import PlayerForm from '@/src/components/PlayerForm';
+import BulkAddModal from '@/src/components/BulkAddModal';
+import { colors } from '@/src/theme';
+import { Alert } from '@/src/utils/alert'
+import { APP_CONFIG } from '@/src/constants';
 
-export default function PlayersScreen() {
+export default function PlayersTab() {
   const dispatch = useDispatch();
   const { players, loading } = useSelector((state: RootState) => state.players);
   const groups = useSelector((state: RootState) => state.groups.groups);

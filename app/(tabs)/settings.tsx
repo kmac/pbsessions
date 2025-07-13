@@ -3,12 +3,12 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Settings, Download, Upload, Trash2 } from 'lucide-react-native';
-import { RootState } from '../../src/store';
-import { StorageManager } from '../../src/utils/storage';
-import { colors } from '../../src/theme';
-import { Alert } from '../../src/utils/alert'
+import { RootState } from '@/src/store';
+import { StorageManager, StoredData } from '@/src/utils/storage';
+import { colors } from '@/src/theme';
+import { Alert } from '@/src/utils/alert'
 
-export default function ConfigurationTab() {
+export default function SettingsTab() {
   const dispatch = useDispatch();
   const { players } = useSelector((state: RootState) => state.players);
   const { groups } = useSelector((state: RootState) => state.groups);
@@ -16,12 +16,12 @@ export default function ConfigurationTab() {
   const handleExportData = async () => {
     try {
       const storage = StorageManager.getInstance();
-      const data = await storage.exportAllData();
+      const data : StoredData = await storage.exportAllData();
 
       // In a real app, this would trigger a download or share
       Alert.alert(
         'Export Data',
-        `Ready to export:\n• ${data.players.length} players\n• ${data.groups.length} groups`,
+        `TODO: Ready to export:\n• ${data.players.length} players\n• ${data.groups.length} groups\n• ${data.sessions.length} sessions.`,
         [{ text: 'OK' }]
       );
     } catch (error) {

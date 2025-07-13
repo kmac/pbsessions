@@ -1,7 +1,6 @@
-// src/store/slices/liveSessionSlice.ts (Updated for Round Management)
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { LiveSession, Game, PlayerStats, GameAssignment } from '../../types';
-import { Alert } from '../../utils/alert';
+import { LiveSession, Game, PlayerStats, GameAssignment } from '@/src/types';
+// import { Alert } from '@/src/utils/alert';
 
 interface LiveSessionState {
   currentSession: LiveSession | null;
@@ -14,6 +13,11 @@ const initialState: LiveSessionState = {
   loading: false,
   error: null,
 };
+
+// Note on createSlice:
+// A function that accepts an initial state, an object full of reducer
+// functions, and a "slice name", and automatically generates action creators
+// and action types that correspond to the reducers and state.
 
 const liveSessionSlice = createSlice({
   name: 'liveSession',
@@ -75,19 +79,6 @@ const liveSessionSlice = createSlice({
       // Increment the round number for the next round
       state.currentSession.currentGameNumber += 1;
     },
-    // updateRoundScores: (state, action: PayloadAction<{
-    //   scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }
-    // }>) => {
-    //   if (!state.currentSession) return;
-
-    //   // Update scores for completed round
-    //   state.currentSession.activeGames.forEach(game => {
-    //     const score = action.payload.scores[game.id];
-    //     if (score) {
-    //       game.score = score;
-    //     }
-    //   });
-    // },
     updatePlayerStats: (state, action: PayloadAction<PlayerStats[]>) => {
       if (!state.currentSession) return;
       console.log(`updatePlayerStats: ${action.payload}`);
@@ -96,22 +87,6 @@ const liveSessionSlice = createSlice({
     endLiveSession: (state) => {
       state.currentSession = null;
     },
-    // Keep for backward compatibility but not used in round mode
-    // completeGame: (state, action: PayloadAction<{
-    //   gameId: string;
-    //   score?: { serveScore: number; receiveScore: number }
-    // }>) => {
-    //   if (!state.currentSession) return;
-
-    //   const game = state.currentSession.activeGames.find(g => g.id === action.payload.gameId);
-    //   if (game) {
-    //     game.isCompleted = true;
-    //     game.completedAt = new Date().toISOString();
-    //     if (action.payload.score) {
-    //       game.score = action.payload.score;
-    //     }
-    //   }
-    // },
     updateGameScore: (state, action: PayloadAction<{
       gameId: string;
       score: { serveScore: number; receiveScore: number }
@@ -137,10 +112,8 @@ export const {
   generateNextRound,
   startRound,
   completeRound,
-  // updateRoundScores,
   updatePlayerStats,
   endLiveSession,
-  // completeGame, // Legacy - for compatibility
   updateGameScore,
   setLoading,
   setError,

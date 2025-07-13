@@ -1,4 +1,7 @@
-// app/+html.tsx (Web HTML template)
+//
+// This is the html boilerplate for the web application
+//
+
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
 
@@ -11,7 +14,6 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
-        {/* SEO */}
         <title>Pickleball Sessions</title>
         <meta name="description" content="Organize and manage pickleball sessions with fair player rotation and team balancing." />
 
@@ -38,4 +40,3 @@ body {
   }
 }
 `;
-

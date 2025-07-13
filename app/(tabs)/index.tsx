@@ -1,6 +1,5 @@
-import PlayersScreen from '../../src/screens/PlayersScreen';
+import { Redirect } from "expo-router";
 
-export default function PlayersTab() {
-  return <PlayersScreen />;
+export default function Index() {
+  return <Redirect href="/groups" />;
 }
-

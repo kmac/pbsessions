@@ -1,6 +1,5 @@
-// src/store/slices/playersSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Player } from '../../types/index';
+import { Player } from '@/src/types/index';
 
 interface PlayersState {
   players: Player[];
@@ -74,4 +73,3 @@ export const {
 } = playersSlice.actions;
 
 export default playersSlice.reducer;
-

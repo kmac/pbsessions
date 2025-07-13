@@ -1,6 +1,5 @@
-// src/store/slices/sessionsSlice.ts (Complete Implementation)
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Session } from '../../types';
+import { Session } from '@/src/types';
 
 interface SessionsState {
   sessions: Session[];
@@ -77,5 +76,3 @@ export const {
 } = sessionsSlice.actions;
 
 export default sessionsSlice.reducer;
-
-

@@ -1,4 +1,3 @@
-// src/theme/Colors.ts (Expo Router color scheme)
 const tintColorLight = '#2563eb';
 const tintColorDark = '#3b82f6';
 

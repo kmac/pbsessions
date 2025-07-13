@@ -10,14 +10,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../../src/store';
 import { Plus, Edit2, Trash2, Users, UserPlus, ExternalLink } from 'lucide-react-native';
-import { addGroup, updateGroup, removeGroup } from '../../src/store/slices/groupsSlice';
-import { Group } from '../../src/types';
-import GroupForm from '../../src/components/GroupForm';
-import GroupPlayerManager from '../../src/components/GroupPlayerManager';
-import { colors } from '../../src/theme';
-import { Alert } from '../../src/utils/alert'
+import { useAppDispatch, useAppSelector } from '@/src/store';
+import { addGroup, updateGroup, removeGroup } from '@/src/store/slices/groupsSlice';
+import { Group } from '@/src/types';
+import GroupForm from '@/src/components/GroupForm';
+import GroupPlayerManager from '@/src/components/GroupPlayerManager';
+import { colors } from '@/src/theme';
+import { Alert } from '@/src/utils/alert'
 
 export default function GroupsTab() {
   const dispatch = useAppDispatch();
@@ -66,7 +66,7 @@ export default function GroupsTab() {
   };
 
   const navigateToPlayers = () => {
-    router.push('/');
+    router.push('/players');
   };
 
   const getGroupPlayers = (group: Group) => {
@@ -185,15 +185,13 @@ export default function GroupsTab() {
         </View>
 
         <View style={styles.headerActions}>
-          {players.length === 0 ? (
             <TouchableOpacity
               style={styles.navigateToPlayersButton}
               onPress={navigateToPlayers}
             >
               <ExternalLink size={16} color={colors.primary} />
-              <Text style={styles.navigateToPlayersText}>Add Players</Text>
+              <Text style={styles.navigateToPlayersText}>Manage Players</Text>
             </TouchableOpacity>
-          ) : (
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => setModalVisible(true)}
@@ -201,7 +199,6 @@ export default function GroupsTab() {
               <Plus size={20} color="white" />
               <Text style={styles.addButtonText}>Add Group</Text>
             </TouchableOpacity>
-          )}
         </View>
       </View>
 

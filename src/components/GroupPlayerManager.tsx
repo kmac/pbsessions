@@ -15,7 +15,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppSelector, useAppDispatch } from '../store';
+import { useAppSelector, useAppDispatch } from '@/src/store';
 import {
   X,
   Check,
@@ -27,13 +27,13 @@ import {
   Mail,
   Phone
 } from 'lucide-react-native';
-import { addPlayerToGroup, removePlayerFromGroup } from '../store/slices/groupsSlice';
-import { addPlayer } from '../store/slices/playersSlice';
-import { Group, Player } from '../types';
+import { addPlayerToGroup, removePlayerFromGroup } from '@/src/store/slices/groupsSlice';
+import { addPlayer } from '@/src/store/slices/playersSlice';
+import { Group, Player } from '@/src/types';
 import QuickPlayerForm from './QuickPlayerForm';
-import { colors } from '../theme';
-import { Alert } from '../utils/alert'
-import { APP_CONFIG } from '@/constants';
+import { colors } from '@/src/theme';
+import { Alert } from '@/src/utils/alert'
+import { APP_CONFIG } from '@/src/constants';
 
 interface GroupPlayerManagerProps {
   visible: boolean;

@@ -1,4 +1,3 @@
-// src/store/index.ts (Updated for Expo Router)
 import { configureStore } from '@reduxjs/toolkit';
 import playersReducer from './slices/playersSlice';
 import groupsReducer from './slices/groupsSlice';
@@ -31,4 +30,3 @@ import { useDispatch, useSelector, TypedUseSelectorHook } from 'react-redux';
 
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
-
