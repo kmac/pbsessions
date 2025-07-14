@@ -1,7 +1,7 @@
 // app/(tabs)/_layout.tsx (Tab Layout)
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
+// import { useColorScheme } from 'react-native';
 import { Users, Users2, Calendar, Settings } from 'lucide-react-native';
 
 import Colors from '@/src/theme/Colors';
@@ -17,22 +17,23 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  // const colorScheme = useColorScheme();
 
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+      // screenOptions={{
+        // tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         // Disable the static render of the header on web
         // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-        headerStyle: {
-          backgroundColor: '#f8fafc',
-        },
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}>
+        // headerShown: useClientOnlyValue(false, true),
+        // headerStyle: {
+        //   backgroundColor: '#f8fafc',
+        // },
+        // headerTitleStyle: {
+        //   fontWeight: 'bold',
+        // },
+      // }}>
+      >
       <Tabs.Screen
         name="index"
         options={{
@@ -63,6 +64,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
+          href: null,
           title: 'Settings',
           tabBarIcon: ({ color, size }) => <Settings color={color} size={size || 24} />,
         }}

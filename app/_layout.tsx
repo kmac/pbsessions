@@ -1,11 +1,16 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import {
+  DarkTheme as NavDarkTheme,
+  DefaultTheme as NavLightTheme,
+  ThemeProvider,
+} from '@react-navigation/native'
+import { useEffect, useState } from 'react';
 import { Provider as StoreProvider, useDispatch } from 'react-redux';
 import { useColorScheme } from 'react-native';
+import { SplashScreen, Stack } from 'expo-router'
+import { StatusBar } from 'expo-status-bar'
+import { adaptNavigationTheme, PaperProvider } from 'react-native-paper'
 
 import { store } from '@/src/store';
 import { StorageManager } from '@/src/utils/storage';
@@ -13,6 +18,8 @@ import { setPlayers } from '@/src/store/slices/playersSlice';
 import { setGroups } from '@/src/store/slices/groupsSlice';
 import { setSessions } from '@/src/store/slices/sessionsSlice';
 import { setCurrentSession } from '@/src/store/slices/liveSessionSlice';
+import { Colors, Themes } from '@/src/ui/styles';
+import Setting from '@/src/types/Setting';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -60,31 +67,62 @@ function StorageLoader() {
   return null;
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+const RootLayoutNav = () => {
+  // const colorScheme = useColorScheme()
+  const colorScheme = 'light'
+
+  const settings : Setting = {
+    // theme: 'auto',
+    theme: 'light',
+    color: 'default',
+  }
+
+  const theme =
+    Themes[
+      settings.theme === 'auto' ? (colorScheme ?? 'dark') : settings.theme
+    ][settings.color]
+
+  const { DarkTheme, LightTheme } = adaptNavigationTheme({
+    reactNavigationDark: NavDarkTheme,
+    reactNavigationLight: NavLightTheme,
+    materialDark: Themes.dark[settings.color],
+    materialLight: Themes.light[settings.color],
+  })
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <StorageLoader />
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="live-session"
-          options={{
-            presentation: 'modal',
-            title: 'Live Session',
-            headerStyle: {
-              backgroundColor: '#059669',
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-          }}
-        />
-      </Stack>
+    <ThemeProvider
+      value={
+        colorScheme === 'light'
+          ? { ...LightTheme, fonts: NavLightTheme.fonts }
+          : { ...DarkTheme, fonts: NavDarkTheme.fonts }
+      }
+    >
+      <PaperProvider theme={theme}>
+
+        <StorageLoader />
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="live-session"
+            options={{
+              presentation: 'modal',
+              title: 'Live Session',
+              headerStyle: {
+                backgroundColor: '#059669',
+              },
+              headerTintColor: '#fff',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+            }}
+          />
+        </Stack>
+
+      </PaperProvider>
+
+      <StatusBar style="auto" />
     </ThemeProvider>
-  );
+  )
 }
 
 export default function RootLayout() {
@@ -113,3 +151,4 @@ export default function RootLayout() {
     </StoreProvider>
   );
 }
+
