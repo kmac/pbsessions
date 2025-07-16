@@ -1,15 +1,22 @@
-// app/(tabs)/sessions.tsx (Complete Sessions Management)
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import {
+  Button,
+  Card,
+  Chip,
+  Icon,
+  IconButton,
+  Surface,
+  Text,
+  useTheme,
+} from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '@/src/store';
 import {
   Plus,
@@ -27,10 +34,10 @@ import { addSession, updateSession, removeSession, startLiveSession } from '@/sr
 import { setCurrentSession } from '@/src/store/slices/liveSessionSlice';
 import { Session } from '@/src/types';
 import SessionForm from '@/src/components/SessionForm';
-import { colors } from '@/src/theme';
 import { Alert } from '@/src/utils/alert'
 
 export default function SessionsTab() {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
@@ -39,17 +46,6 @@ export default function SessionsTab() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
-
-  const handleAddSession = (sessionData: Omit<Session, 'id' | 'createdAt' | 'updatedAt'>) => {
-    dispatch(addSession(sessionData));
-    setModalVisible(false);
-  };
-
-  const handleUpdateSession = (sessionData: Session) => {
-    dispatch(updateSession(sessionData));
-    setEditingSession(null);
-    setModalVisible(false);
-  };
 
   const isSessionLive = (sessionId: string) => currentSession ? sessionId === currentSession.sessionId : false;
 
@@ -162,11 +158,9 @@ export default function SessionsTab() {
 
   const handleSaveSession = (sessionData: Session | Omit<Session, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingSession) {
-      // For updates, we know sessionData has all required fields
       dispatch(updateSession(sessionData as Session));
       setEditingSession(null);
     } else {
-      // For new sessions, we know sessionData omits id, createdAt, updatedAt
       dispatch(addSession(sessionData as Omit<Session, 'id' | 'createdAt' | 'updatedAt'>));
     }
     setModalVisible(false);
@@ -175,135 +169,178 @@ export default function SessionsTab() {
   const renderSession = ({ item }: { item: Session }) => {
     const sessionPlayers = getSessionPlayers(item);
     const activeCourts = item.courts.filter(c => c.isActive);
-    const isCurrentLive = isSessionLive(item.id)
+    const isCurrentLive = isSessionLive(item.id);
 
     return (
-      <View style={[styles.sessionCard, isCurrentLive && styles.liveSessionCard]}>
-        {isCurrentLive && (
-          <View style={styles.liveIndicator}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
-          </View>
-        )}
+      <Card
+        style={[
+          { marginBottom: 12 },
+          isCurrentLive && {
+            borderLeftWidth: 4,
+            borderLeftColor: theme.colors.tertiary,
+          }
+        ]}
+      >
+        <Card.Content>
+          {isCurrentLive && (
+            <Chip
+              icon="record"
+              style={{
+                alignSelf: 'flex-start',
+                marginBottom: 12,
+                backgroundColor: theme.colors.tertiary
+              }}
+              textStyle={{ color: theme.colors.onTertiary, fontWeight: 'bold' }}
+              compact
+            >
+              LIVE
+            </Chip>
+          )}
 
-        <View style={styles.sessionHeader}>
-          <View style={styles.sessionInfo}>
-            <Text style={styles.sessionName}>{item.name}</Text>
-            <View style={styles.dateTimeContainer}>
-              <View style={styles.dateTime}>
-                <Calendar size={14} color={colors.textSecondary} />
-                <Text style={styles.dateTimeText}>{formatDate(item.dateTime)}</Text>
+          <View style={{ marginBottom: 12 }}>
+            <Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 8 }}>
+              {item.name}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Icon source="calendar" size={14} />
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {formatDate(item.dateTime)}
+                </Text>
               </View>
-              <View style={styles.dateTime}>
-                <Clock size={14} color={colors.textSecondary} />
-                <Text style={styles.dateTimeText}>{formatTime(item.dateTime)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Icon source="clock-outline" size={14} />
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {formatTime(item.dateTime)}
+                </Text>
               </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.sessionStats}>
-          <View style={styles.statItem}>
-            <Users size={16} color={colors.primary} />
-            <Text style={styles.statText}>{sessionPlayers.length} players</Text>
+          <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
+            <Chip icon="account-group" compact>
+              {sessionPlayers.length} players
+            </Chip>
+            <Chip icon="map-marker-outline" compact>
+              {activeCourts.length} courts
+            </Chip>
+            {activeCourts.some(c => c.minimumRating) && (
+              <Chip icon="cog-outline" compact>
+                Rated
+              </Chip>
+            )}
           </View>
-          <View style={styles.statItem}>
-            <MapPin size={16} color={colors.green} />
-            <Text style={styles.statText}>{activeCourts.length} courts</Text>
-          </View>
-          {activeCourts.some(c => c.minimumRating) && (
-            <View style={styles.statItem}>
-              <Settings size={16} color={colors.orange} />
-              <Text style={styles.statText}>Rated courts</Text>
+
+          {sessionPlayers.length > 0 && (
+            <View style={{ marginBottom: 12 }}>
+              <Text
+                variant="labelMedium"
+                style={{
+                  color: theme.colors.onSurfaceVariant,
+                  marginBottom: 4
+                }}
+              >
+                Players:
+              </Text>
+              <Text
+                variant="bodyMedium"
+                numberOfLines={2}
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {sessionPlayers.map(p => p.name).join(', ')}
+              </Text>
             </View>
           )}
-        </View>
+        </Card.Content>
 
-        {sessionPlayers.length > 0 && (
-          <View style={styles.playersPreview}>
-            <Text style={styles.playersLabel}>Players:</Text>
-            <Text style={styles.playersText} numberOfLines={2}>
-              {sessionPlayers.map(p => p.name).join(', ')}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.sessionActions}>
+        <Card.Actions style={{ justifyContent: 'space-between' }}>
           {isCurrentLive ? (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.continueButton]}
+            <Button
+              icon="play"
+              mode="contained"
               onPress={() => router.push('/live-session')}
+              style={{ flex: 1 }}
             >
-              <Play size={16} color="white" />
-              <Text style={styles.continueButtonText}>Continue Live Session</Text>
-            </TouchableOpacity>
+              Continue Live Session
+            </Button>
           ) : (
             <>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.startButton]}
+              <Button
+                icon="play"
+                mode="contained"
                 onPress={() => handleStartLiveSession(item)}
               >
-                <Play size={16} color="white" />
-                <Text style={styles.startButtonText}>Start Session</Text>
-              </TouchableOpacity>
+                Start Session
+              </Button>
 
-              <View style={styles.rightActions}>
-                <TouchableOpacity
-                  style={[styles.iconButton, styles.editButton]}
+              <View style={{ flexDirection: 'row', gap: 4 }}>
+                <IconButton
+                  icon="pencil"
+                  size={20}
                   onPress={() => handleEditSession(item)}
-                >
-                  <Edit2 size={16} color={colors.blue} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.iconButton, styles.deleteButton]}
+                />
+                <IconButton
+                  icon="delete"
+                  size={20}
                   onPress={() => handleDeleteSession(item)}
-                >
-                  <Trash2 size={16} color={colors.red} />
-                </TouchableOpacity>
+                />
               </View>
             </>
           )}
-        </View>
-      </View>
+        </Card.Actions>
+      </Card>
     );
   };
 
   const EmptyState = () => (
-    <View style={styles.emptyState}>
-      <Calendar size={48} color={colors.gray} />
-      <Text style={styles.emptyText}>No sessions yet</Text>
-      <Text style={styles.emptySubtext}>
+    <View style={{
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 64,
+    }}>
+      <Icon source="calendar" size={48} />
+      <Text variant="titleMedium" style={{
+        fontWeight: '600',
+        marginTop: 16,
+        color: theme.colors.onSurfaceVariant
+      }}>
+        No sessions yet
+      </Text>
+      <Text variant="bodyMedium" style={{
+        color: theme.colors.onSurfaceVariant,
+        marginTop: 4,
+        textAlign: 'center',
+        marginBottom: 24
+      }}>
         Create a session to start organizing games
       </Text>
 
       {players.length === 0 ? (
-        <View style={styles.emptyActions}>
-          <TouchableOpacity
-            style={styles.navigateButton}
-            onPress={navigateToPlayers}
-          >
-            <ExternalLink size={16} color={colors.primary} />
-            <Text style={styles.navigateButtonText}>Add Players First</Text>
-          </TouchableOpacity>
-        </View>
+        <Button
+          icon="open-in-new"
+          mode="outlined"
+          onPress={navigateToPlayers}
+        >
+          Add Players First
+        </Button>
       ) : (
-        <View style={styles.emptyActions}>
-          <TouchableOpacity
-            style={styles.createFirstButton}
+        <View style={{ alignItems: 'center', gap: 12 }}>
+          <Button
+            icon="plus"
+            mode="contained"
             onPress={() => setModalVisible(true)}
           >
-            <Plus size={16} color="white" />
-            <Text style={styles.createFirstButtonText}>Create First Session</Text>
-          </TouchableOpacity>
+            Create First Session
+          </Button>
 
           {groups.length === 0 && (
-            <TouchableOpacity
-              style={styles.navigateButton}
+            <Button
+              icon="open-in-new"
+              mode="outlined"
               onPress={navigateToGroups}
             >
-              <ExternalLink size={16} color={colors.primary} />
-              <Text style={styles.navigateButtonText}>Create Groups</Text>
-            </TouchableOpacity>
+              Create Groups
+            </Button>
           )}
         </View>
       )}
@@ -311,46 +348,58 @@ export default function SessionsTab() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.title}>Sessions ({sessions.length})</Text>
+    <SafeAreaView style={{ flex: 1 }}>
+      <Surface style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+      }} elevation={1}>
+        <View style={{ flex: 1 }}>
+          <Text variant="headlineMedium" style={{ fontWeight: 'bold' }}>
+            Sessions ({sessions.length})
+          </Text>
           {currentSession?.isActive && (
-            <Text style={styles.subtitle}>Live session in progress</Text>
+            <Text variant="bodyMedium" style={{
+              marginTop: 2,
+              fontWeight: '500'
+            }}>
+              Live session in progress
+            </Text>
           )}
         </View>
 
-        <View style={styles.headerActions}>
+        <View style={{ marginLeft: 12 }}>
           {players.length === 0 ? (
-            <TouchableOpacity
-              style={styles.navigateToPlayersButton}
+            <Button
+              icon="open-in-new"
+              mode="outlined"
               onPress={navigateToPlayers}
             >
-              <ExternalLink size={16} color={colors.primary} />
-              <Text style={styles.navigateToPlayersText}>Add Players</Text>
-            </TouchableOpacity>
+              Add Players
+            </Button>
           ) : (
-            <TouchableOpacity
-              style={styles.addButton}
+            <Button
+              icon="plus"
+              mode="contained"
               onPress={() => setModalVisible(true)}
             >
-              <Plus size={20} color="white" />
-              <Text style={styles.addButtonText}>New Session</Text>
-            </TouchableOpacity>
+              New Session
+            </Button>
           )}
         </View>
-      </View>
+      </Surface>
 
       <FlatList
         data={sessions}
         renderItem={renderSession}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={{ padding: 16 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={<EmptyState />}
       />
 
-      {/* Session Form Modal */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -368,255 +417,3 @@ export default function SessionsTab() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: 'white',
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.green,
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  headerActions: {
-    marginLeft: 12,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  addButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  navigateToPlayersButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  navigateToPlayersText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  listContainer: {
-    padding: 16,
-  },
-  sessionCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  liveSessionCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: colors.green,
-    backgroundColor: colors.greenLight,
-  },
-  liveIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: colors.green,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 12,
-    gap: 4,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'white',
-  },
-  liveText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  sessionHeader: {
-    marginBottom: 12,
-  },
-  sessionInfo: {
-    flex: 1,
-  },
-  sessionName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  dateTimeContainer: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  dateTime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  dateTimeText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  sessionStats: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    gap: 16,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  playersPreview: {
-    marginBottom: 12,
-  },
-  playersLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.gray,
-    marginBottom: 4,
-  },
-  playersText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  sessionActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
-  },
-  startButton: {
-    backgroundColor: colors.green,
-  },
-  startButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  continueButton: {
-    backgroundColor: colors.primary,
-    flex: 1,
-    justifyContent: 'center',
-  },
-  continueButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  rightActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconButton: {
-    padding: 8,
-    borderRadius: 6,
-  },
-  editButton: {
-    backgroundColor: colors.blueLight,
-  },
-  deleteButton: {
-    backgroundColor: colors.redLight,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 64,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.gray,
-    marginTop: 4,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  emptyActions: {
-    alignItems: 'center',
-    gap: 12,
-  },
-  createFirstButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  createFirstButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  navigateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 8,
-  },
-  navigateButtonText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-});
-

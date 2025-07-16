@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  Icon,
+  IconButton,
+  List,
+  Surface,
+  Text,
+} from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { Plus, Edit2, Trash2, Users } from 'lucide-react-native';
 import { RootState } from '@/src/store';
@@ -18,6 +28,12 @@ import BulkAddModal from '@/src/components/BulkAddModal';
 import { colors } from '@/src/theme';
 import { Alert } from '@/src/utils/alert'
 import { APP_CONFIG } from '@/src/constants';
+// import Colors from '@/src/ui/styles/colors';
+// import Themes from '@/src/ui/styles/themes';
+
+import { useTheme } from 'react-native-paper'
+
+const theme = useTheme()
 
 export default function PlayersTab() {
   const dispatch = useDispatch();
@@ -39,12 +55,19 @@ export default function PlayersTab() {
     setModalVisible(false);
   };
 
+  const handleSavePlayer = (playerData: Omit<Player, 'id' | 'createdAt' | 'updatedAt'> | Player) => {
+    if (editingPlayer && 'id' in playerData) {
+      handleUpdatePlayer(playerData as Player);
+    } else {
+      handleAddPlayer(playerData as Omit<Player, 'id' | 'createdAt' | 'updatedAt'>);
+    }
+  };
+
   const handleDeletePlayer = (player: Player) => {
     // Check if player is in any groups
     const playerGroups = groups.filter(group =>
       group.playerIds.includes(player.id)
     );
-
     if (playerGroups.length > 0) {
       Alert.alert(
         'Cannot Delete Player',
@@ -53,7 +76,6 @@ export default function PlayersTab() {
       );
       return;
     }
-
     Alert.alert(
       'Delete Player',
       `Are you sure you want to delete ${player.name}?`,
@@ -95,6 +117,13 @@ export default function PlayersTab() {
     return details;
   };
 
+  function getPlayerName(name: string, gender: 'male' | 'female' | 'other' | undefined) {
+    if (gender) {
+      return `${name} ${getShortGender(gender)}`;
+    }
+    return name;
+  }
+
   const getShortGender = (gender: 'male' | 'female' | 'other' | undefined) => {
     switch (gender) {
       case 'male':
@@ -108,80 +137,161 @@ export default function PlayersTab() {
     }
   }
 
-  const renderPlayer = ({ item }: { item: Player }) => (
-    <View style={styles.playerCard}>
-      <View style={styles.playerInfo}>
-        <Text style={styles.playerName}>{item.name}</Text>
-          <Text>
-          {item.rating && (
-            <Text style={styles.rating}>Rating: {item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}</Text>
-          )}
-          {item.gender && (<Text style={styles.playerDetails}>{getShortGender(item.gender)}</Text>)}
-          {item.email && (<Text style={styles.playerDetails}>{item.email}</Text>)}
-          {item.phone && (<Text style={styles.playerDetails}>{item.phone}</Text>)}
-          </Text>
-        <View style={styles.groupInfo}>
-          <Users size={14} color={colors.gray} />
-          <Text style={styles.groupCount}>
-            {getPlayerGroupCount(item.id)} groups
-          </Text>
-        </View>
-      </View>
-      <View style={styles.playerActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.editButton]}
-          onPress={() => handleEditPlayer(item)}
-        >
-          <Edit2 size={18} color={colors.blue} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => handleDeletePlayer(item)}
-        >
-          <Trash2 size={18} color={colors.red} />
-        </TouchableOpacity>
-      </View>
-    </View>
+  function getAvatar(gender: 'male' | 'female' | 'other' | undefined, props: any) {
+    let iconName = "account";
+    if (gender === 'male') {
+      // iconName = "human-male";
+      iconName = "face-man"
+    }
+    if (gender === 'female') {
+      iconName = "face-woman"
+      // iconName = "human-female";
+    }
+    return (
+      <Avatar.Icon icon={iconName} size={40} />
+    );
+  }
+
+  function getAvatarName(name: string, props: any) {
+    let initials: string = "";
+    if (name.length > 1) {
+      name.split(' ').forEach((val) => {
+        initials += val.charAt(0);
+      });
+    } else {
+      initials = name.charAt(0)
+    }
+
+    return (
+      <Avatar.Text /*...props*/ style={{ marginLeft: 12 }} label={initials} size={40} />
+    );
+  }
+
+  const renderPlayerList = ({ item }: { item: Player }) => (
+    <Surface style={{ margin: 0 }}>
+      <List.Item
+        title={() => (
+          <Text variant="titleMedium" style={{
+            fontWeight: '600',
+            marginBottom: 4,
+          }}>{item.name}</Text>
+        )}
+        description={() => (
+          <View>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginRight: 20,
+            }}>
+              <View style={{ flexDirection: 'row', flex: 3 }}>
+                {item.gender && (<Text style={{
+                  fontSize: 12,
+                  marginRight: 4,
+                }}>{getShortGender(item.gender)}</Text>)}
+                {item.email && (<Text style={{
+                  fontSize: 12,
+                  marginRight: 4,
+                }}>{item.email}</Text>)}
+                {item.phone && (<Text style={{
+                  fontSize: 12,
+                  marginRight: 4,
+                }}>{item.phone}</Text>)}
+              </View>
+              {item.rating && <Chip icon="star-outline" elevated={true} compact={true}
+                textStyle={{
+                  fontSize: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}>{item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}</Chip>}
+            </View>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginRight: 20,
+            }}>
+              <Icon source="account-group" size={20} />
+              <Text style={{
+                fontSize: 10,
+                fontWeight: '300',
+                // color: theme.colors.primary,
+                // backgroundColor: themeColors.backdrop,
+                flexDirection: 'row',
+                alignItems: 'center',
+                flex: 3, marginLeft: 5
+              }}>{getPlayerGroupCount(item.id)} groups</Text>
+            </View>
+          </View>
+        )}
+        //left={(props) => getAvatar(item.gender, props)}
+        left={(props) => getAvatarName(item.name, props)}
+        right={(props) => (
+          <View {...props} style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}>
+            <IconButton
+              icon="pencil"
+              size={20}
+              onPress={() => handleEditPlayer(item)}
+            />
+            <IconButton
+              icon="delete"
+              size={20}
+              onPress={() => handleDeletePlayer(item)}
+            />
+          </View>
+        )}
+      />
+    </Surface>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Players ({players.length})</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={[styles.addButton, styles.bulkButton]}
-            onPress={() => setBulkModalVisible(true)}
-          >
-            <Text style={styles.bulkButtonText}>Bulk Add</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.addButton, styles.bulkButton]}
-            onPress={() => {}}
-          >
-            <Text style={styles.bulkButtonText}>Import</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setModalVisible(true)}
-          >
-            <Plus size={20} color="white" />
-            <Text style={styles.addButtonText}>Add Player</Text>
-          </TouchableOpacity>
+    <SafeAreaView style={{
+      flex: 1,
+      // backgroundColor: colors.background,
+    }}>
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.surfaceVariant
+      }}>
+        <Text variant="titleMedium" style={{ fontWeight: '600' }}>
+          Players ({players.length})
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 8, }}>
+          <Button icon="account-multiple-plus-outline" mode="elevated" onPress={() => setBulkModalVisible(true)}>Bulk Add</Button>
+          <Button icon="import" mode="elevated" disabled={true} onPress={() => { }}>Import</Button>
+          <Button icon="account-plus-outline" mode="contained-tonal" onPress={() => setModalVisible(true)}><Text style={{ fontWeight: '600' }}>Add Player</Text></Button>
         </View>
       </View>
 
       <FlatList
         data={[...players].sort((a, b) => a.name.localeCompare(b.name))}
-        renderItem={renderPlayer}
+        renderItem={renderPlayerList}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: 16, }}
+        showsVerticalScrollIndicator={true}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Users size={48} color={colors.gray} />
-            <Text style={styles.emptyText}>No players yet</Text>
-            <Text style={styles.emptySubtext}>
+          <View style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 64,
+          }}>
+            <Users size={48} />
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '600',
+              marginTop: 16,
+            }}>No players yet</Text>
+            <Text style={{
+              fontSize: 14,
+              // color: colors.gray,
+              marginTop: 4,
+            }}>
               Add players to start organizing sessions
             </Text>
           </View>
@@ -195,7 +305,7 @@ export default function PlayersTab() {
       >
         <PlayerForm
           player={editingPlayer}
-          onSave={editingPlayer ? handleUpdatePlayer : handleAddPlayer}
+          onSave={handleSavePlayer}
           onCancel={() => {
             setModalVisible(false);
             setEditingPlayer(null);
@@ -212,125 +322,10 @@ export default function PlayersTab() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  bulkButton: {
-    backgroundColor: colors.secondary,
-  },
-  importButton: {
-    backgroundColor: colors.secondary,
-  },
-  addButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  bulkButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  listContainer: {
-    padding: 16,
-  },
-  playerCard: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  playerInfo: {
-    flex: 1,
-  },
-  playerName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
   playerDetails: {
     fontSize: 14,
-    color: colors.textSecondary,
     marginBottom: 8,
     marginRight: 4,
-  },
-  rating: {
-    fontWeight: '500',
-    color: colors.primary,
-    marginRight: 8,
-  },
-  groupInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 6,
-  },
-  groupCount: {
-    fontSize: 12,
-    color: colors.gray,
-  },
-  playerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    padding: 8,
-    borderRadius: 6,
-  },
-  editButton: {
-    backgroundColor: colors.blueLight,
-  },
-  deleteButton: {
-    backgroundColor: colors.redLight,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 64,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.gray,
-    marginTop: 4,
   },
 });
 

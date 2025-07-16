@@ -1,37 +1,29 @@
-// src/components/GroupPlayerManager.tsx
-
-// Manages player configuration from the 'Groups' tab.
-// Each group has a 'Manage Players' button which invokes this screen
-
 import React, { useState } from 'react';
 import {
   View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   Modal,
   FlatList,
-  TextInput,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppSelector, useAppDispatch } from '@/src/store';
 import {
-  X,
-  Check,
-  Plus,
-  Search,
-  User,
-  Users,
-  Star,
-  Mail,
-  Phone
-} from 'lucide-react-native';
+  Appbar,
+  Button,
+  Card,
+  Chip,
+  Icon,
+  IconButton,
+  SegmentedButtons,
+  Surface,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
+import { useAppSelector, useAppDispatch } from '@/src/store';
 import { addPlayerToGroup, removePlayerFromGroup } from '@/src/store/slices/groupsSlice';
 import { addPlayer } from '@/src/store/slices/playersSlice';
 import { Group, Player } from '@/src/types';
 import QuickPlayerForm from './QuickPlayerForm';
-import { colors } from '@/src/theme';
 import { Alert } from '@/src/utils/alert'
 import { APP_CONFIG } from '@/src/constants';
 
@@ -48,6 +40,7 @@ export default function GroupPlayerManager({
   group,
   onClose
 }: GroupPlayerManagerProps) {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
   const { players } = useAppSelector((state) => state.players);
 
@@ -72,13 +65,11 @@ export default function GroupPlayerManager({
   };
 
   const handleQuickAddPlayer = (playerData: Omit<Player, 'id' | 'createdAt' | 'updatedAt'>) => {
-    // Add player to store
     dispatch(addPlayer(playerData));
 
-    // Add to group immediately
     setTimeout(() => {
       const allPlayers = players;
-      const newPlayer = allPlayers[allPlayers.length - 1]; // Get the last added player
+      const newPlayer = allPlayers[allPlayers.length - 1];
       if (newPlayer && !isPlayerInGroup(newPlayer.id)) {
         dispatch(addPlayerToGroup({ groupId: group.id, playerId: newPlayer.id }));
       }
@@ -103,114 +94,92 @@ export default function GroupPlayerManager({
     const isSelected = isPlayerInGroup(item.id);
 
     return (
-      <TouchableOpacity
-        style={[styles.playerItem, isSelected && styles.playerItemSelected]}
-        onPress={() => showActions && handleTogglePlayer(item)}
-        disabled={!showActions}
+      <Card
+        style={{
+          marginBottom: 8,
+          backgroundColor: isSelected
+            ? theme.colors.primaryContainer
+            : theme.colors.surface
+        }}
       >
-
-        {/*
-        TODO EXTRACT the user row into a common builder method that can be re-used across these different screens
-
-        Note how the ratingBadge in this screen is part of the playerHeader - this works well
-
-
-        */}
-
-        <View style={styles.playerInfo}>
-          <View style={styles.playerHeader}>
-            <Text style={[styles.playerName, isSelected && styles.playerNameSelected]}>
-              {item.name}
-            </Text>
-            {item.rating && (
-              <View style={styles.ratingBadge}>
-                <Star size={12} color={colors.orange} />
-                <Text style={styles.ratingText}>{item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}</Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.playerDetails}>
-            {/*
-            {item.email && (
-              <View style={styles.detailRow}>
-                <Mail size={12} color={colors.gray} />
-                <Text style={[styles.detailText, isSelected && styles.detailTextSelected]}>
-                  {item.email}
+        <Card.Content>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <View style={{ flex: 1 }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8
+              }}>
+                <Text
+                  variant="titleMedium"
+                  style={{
+                    fontWeight: '600',
+                    flex: 1,
+                    color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurface
+                  }}
+                >
+                  {item.name}
                 </Text>
+                {item.rating && (
+                  <Chip icon="star-outline" compact>
+                    {item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}
+                  </Chip>
+                )}
               </View>
-            )}
-            {item.phone && (
-              <View style={styles.detailRow}>
-                <Phone size={12} color={colors.gray} />
-                <Text style={[styles.detailText, isSelected && styles.detailTextSelected]}>
-                  {item.phone}
-                </Text>
-              </View>
-            )}
-            */}
-            {item.gender && (
-              <Text style={[styles.genderText, isSelected && styles.detailTextSelected]}>
-                {item.gender}
-              </Text>
-            )}
-          </View>
-        </View>
 
-        {showActions && (
-          <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-            {isSelected && <Check size={16} color="white" />}
+              <View style={{ gap: 4 }}>
+                {item.gender && (
+                  <Text
+                    variant="bodySmall"
+                    style={{
+                      color: isSelected
+                        ? theme.colors.onPrimaryContainer
+                        : theme.colors.onSurfaceVariant,
+                      fontStyle: 'italic'
+                    }}
+                  >
+                    {item.gender}
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            {showActions && (
+              <IconButton
+                icon={isSelected ? "check-circle" : "circle-outline"}
+                size={24}
+                iconColor={isSelected ? theme.colors.primary : theme.colors.outline}
+                onPress={() => handleTogglePlayer(item)}
+              />
+            )}
           </View>
-        )}
-      </TouchableOpacity>
+        </Card.Content>
+      </Card>
     );
   };
 
-  const ViewModeSelector = () => (
-    <View style={styles.viewModeSelector}>
-      <TouchableOpacity
-        style={[styles.viewModeButton, viewMode === 'select' && styles.viewModeButtonActive]}
-        onPress={() => setViewMode('select')}
-      >
-        <Users size={16} color={viewMode === 'select' ? 'white' : colors.primary} />
-        <Text style={[
-          styles.viewModeButtonText,
-          viewMode === 'select' && styles.viewModeButtonTextActive
-        ]}>
-          Select Existing
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.viewModeButton, viewMode === 'add' && styles.viewModeButtonActive]}
-        onPress={() => setViewMode('add')}
-      >
-        <Plus size={16} color={viewMode === 'add' ? 'white' : colors.primary} />
-        <Text style={[
-          styles.viewModeButtonText,
-          viewMode === 'add' && styles.viewModeButtonTextActive
-        ]}>
-          Add New
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   const SelectExistingView = () => (
     <>
-      <View style={styles.searchContainer}>
-        <Search size={20} color={colors.gray} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search players..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+      <TextInput
+        mode="outlined"
+        placeholder="Search players..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        left={<TextInput.Icon icon="magnify" />}
+        style={{ marginHorizontal: 16, marginBottom: 16 }}
+      />
 
       {groupPlayers.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+        <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
+          <Text variant="titleMedium" style={{
+            fontWeight: '600',
+            marginBottom: 12
+          }}>
             Selected Players ({groupPlayers.length})
           </Text>
           <FlatList
@@ -222,28 +191,44 @@ export default function GroupPlayerManager({
         </View>
       )}
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
+      <View style={{ marginHorizontal: 16 }}>
+        <Text variant="titleMedium" style={{
+          fontWeight: '600',
+          marginBottom: 12
+        }}>
           Available Players ({availablePlayers.length})
         </Text>
 
         {availablePlayers.length === 0 ? (
-          <View style={styles.emptySection}>
+          <Surface style={{
+            alignItems: 'center',
+            paddingVertical: 32,
+            borderRadius: 8
+          }}>
             {searchQuery ? (
-              <Text style={styles.emptyText}>No players match your search</Text>
+              <Text variant="bodyLarge" style={{
+                color: theme.colors.onSurfaceVariant
+              }}>
+                No players match your search
+              </Text>
             ) : (
               <>
-                <Text style={styles.emptyText}>All players are already in this group</Text>
-                <TouchableOpacity
-                  style={styles.switchToAddButton}
+                <Text variant="bodyLarge" style={{
+                  color: theme.colors.onSurfaceVariant,
+                  marginBottom: 16
+                }}>
+                  All players are already in this group
+                </Text>
+                <Button
+                  icon="plus"
+                  mode="outlined"
                   onPress={() => setViewMode('add')}
                 >
-                  <Plus size={16} color={colors.primary} />
-                  <Text style={styles.switchToAddText}>Add New Player</Text>
-                </TouchableOpacity>
+                  Add New Player
+                </Button>
               </>
             )}
-          </View>
+          </Surface>
         ) : (
           <FlatList
             data={[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name))}
@@ -257,39 +242,80 @@ export default function GroupPlayerManager({
   );
 
   const AddNewView = () => (
-    <View style={styles.addNewContainer}>
-      <View style={styles.addNewHeader}>
-        <User size={32} color={colors.primary} />
-        <Text style={styles.addNewTitle}>Add New Player to Group</Text>
-        <Text style={styles.addNewSubtitle}>
+    <View style={{ padding: 16 }}>
+      <Surface style={{
+        alignItems: 'center',
+        borderRadius: 12,
+        padding: 24,
+        marginBottom: 24
+      }}>
+        <Icon source="account" size={32} />
+        <Text variant="headlineSmall" style={{
+          fontWeight: '600',
+          marginTop: 12,
+          textAlign: 'center'
+        }}>
+          Add New Player to Group
+        </Text>
+        <Text variant="bodyMedium" style={{
+          color: theme.colors.onSurfaceVariant,
+          marginTop: 8,
+          textAlign: 'center',
+          lineHeight: 20
+        }}>
           Add a new player and they'll be automatically added to "{group.name}"
         </Text>
-      </View>
+      </Surface>
 
-      <TouchableOpacity
-        style={styles.quickAddButton}
+      <Button
+        icon="plus"
+        mode="contained"
         onPress={() => setShowQuickAdd(true)}
+        contentStyle={{ paddingVertical: 8 }}
+        style={{ marginBottom: 24 }}
       >
-        <Plus size={20} color="white" />
-        <Text style={styles.quickAddButtonText}>Add New Player</Text>
-      </TouchableOpacity>
+        Add New Player
+      </Button>
 
       {groupPlayers.length > 0 && (
-        <View style={styles.currentPlayersPreview}>
-          <Text style={styles.previewTitle}>Current players in this group:</Text>
-          <ScrollView style={styles.previewScroll} showsVerticalScrollIndicator={true}>
-            {groupPlayers.map(player => (
-              <View key={player.id} style={styles.previewPlayerItem}>
-                <Text style={styles.previewPlayerName}>{player.name}</Text>
-                {player.rating && (
-                  <Text style={styles.previewPlayerRating}>
-                    {player.rating.toFixed(1)}
-                  </Text>
-                )}
-              </View>
-            ))}
-          </ScrollView>
-        </View>
+        <Card>
+          <Card.Content>
+            <Text variant="titleMedium" style={{
+              fontWeight: '600',
+              marginBottom: 12
+            }}>
+              Current players in this group:
+            </Text>
+            <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={true}>
+              {groupPlayers.map(player => (
+                <View
+                  key={player.id}
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingVertical: 8,
+                    borderBottomWidth: 1,
+                    borderBottomColor: theme.colors.surfaceVariant
+                  }}
+                >
+                  <Text variant="bodyMedium">{player.name}</Text>
+                  {player.rating && (
+                    <Text
+                      variant="bodySmall"
+                      style={{
+                        color: theme.colors.primary,
+                        fontWeight: '500'
+                      }}
+                    >
+                      {player.rating.toFixed(1)}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          </Card.Content>
+        </Card>
       )}
     </View>
   );
@@ -302,30 +328,40 @@ export default function GroupPlayerManager({
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={styles.title}>GroupPlayerManager: {group.name}</Text>
-            <Text style={styles.subtitle}>
-              {groupPlayerCount} player{groupPlayerCount !== 1 ? 's' : ''}
-            </Text>
-          </View>
-          <View style={styles.placeholder} />
-        </View>
+      <SafeAreaView style={{ flex: 1 }}>
+        <Appbar.Header>
+          <Appbar.BackAction onPress={onClose} />
+          <Appbar.Content
+            title={group.name}
+            subtitle={`${groupPlayerCount} player${groupPlayerCount !== 1 ? 's' : ''}`}
+          />
+        </Appbar.Header>
 
-        <ViewModeSelector />
+        <SegmentedButtons
+          value={viewMode}
+          onValueChange={(value) => setViewMode(value as ViewMode)}
+          buttons={[
+            {
+              value: 'select',
+              label: 'Select Existing',
+              icon: 'account-group'
+            },
+            {
+              value: 'add',
+              label: 'Add New',
+              icon: 'plus'
+            }
+          ]}
+          style={{ margin: 16 }}
+        />
 
         <ScrollView
-          style={styles.content}
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
         >
           {viewMode === 'select' ? <SelectExistingView /> : <AddNewView />}
         </ScrollView>
 
-        {/* Quick Add Player Modal */}
         <Modal
           visible={showQuickAdd}
           animationType="slide"
@@ -341,279 +377,3 @@ export default function GroupPlayerManager({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: 'white',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  headerInfo: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  placeholder: {
-    width: 40,
-  },
-  viewModeSelector: {
-    flexDirection: 'row',
-    backgroundColor: colors.grayLight,
-    margin: 16,
-    borderRadius: 8,
-    padding: 4,
-  },
-  viewModeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    gap: 8,
-  },
-  viewModeButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  viewModeButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.primary,
-  },
-  viewModeButtonTextActive: {
-    color: 'white',
-  },
-  content: {
-    flex: 1,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text,
-  },
-  section: {
-    marginHorizontal: 16,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  emptySection: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    backgroundColor: 'white',
-    borderRadius: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  switchToAddButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 8,
-  },
-  switchToAddText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  playerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  playerItemSelected: {
-    backgroundColor: colors.primaryLight,
-    shadowOpacity: 0.1,
-  },
-  playerInfo: {
-    flex: 1,
-  },
-  playerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  playerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    flex: 1,
-  },
-  playerNameSelected: {
-    color: 'white',
-  },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.orangeLight,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    gap: 2,
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.orange,
-  },
-  playerDetails: {
-    gap: 4,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  detailText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  detailTextSelected: {
-    color: colors.grayLight,
-  },
-  genderText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 12,
-  },
-  checkboxSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  addNewContainer: {
-    padding: 16,
-  },
-  addNewHeader: {
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 24,
-    marginBottom: 24,
-  },
-  addNewTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  addNewSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  quickAddButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 24,
-  },
-  quickAddButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  currentPlayersPreview: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-  },
-  previewTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  previewScroll: {
-    maxHeight: 200,
-  },
-  previewPlayerItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.grayLight,
-  },
-  previewPlayerName: {
-    fontSize: 14,
-    color: colors.text,
-  },
-  previewPlayerRating: {
-    fontSize: 12,
-    color: colors.orange,
-    fontWeight: '500',
-  },
-});
-

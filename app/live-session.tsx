@@ -1,64 +1,42 @@
-// app/live-session.tsx (Updated with proper stats integration)
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useAppSelector, useAppDispatch } from '../src/store';
 import {
-  X,
-  Play,
-  Square,
-  Clock,
-  Users,
-  Trophy,
-  RotateCcw,
-  Settings,
-  Timer
-} from 'lucide-react-native';
+  Appbar,
+  Button,
+  Card,
+  Chip,
+  Icon,
+  Surface,
+  Text,
+  useTheme,
+} from 'react-native-paper';
+import { useAppSelector, useAppDispatch } from '../src/store';
 import {
   generateNextRound,
   startRound,
   completeRound,
   endLiveSession,
-  // updateRoundScores,
   updatePlayerStats as updatePlayerStatsInStore
 } from '../src/store/slices/liveSessionSlice';
-/*
-
-Modals:
-RoundScoreEntryModal
-PlayerStatsModal
-BetweenRoundsModal
-
-  󰊕  handleGenerateNewRound       --> setBetweenRoundsVisible(true);
-  󰊕  handleStartRound             --> setBetweenRoundsVisible(false);
-  󰊕  handleCompleteRound          --> setScoreModalVisible(true);
-  󰊕  handleRoundScoresSubmitted   --> setScoreModalVisible(false)
-                                  --> setBetweenRoundsVisible(true);
-  󰊕  handleEndSession
-         --> dispatch(endLiveSession());
-
-*/
 import { SessionRoundManager } from '@/src/utils/sessionRoundManager';
 import RoundGameCard from '@/src/components/RoundGameCard';
 import RoundScoreEntryModal from '@/src/components/RoundScoreEntryModal';
 import PlayerStatsModal from '@/src/components/PlayerStatsModal';
 import BetweenRoundsModal from '@/src/components/BetweenRoundsModal';
 import RoundTimer from '@/src/components/RoundTimer';
-import { colors, COURT_COLORS } from '@/src/theme';
+import { COURT_COLORS } from '@/src/theme';
 import { Alert } from '@/src/utils/alert';
 
 export default function LiveSessionScreen() {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
 
-  // Pull data from the store
   const { currentSession } = useAppSelector((state) => state.liveSession);
   const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
@@ -68,24 +46,35 @@ export default function LiveSessionScreen() {
   const [betweenRoundsVisible, setBetweenRoundsVisible] = useState(false);
   const [roundStartTime, setRoundStartTime] = useState<Date | null>(null);
 
-  // Create algorithm instance with current stats
   const sessionPlayers = players.filter(p => currentSession?.sessionId &&
     sessions.find(s => s.id === currentSession.sessionId)?.playerIds.includes(p.id));
   const session = sessions.find(s => s.id === currentSession?.sessionId);
 
-  // Handle no sessions
   if (!currentSession || !session) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No active session</Text>
-          <TouchableOpacity
-            style={styles.backButton}
+      <SafeAreaView style={{ flex: 1 }}>
+        <Surface style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: 20
+        }}>
+          <Icon source="alert-circle-outline" size={48} />
+          <Text variant="headlineSmall" style={{
+            color: theme.colors.onSurfaceVariant,
+            marginVertical: 20,
+            textAlign: 'center'
+          }}>
+            No active session
+          </Text>
+          <Button
+            mode="outlined"
             onPress={() => router.back()}
+            icon="arrow-left"
           >
-            <Text style={styles.backButtonText}>Back to Sessions</Text>
-          </TouchableOpacity>
-        </View>
+            Back to Sessions
+          </Button>
+        </Surface>
       </SafeAreaView>
     );
   }
@@ -96,15 +85,12 @@ export default function LiveSessionScreen() {
     currentSession.playerStats
   );
 
-  // Current round state
   const currentRoundGames = currentSession.activeGames || [];
   const isRoundInProgress = currentRoundGames.length > 0 && currentRoundGames.some(g => g.startedAt && !g.isCompleted);
   const isRoundCompleted = currentRoundGames.length > 0 && currentRoundGames.every(g => g.isCompleted);
   const hasActiveRound = currentRoundGames.length > 0;
 
-  // Statistics
   const activeCourts = session.courts.filter(c => c.isActive);
-  // const playingPlayersThisRound = isRoundInProgress ? activeCourts.length * 4 : 0;
   const sittingOutThisRound = hasActiveRound
     ? currentRoundGames[0]?.sittingOutIds.length || 0
     : 0;
@@ -123,8 +109,6 @@ export default function LiveSessionScreen() {
     }
 
     dispatch(generateNextRound({ assignments }));
-
-    // TODO do we always want to do this????
     setBetweenRoundsVisible(true);
   };
 
@@ -142,26 +126,18 @@ export default function LiveSessionScreen() {
   };
 
   const handleRoundScoresSubmitted = (scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }) => {
-    // Update the round completion in store
     dispatch(completeRound({ scores }));
 
-    // Update algorithm stats for each completed game
     currentRoundGames.forEach(game => {
       const score = scores[game.id];
       roundAssigner.updatePlayerStatsForGame(game, score || undefined);
     });
 
-    // Get updated stats from algorithm and save to store
     const updatedStats = roundAssigner.getPlayerStats();
     dispatch(updatePlayerStatsInStore(updatedStats));
 
     setScoreModalVisible(false);
     setRoundStartTime(null);
-
-    // Show between rounds modal after a brief delay
-    // setTimeout(() => {
-    //   setBetweenRoundsVisible(true);
-    // }, 500);
   };
 
   const handleEndSession = () => {
@@ -202,134 +178,235 @@ export default function LiveSessionScreen() {
   const getRoundActionButton = () => {
     if (!hasActiveRound) {
       return (
-        <TouchableOpacity
-          style={styles.generateRoundButton}
+        <Button
+          icon="play"
+          mode="contained"
           onPress={handleGenerateNewRound}
+          contentStyle={{ paddingVertical: 8 }}
+          style={{ marginBottom: 12 }}
         >
-          <Play size={20} color="white" />
-          <Text style={styles.generateRoundButtonText}>
-            {completedRounds === 0 ? 'Generate First Round' : 'Generate Next Round'}
-          </Text>
-        </TouchableOpacity>
+          {completedRounds === 0 ? 'Generate First Round' : 'Generate Next Round'}
+        </Button>
       );
     }
 
     if (isRoundCompleted) {
       return (
-        <View style={styles.roundCompletedContainer}>
-          <View style={styles.roundCompletedBadge}>
-            <Trophy size={16} color={colors.green} />
-            <Text style={styles.roundCompletedText}>Round {currentSession.currentGameNumber - 1} Completed</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.generateRoundButton}
-            onPress={handleGenerateNewRound}
+        <View style={{ marginBottom: 12 }}>
+          <Chip
+            icon="trophy"
+            style={{
+              alignSelf: 'center',
+              marginBottom: 12,
+              backgroundColor: theme.colors.tertiaryContainer
+            }}
+            textStyle={{
+              color: theme.colors.onTertiaryContainer,
+              fontWeight: '600'
+            }}
           >
-            <Play size={20} color="white" />
-            <Text style={styles.generateRoundButtonText}>Generate Next Round</Text>
-          </TouchableOpacity>
+            Round {currentSession.currentGameNumber - 1} Completed
+          </Chip>
+          <Button
+            icon="play"
+            mode="contained"
+            onPress={handleGenerateNewRound}
+            contentStyle={{ paddingVertical: 8 }}
+          >
+            Generate Next Round
+          </Button>
         </View>
       );
     }
 
     if (isRoundInProgress) {
       return (
-        <TouchableOpacity
-          style={styles.completeRoundButton}
+        <Button
+          icon="stop"
+          mode="contained"
           onPress={handleCompleteRound}
+          buttonColor={theme.colors.tertiary}
+          contentStyle={{ paddingVertical: 8 }}
+          style={{ marginBottom: 12 }}
         >
-          <Square size={20} color="white" />
-          <Text style={styles.completeRoundButtonText}>Complete Round</Text>
-        </TouchableOpacity>
+          Complete Round
+        </Button>
       );
     }
 
-    // Round generated but not started
     return (
-      <TouchableOpacity
-        style={styles.startRoundButton}
+      <Button
+        icon="play"
+        mode="contained"
         onPress={handleStartRound}
+        buttonColor={theme.colors.secondary}
+        contentStyle={{ paddingVertical: 8 }}
+        style={{ marginBottom: 12 }}
       >
-        <Play size={20} color="white" />
-        <Text style={styles.startRoundButtonText}>Start Round {currentSession.currentGameNumber}</Text>
-      </TouchableOpacity>
+        Start Round {currentSession.currentGameNumber}
+      </Button>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <X size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>{session.name}</Text>
-          <Text style={styles.subtitle}>
-            {hasActiveRound ? `Round ${currentSession.currentGameNumber}` : `${completedRounds} rounds completed`}
-          </Text>
-        </View>
-        <TouchableOpacity onPress={handleEndSession} style={styles.endButton}>
-          <Text style={styles.endButtonText}>End Session</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={{ flex: 1 }}>
+      <Appbar.Header style={{ backgroundColor: '#059669' }}>
+        <Appbar.BackAction iconColor="white" onPress={() => router.back()} />
+        <Appbar.Content
+          title={session.name}
+          subtitle={hasActiveRound ? `Round ${currentSession.currentGameNumber}` : `${completedRounds} rounds completed`}
+          titleStyle={{ color: 'white', fontWeight: 'bold' }}
+          subtitleStyle={{ color: 'rgba(255,255,255,0.8)' }}
+        />
+        <Button
+          mode="contained-tonal"
+          onPress={handleEndSession}
+          buttonColor="rgba(255,255,255,0.2)"
+          textColor="white"
+          style={{ marginRight: 8 }}
+        >
+          End Session
+        </Button>
+      </Appbar.Header>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1, padding: 16 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Session Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{sessionPlayers.length}</Text>
-            <Text style={styles.statLabel}>Total Players</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{activeCourts.length}</Text>
-            <Text style={styles.statLabel}>Active Courts</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{completedRounds}</Text>
-            <Text style={styles.statLabel}>Completed Rounds</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{sittingOutThisRound}</Text>
-            <Text style={styles.statLabel}>Sitting Out</Text>
-          </View>
+        <View style={{
+          flexDirection: 'row',
+          marginBottom: 16,
+          gap: 8
+        }}>
+          <Surface style={{
+            flex: 1,
+            borderRadius: 8,
+            padding: 12,
+            alignItems: 'center'
+          }}>
+            <Text variant="headlineMedium" style={{
+              fontWeight: 'bold',
+              color: theme.colors.primary,
+              marginBottom: 4
+            }}>
+              {sessionPlayers.length}
+            </Text>
+            <Text variant="labelMedium" style={{
+              color: theme.colors.onSurfaceVariant,
+              textAlign: 'center'
+            }}>
+              Total Players
+            </Text>
+          </Surface>
+
+          <Surface style={{
+            flex: 1,
+            borderRadius: 8,
+            padding: 12,
+            alignItems: 'center'
+          }}>
+            <Text variant="headlineMedium" style={{
+              fontWeight: 'bold',
+              color: theme.colors.primary,
+              marginBottom: 4
+            }}>
+              {activeCourts.length}
+            </Text>
+            <Text variant="labelMedium" style={{
+              color: theme.colors.onSurfaceVariant,
+              textAlign: 'center'
+            }}>
+              Active Courts
+            </Text>
+          </Surface>
+
+          <Surface style={{
+            flex: 1,
+            borderRadius: 8,
+            padding: 12,
+            alignItems: 'center'
+          }}>
+            <Text variant="headlineMedium" style={{
+              fontWeight: 'bold',
+              color: theme.colors.primary,
+              marginBottom: 4
+            }}>
+              {completedRounds}
+            </Text>
+            <Text variant="labelMedium" style={{
+              color: theme.colors.onSurfaceVariant,
+              textAlign: 'center'
+            }}>
+              Completed Rounds
+            </Text>
+          </Surface>
+
+          <Surface style={{
+            flex: 1,
+            borderRadius: 8,
+            padding: 12,
+            alignItems: 'center'
+          }}>
+            <Text variant="headlineMedium" style={{
+              fontWeight: 'bold',
+              color: theme.colors.primary,
+              marginBottom: 4
+            }}>
+              {sittingOutThisRound}
+            </Text>
+            <Text variant="labelMedium" style={{
+              color: theme.colors.onSurfaceVariant,
+              textAlign: 'center'
+            }}>
+              Sitting Out
+            </Text>
+          </Surface>
         </View>
 
         {/* Timer Display */}
         {isRoundInProgress && roundStartTime && (
-          <View style={styles.timerContainer}>
-            <RoundTimer startTime={roundStartTime} />
-          </View>
+          <Card style={{ marginBottom: 16 }}>
+            <Card.Content>
+              <RoundTimer startTime={roundStartTime} />
+            </Card.Content>
+          </Card>
         )}
 
         {/* Round Action Button */}
-        <View style={styles.actionContainer}>
+        <View style={{ marginBottom: 24 }}>
           {getRoundActionButton()}
 
-          <View style={styles.secondaryActions}>
-            <TouchableOpacity
-              style={styles.secondaryButton}
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Button
+              icon="trophy"
+              mode="outlined"
               onPress={() => setStatsModalVisible(true)}
+              style={{ flex: 1 }}
             >
-              <Trophy size={16} color={colors.primary} />
-              <Text style={styles.secondaryButtonText}>Player Stats</Text>
-            </TouchableOpacity>
+              Player Stats
+            </Button>
 
             {hasActiveRound && !isRoundInProgress && (
-              <TouchableOpacity
-                style={styles.secondaryButton}
+              <Button
+                icon="cog"
+                mode="outlined"
                 onPress={() => setBetweenRoundsVisible(true)}
+                style={{ flex: 1 }}
               >
-                <Settings size={16} color={colors.primary} />
-                <Text style={styles.secondaryButtonText}>Adjust Round</Text>
-              </TouchableOpacity>
+                Adjust Round
+              </Button>
             )}
           </View>
         </View>
 
         {/* Current Round Games */}
         {hasActiveRound && (
-          <View style={styles.gamesSection}>
-            <Text style={styles.sectionTitle}>
+          <View style={{ marginBottom: 24 }}>
+            <Text variant="titleLarge" style={{
+              fontWeight: '600',
+              marginBottom: 12
+            }}>
               Round {isRoundCompleted ? currentSession.currentGameNumber - 1 : currentSession.currentGameNumber} Games
             </Text>
             {currentRoundGames.map((game, index) => (
@@ -346,16 +423,20 @@ export default function LiveSessionScreen() {
 
         {/* Sitting Out Players */}
         {hasActiveRound && sittingOutThisRound > 0 && (
-          <View style={styles.sittingSection}>
-            <Text style={styles.sectionTitle}>Sitting Out This Round</Text>
-            <View style={styles.sittingPlayers}>
+          <View style={{ marginBottom: 24 }}>
+            <Text variant="titleLarge" style={{
+              fontWeight: '600',
+              marginBottom: 12
+            }}>
+              Sitting Out This Round
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {currentRoundGames[0]?.sittingOutIds.map(playerId => {
                 const player = sessionPlayers.find(p => p.id === playerId);
                 return player ? (
-                  <View key={player.id} style={styles.sittingPlayerChip}>
-                    <Users size={14} color={colors.gray} />
-                    <Text style={styles.sittingPlayerName}>{player.name}</Text>
-                  </View>
+                  <Chip key={player.id} icon="account">
+                    {player.name}
+                  </Chip>
                 ) : null;
               })}
             </View>
@@ -364,29 +445,58 @@ export default function LiveSessionScreen() {
 
         {/* Previous Rounds Summary */}
         {completedRounds > 0 && (
-          <View style={styles.historySection}>
-            <Text style={styles.sectionTitle}>Session History</Text>
-            <View style={styles.historyCard}>
-              <View style={styles.historyRow}>
-                <Text style={styles.historyLabel}>Rounds Completed:</Text>
-                <Text style={styles.historyValue}>{completedRounds}</Text>
+          <Card style={{ marginBottom: 24 }}>
+            <Card.Content>
+              <Text variant="titleLarge" style={{
+                fontWeight: '600',
+                marginBottom: 12
+              }}>
+                Session History
+              </Text>
+
+              <View style={{ gap: 8 }}>
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <Text variant="bodyMedium" style={{
+                    color: theme.colors.onSurfaceVariant
+                  }}>
+                    Rounds Completed:
+                  </Text>
+                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
+                    {completedRounds}
+                  </Text>
+                </View>
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <Text variant="bodyMedium" style={{
+                    color: theme.colors.onSurfaceVariant
+                  }}>
+                    Total Games:
+                  </Text>
+                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
+                    {completedRounds * activeCourts.length}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.historyRow}>
-                <Text style={styles.historyLabel}>Total Games:</Text>
-                <Text style={styles.historyValue}>{completedRounds * activeCourts.length}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.viewHistoryButton}
+
+              <Button
+                mode="text"
                 onPress={() => setStatsModalVisible(true)}
+                style={{ marginTop: 8 }}
               >
-                <Text style={styles.viewHistoryButtonText}>View Detailed Stats</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+                View Detailed Stats
+              </Button>
+            </Card.Content>
+          </Card>
         )}
       </ScrollView>
 
-      {/* Round Score Entry Modal */}
       <RoundScoreEntryModal
         visible={scoreModalVisible}
         games={currentRoundGames}
@@ -395,7 +505,6 @@ export default function LiveSessionScreen() {
         onClose={() => setScoreModalVisible(false)}
       />
 
-      {/* Between Rounds Modal */}
       <BetweenRoundsModal
         visible={betweenRoundsVisible}
         currentRound={isRoundCompleted ? currentSession.currentGameNumber : currentSession.currentGameNumber}
@@ -405,7 +514,6 @@ export default function LiveSessionScreen() {
         onClose={() => setBetweenRoundsVisible(false)}
       />
 
-      {/* Player Stats Modal */}
       <PlayerStatsModal
         visible={statsModalVisible}
         players={sessionPlayers}
@@ -415,238 +523,3 @@ export default function LiveSessionScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#059669',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerCenter: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-  endButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 6,
-  },
-  endButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 8,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  timerContainer: {
-    marginBottom: 16,
-  },
-  actionContainer: {
-    marginBottom: 24,
-  },
-  generateRoundButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 12,
-  },
-  generateRoundButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  startRoundButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.green,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 12,
-  },
-  startRoundButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  completeRoundButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.orange,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 12,
-  },
-  completeRoundButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  roundCompletedContainer: {
-    marginBottom: 12,
-  },
-  roundCompletedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.greenLight,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
-    marginBottom: 12,
-  },
-  roundCompletedText: {
-    color: colors.green,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 6,
-  },
-  secondaryButtonText: {
-    color: colors.primary,
-    fontWeight: '500',
-  },
-  gamesSection: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  sittingSection: {
-    marginBottom: 24,
-  },
-  sittingPlayers: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  sittingPlayerChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.grayLight,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-  },
-  sittingPlayerName: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  historySection: {
-    marginBottom: 24,
-  },
-  historyCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-  },
-  historyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  historyLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  historyValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  viewHistoryButton: {
-    alignItems: 'center',
-    marginTop: 8,
-    paddingVertical: 8,
-  },
-  viewHistoryButtonText: {
-    color: colors.primary,
-    fontWeight: '500',
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 18,
-    color: colors.textSecondary,
-    marginBottom: 20,
-  },
-  backButtonText: {
-    color: colors.primary,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});

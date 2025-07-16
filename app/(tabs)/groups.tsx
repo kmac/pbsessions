@@ -1,14 +1,23 @@
-// app/(tabs)/groups.tsx (Enhanced Groups Tab)
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  Icon,
+  IconButton,
+  List,
+  Surface,
+  Text,
+  useTheme,
+} from 'react-native-paper';
 import { router } from 'expo-router';
 import { Plus, Edit2, Trash2, Users, UserPlus, ExternalLink } from 'lucide-react-native';
 import { useAppDispatch, useAppSelector } from '@/src/store';
@@ -16,10 +25,10 @@ import { addGroup, updateGroup, removeGroup } from '@/src/store/slices/groupsSli
 import { Group } from '@/src/types';
 import GroupForm from '@/src/components/GroupForm';
 import GroupPlayerManager from '@/src/components/GroupPlayerManager';
-import { colors } from '@/src/theme';
 import { Alert } from '@/src/utils/alert'
 
 export default function GroupsTab() {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
   const { groups, loading } = useAppSelector((state) => state.groups);
   const { players } = useAppSelector((state) => state.players);
@@ -28,17 +37,6 @@ export default function GroupsTab() {
   const [playerManagerVisible, setPlayerManagerVisible] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-
-  const handleAddGroup = (groupData: Omit<Group, 'id' | 'createdAt' | 'updatedAt'>) => {
-    dispatch(addGroup(groupData));
-    setModalVisible(false);
-  };
-
-  const handleUpdateGroup = (groupData: Group) => {
-    dispatch(updateGroup(groupData));
-    setEditingGroup(null);
-    setModalVisible(false);
-  };
 
   const handleDeleteGroup = (group: Group) => {
     Alert.alert(
@@ -80,138 +78,198 @@ export default function GroupsTab() {
       : 0;
 
     return (
-      <View style={styles.groupCard}>
-        <View style={styles.groupHeader}>
-          <View style={styles.groupInfo}>
-            <Text style={styles.groupName}>{item.name}</Text>
-            {item.description && (
-              <Text style={styles.groupDescription}>{item.description}</Text>
-            )}
-          </View>
-          <View style={styles.groupStats}>
-            <View style={styles.playerCount}>
-              <Users size={16} color={colors.primary} />
-              <Text style={styles.playerCountText}>{groupPlayers.length}</Text>
-            </View>
-            {averageRating > 0 && (
-              <View style={styles.averageRating}>
-                <Text style={styles.averageRatingText}>
-                  Avg: {averageRating.toFixed(1)}
+      <Card style={{
+        marginBottom: 12,
+      }}>
+        <Card.Content>
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: 12,
+          }}>
+            <View style={{
+              flex: 1,
+              marginRight: 12,
+            }}>
+              <Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 4 }}>
+                {item.name}
+              </Text>
+              {item.description && (
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {item.description}
                 </Text>
+              )}
+            </View>
+            <View style={{
+              alignItems: 'flex-end',
+              gap: 8,
+            }}>
+              <View style={{ flexDirection: 'row' }}>
+                {averageRating > 0 && (
+                  <Chip
+                    icon="star-outline"
+                    elevated
+                    style={{ backgroundColor: theme.colors.secondaryContainer }}
+                  >
+                    <Text variant="labelSmall">
+                      Avg: {averageRating.toFixed(1)}
+                    </Text>
+                  </Chip>
+                )}
+                <Chip icon="account-group" elevated>
+                  <Text variant="labelMedium">{groupPlayers.length}</Text>
+                </Chip>
               </View>
-            )}
+            </View>
           </View>
-        </View>
 
-        {groupPlayers.length > 0 && (
-          <View style={styles.playersPreview}>
-            <Text style={styles.playersLabel}>Players:</Text>
-            <Text style={styles.playersText} numberOfLines={2}>
-              {groupPlayers.map(p => p.name).join(', ')}
-            </Text>
-          </View>
-        )}
+          {groupPlayers.length > 0 && (
+            <View style={{ marginVertical: 12 }}>
+              <Text variant="labelMedium" style={{
+                color: theme.colors.onSurfaceVariant,
+                marginBottom: 4
+              }}>
+                Players:
+              </Text>
+              <Text variant="bodyMedium" numberOfLines={2} style={{
+                color: theme.colors.onSurfaceVariant
+              }}>
+                {groupPlayers.map(p => p.name).join(', ')}
+              </Text>
+            </View>
+          )}
+        </Card.Content>
 
-        <View style={styles.groupActions}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.playersButton]}
+        <Card.Actions style={{ justifyContent: 'space-between' }}>
+          <Button
+            icon="account-plus-outline"
+            mode="outlined"
             onPress={() => handleManagePlayers(item)}
           >
-            <UserPlus size={16} color={colors.blue} />
-            <Text style={styles.actionButtonText}>
-              {groupPlayers.length === 0 ? 'Add Players' : 'Manage Players'}
-            </Text>
-          </TouchableOpacity>
+            {groupPlayers.length === 0 ? 'Add Players' : 'Manage Players'}
+          </Button>
 
-          <View style={styles.rightActions}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.editButton]}
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            <IconButton
+              icon="pencil"
+              size={20}
               onPress={() => handleEditGroup(item)}
-            >
-              <Edit2 size={16} color={colors.blue} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.deleteButton]}
+            />
+            <IconButton
+              icon="delete"
+              size={20}
               onPress={() => handleDeleteGroup(item)}
-            >
-              <Trash2 size={16} color={colors.red} />
-            </TouchableOpacity>
+            />
           </View>
-        </View>
-      </View>
+        </Card.Actions>
+      </Card>
     );
   };
 
   const EmptyState = () => (
-    <View style={styles.emptyState}>
-      <Users size={48} color={colors.gray} />
-      <Text style={styles.emptyText}>No groups yet</Text>
-      <Text style={styles.emptySubtext}>
+    <View style={{
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 64,
+    }}>
+      <Icon source="account-group" size={48} />
+      <Text variant="titleMedium" style={{
+        fontWeight: '600',
+        marginTop: 16,
+        color: theme.colors.onSurfaceVariant
+      }}>
+        No groups yet
+      </Text>
+      <Text variant="bodyMedium" style={{
+        color: theme.colors.onSurfaceVariant,
+        marginTop: 4,
+        textAlign: 'center',
+        marginBottom: 20
+      }}>
         Create groups to organize players for sessions
       </Text>
 
       {players.length === 0 && (
-        <TouchableOpacity
-          style={styles.navigateButton}
+        <Button
+          icon="open-in-new"
+          mode="outlined"
           onPress={navigateToPlayers}
         >
-          <ExternalLink size={16} color={colors.primary} />
-          <Text style={styles.navigateButtonText}>Add Players First</Text>
-        </TouchableOpacity>
+          Add Players First
+        </Button>
       )}
     </View>
   );
 
   const handleSaveGroup = (groupData: Group | Omit<Group, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingGroup) {
-      // For updates, we know groupData has all required fields
       dispatch(updateGroup(groupData as Group));
       setEditingGroup(null);
     } else {
-      // For new groups, we know groupData omits id, createdAt, updatedAt
       dispatch(addGroup(groupData as Omit<Group, 'id' | 'createdAt' | 'updatedAt'>));
     }
     setModalVisible(false);
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.title}>Groups ({groups.length})</Text>
+    <SafeAreaView style={{ flex: 1 }}>
+      <Surface style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+      }} elevation={1}>
+        <View style={{
+          flex: 1,
+        }}>
+          <Text variant="headlineMedium" style={{ fontWeight: 'bold' }}>
+            Groups ({groups.length})
+          </Text>
           {players.length > 0 && (
-            <Text style={styles.subtitle}>{players.length} players available</Text>
+            <Text variant="bodyMedium" style={{
+              color: theme.colors.onSurfaceVariant,
+              marginTop: 2
+            }}>
+              {players.length} players available
+            </Text>
           )}
         </View>
 
-        <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.navigateToPlayersButton}
-              onPress={navigateToPlayers}
-            >
-              <ExternalLink size={16} color={colors.primary} />
-              <Text style={styles.navigateToPlayersText}>Manage Players</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setModalVisible(true)}
-            >
-              <Plus size={20} color="white" />
-              <Text style={styles.addButtonText}>Add Group</Text>
-            </TouchableOpacity>
+        <View style={{
+          flexDirection: 'row',
+          gap: 8,
+          marginLeft: 12,
+        }}>
+          <Button
+            icon="open-in-new"
+            mode="outlined"
+            onPress={navigateToPlayers}
+          >
+            Manage Players
+          </Button>
+          <Button
+            icon="plus"
+            mode="contained"
+            onPress={() => setModalVisible(true)}
+          >
+            Add Group
+          </Button>
         </View>
-      </View>
+      </Surface>
 
       <FlatList
         data={groups}
         renderItem={renderGroup}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={{
+          padding: 16,
+        }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={<EmptyState />}
       />
 
-      {/* Group Form Modal */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -227,7 +285,6 @@ export default function GroupsTab() {
         />
       </Modal>
 
-      {/* Player Manager Modal */}
       {selectedGroup && (
         <GroupPlayerManager
           visible={playerManagerVisible}
@@ -241,207 +298,3 @@ export default function GroupsTab() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: 'white',
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  headerActions: {
-    marginLeft: 12,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  addButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  navigateToPlayersButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  navigateToPlayersText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  listContainer: {
-    padding: 16,
-  },
-  groupCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  groupHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  groupInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  groupName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  groupDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  groupStats: {
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  playerCount: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.blueLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  playerCountText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  averageRating: {
-    backgroundColor: colors.orangeLight,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  averageRatingText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.orange,
-  },
-  playersPreview: {
-    marginBottom: 12,
-  },
-  playersLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.gray,
-    marginBottom: 4,
-  },
-  playersText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  groupActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  playersButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.blueLight,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  rightActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    padding: 8,
-    borderRadius: 6,
-  },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.blue,
-  },
-  editButton: {
-    backgroundColor: colors.blueLight,
-  },
-  deleteButton: {
-    backgroundColor: colors.redLight,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 64,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.gray,
-    marginTop: 4,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  navigateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 8,
-  },
-  navigateButtonText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-});
-

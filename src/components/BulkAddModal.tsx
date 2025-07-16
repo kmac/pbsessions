@@ -1,21 +1,25 @@
-// src/components/BulkAddModal.tsx
 import React, { useState } from 'react';
 import {
   View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   Modal,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
-import { X, Plus, Trash2, Users } from 'lucide-react-native';
+import {
+  Appbar,
+  Button,
+  Card,
+  IconButton,
+  Menu,
+  Surface,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import { addMultiplePlayers } from '../store/slices/playersSlice';
 import { Player } from '../types';
-import { colors } from '../theme';
 import { Alert } from '../utils/alert'
 
 interface BulkAddModalProps {
@@ -33,6 +37,7 @@ interface PlayerInput {
 }
 
 export default function BulkAddModal({ visible, onClose }: BulkAddModalProps) {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const [players, setPlayers] = useState<PlayerInput[]>([
     { id: '1', name: '', email: '', phone: '', gender: undefined, rating: '' },
@@ -73,6 +78,8 @@ export default function BulkAddModal({ visible, onClose }: BulkAddModalProps) {
       return {
         name: p.name.trim(),
         email: p.email.trim() || undefined,
+        phone: p.phone?.trim() || undefined,
+        gender: p.gender,
         rating,
       };
     });
@@ -82,7 +89,7 @@ export default function BulkAddModal({ visible, onClose }: BulkAddModalProps) {
       Alert.alert('Success', `Added ${playersToAdd.length} players`);
 
       // Reset form
-      setPlayers([{ id: '1', name: '', email: '', rating: '' }]);
+      setPlayers([{ id: '1', name: '', email: '', phone: '', gender: undefined, rating: '' }]);
       onClose();
     } catch (error) {
       // Alert was already shown for validation error
@@ -90,7 +97,7 @@ export default function BulkAddModal({ visible, onClose }: BulkAddModalProps) {
   };
 
   const handleCancel = () => {
-    setPlayers([{ id: '1', name: '', email: '', rating: '' }]);
+    setPlayers([{ id: '1', name: '', email: '', phone: '', gender: undefined, rating: '' }]);
     onClose();
   };
 
@@ -100,234 +107,204 @@ export default function BulkAddModal({ visible, onClose }: BulkAddModalProps) {
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
-            <X size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.title}>Bulk Add Players</Text>
-          <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-            <Users size={20} color="white" />
-            <Text style={styles.saveButtonText}>Add All</Text>
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView style={{ flex: 1 }}>
+        <Appbar.Header>
+          <Appbar.BackAction onPress={handleCancel} />
+          <Appbar.Content
+            title="Bulk Add Players"
+            titleStyle={{ fontWeight: '600' }}
+          />
+          <Button
+            icon="account-multiple-plus"
+            mode="contained"
+            onPress={handleSave}
+            style={{ marginRight: 8 }}
+          >
+            Add All
+          </Button>
+        </Appbar.Header>
 
-        <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-          <View style={styles.instructions}>
-            <Text style={styles.instructionsText}>
+        <ScrollView
+          style={{ flex: 1, padding: 16 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Surface
+            style={{
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 24,
+              backgroundColor: theme.colors.primaryContainer
+            }}
+          >
+            <Text
+              variant="bodyMedium"
+              style={{
+                color: theme.colors.onPrimaryContainer,
+                textAlign: 'center'
+              }}
+            >
               Add multiple players at once. Only name is required.
             </Text>
-          </View>
+          </Surface>
 
           {players.map((player, index) => (
-            <View key={player.id} style={styles.playerRow}>
-              <View style={styles.playerHeader}>
-                <Text style={styles.playerNumber}>Player {index + 1}</Text>
-                {players.length > 1 && (
-                  <TouchableOpacity
-                    onPress={() => removePlayerRow(player.id)}
-                    style={styles.removeButton}
-                  >
-                    <Trash2 size={16} color={colors.red} />
-                  </TouchableOpacity>
-                )}
-              </View>
+            <Card key={player.id} style={{ marginBottom: 16 }}>
+              <Card.Content>
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12,
+                }}>
+                  <Text variant="titleMedium" style={{ fontWeight: '600' }}>
+                    Player {index + 1}
+                  </Text>
+                  {players.length > 1 && (
+                    <IconButton
+                      icon="delete"
+                      size={20}
+                      onPress={() => removePlayerRow(player.id)}
+                    />
+                  )}
+                </View>
 
-              <View style={styles.inputRow}>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Name *</Text>
+                <View style={{ marginBottom: 12 }}>
+                  <Text
+                    variant="labelMedium"
+                    style={{
+                      marginBottom: 4,
+                      color: theme.colors.onSurface
+                    }}
+                  >
+                    Name *
+                  </Text>
                   <TextInput
-                    style={styles.input}
+                    mode="outlined"
                     value={player.name}
                     onChangeText={(text) => updatePlayer(player.id, 'name', text)}
                     placeholder="Player name"
+                    dense
                   />
                 </View>
-              </View>
 
-              <View style={styles.inputRow}>
-                <View style={[styles.inputGroup, { flex: 2 }]}>
-                  <Text style={styles.inputLabel}>Email</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={player.email}
-                    onChangeText={(text) => updatePlayer(player.id, 'email', text)}
-                    placeholder="Email (optional)"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
-                <View style={[styles.inputGroup, { flex: 2 }]}>
-                  <Text style={styles.inputLabel}>Phone</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={player.phone}
-                    onChangeText={(text) => updatePlayer(player.id, 'phone', text)}
-                    placeholder="Phone (optional)"
-                    keyboardType="phone-pad"
-                    autoCapitalize="none"
-                  />
-                </View>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>Gender (optional)</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={player.gender}
-                      onValueChange={(value) => updatePlayer(player.id, 'gender', value)}
-                      style={styles.picker}
+                <View style={{
+                  flexDirection: 'row',
+                  gap: 12,
+                  marginBottom: 12
+                }}>
+                  <View style={{ flex: 2 }}>
+                    <Text
+                      variant="labelMedium"
+                      style={{
+                        marginBottom: 4,
+                        color: theme.colors.onSurface
+                      }}
                     >
-                      <Picker.Item label="Select gender" value="" />
-                      <Picker.Item label="Male" value="male" />
-                      <Picker.Item label="Female" value="female" />
-                      <Picker.Item label="Other" value="other" />
-                    </Picker>
+                      Email
+                    </Text>
+                    <TextInput
+                      mode="outlined"
+                      value={player.email}
+                      onChangeText={(text) => updatePlayer(player.id, 'email', text)}
+                      placeholder="Email (optional)"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      dense
+                    />
+                  </View>
+                  <View style={{ flex: 2 }}>
+                    <Text
+                      variant="labelMedium"
+                      style={{
+                        marginBottom: 4,
+                        color: theme.colors.onSurface
+                      }}
+                    >
+                      Phone
+                    </Text>
+                    <TextInput
+                      mode="outlined"
+                      value={player.phone}
+                      onChangeText={(text) => updatePlayer(player.id, 'phone', text)}
+                      placeholder="Phone (optional)"
+                      keyboardType="phone-pad"
+                      autoCapitalize="none"
+                      dense
+                    />
                   </View>
                 </View>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>Rating</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={player.rating}
-                    onChangeText={(text) => updatePlayer(player.id, 'rating', text)}
-                    placeholder="0.0"
-                    keyboardType="decimal-pad"
-                  />
+
+                <View style={{
+                  flexDirection: 'row',
+                  gap: 12
+                }}>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      variant="labelMedium"
+                      style={{
+                        marginBottom: 4,
+                        color: theme.colors.onSurface
+                      }}
+                    >
+                      Gender
+                    </Text>
+                    <Surface style={{
+                      borderRadius: 4,
+                      borderWidth: 1,
+                      borderColor: theme.colors.outline
+                    }}>
+                      <Picker
+                        selectedValue={player.gender}
+                        onValueChange={(value) => updatePlayer(player.id, 'gender', value)}
+                        style={{ height: 40 }}
+                      >
+                        <Picker.Item label="Select" value="" />
+                        <Picker.Item label="Male" value="male" />
+                        <Picker.Item label="Female" value="female" />
+                        <Picker.Item label="Other" value="other" />
+                      </Picker>
+                    </Surface>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      variant="labelMedium"
+                      style={{
+                        marginBottom: 4,
+                        color: theme.colors.onSurface
+                      }}
+                    >
+                      Rating
+                    </Text>
+                    <TextInput
+                      mode="outlined"
+                      value={player.rating}
+                      onChangeText={(text) => updatePlayer(player.id, 'rating', text)}
+                      placeholder="0.0"
+                      keyboardType="decimal-pad"
+                      dense
+                    />
+                  </View>
                 </View>
-              </View>
-            </View>
+              </Card.Content>
+            </Card>
           ))}
 
-          <TouchableOpacity onPress={addPlayerRow} style={styles.addRowButton}>
-            <Plus size={20} color={colors.primary} />
-            <Text style={styles.addRowText}>Add Another Player</Text>
-          </TouchableOpacity>
+          <Button
+            icon="plus"
+            mode="outlined"
+            onPress={addPlayerRow}
+            style={{
+              borderStyle: 'dashed',
+              borderWidth: 2,
+              borderColor: theme.colors.primary,
+              marginTop: 8
+            }}
+            contentStyle={{ paddingVertical: 8 }}
+          >
+            Add Another Player
+          </Button>
         </ScrollView>
       </SafeAreaView>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  cancelButton: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  form: {
-    flex: 1,
-    padding: 16,
-  },
-  instructions: {
-    backgroundColor: colors.blueLight,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 24,
-  },
-  instructionsText: {
-    color: colors.blue,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  playerRow: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  playerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  playerNumber: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  removeButton: {
-    padding: 4,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  inputGroup: {
-    flex: 1,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    backgroundColor: 'white',
-  },
-  picker: {
-    height: 50,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 14,
-    backgroundColor: 'white',
-  },
-  addRowButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderStyle: 'dashed',
-    borderRadius: 8,
-    padding: 16,
-    gap: 8,
-  },
-  addRowText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-});
-

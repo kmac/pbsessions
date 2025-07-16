@@ -1,18 +1,19 @@
-// src/components/PlayerForm.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Appbar,
+  Button,
+  Surface,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
-import { X, Save } from 'lucide-react-native';
 import { Player } from '../types';
-import { colors } from '../theme';
 import { Alert } from '../utils/alert'
 
 interface PlayerFormProps {
@@ -22,6 +23,7 @@ interface PlayerFormProps {
 }
 
 export default function PlayerForm({ player, onSave, onCancel }: PlayerFormProps) {
+  const theme = useTheme();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -70,159 +72,141 @@ export default function PlayerForm({ player, onSave, onCancel }: PlayerFormProps
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
-          <X size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.title}>
-          {player ? 'Edit Player' : 'Add Player'}
-        </Text>
-        <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-          <Save size={20} color="white" />
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={{ flex: 1 }}>
+      <Appbar.Header>
+        <Appbar.BackAction onPress={onCancel} />
+        <Appbar.Content
+          title={player ? 'Edit Player' : 'Add Player'}
+          titleStyle={{ fontWeight: '600' }}
+        />
+        <Button
+          icon="content-save"
+          mode="contained"
+          onPress={handleSave}
+          style={{ marginRight: 8 }}
+        >
+          Save
+        </Button>
+      </Appbar.Header>
 
-      <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Name *</Text>
+      <ScrollView
+        style={{ flex: 1, padding: 16 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Surface style={{
+          padding: 16,
+          borderRadius: 12,
+          marginBottom: 16
+        }}>
+          <Text
+            variant="labelLarge"
+            style={{
+              marginBottom: 8,
+              color: theme.colors.onSurface
+            }}
+          >
+            Name *
+          </Text>
           <TextInput
-            style={styles.input}
+            mode="outlined"
             value={formData.name}
             onChangeText={(text) => setFormData({ ...formData, name: text })}
             placeholder="Enter player name"
             autoFocus={!player}
+            style={{ marginBottom: 16 }}
           />
-        </View>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Email</Text>
+          <Text
+            variant="labelLarge"
+            style={{
+              marginBottom: 8,
+              color: theme.colors.onSurface
+            }}
+          >
+            Email
+          </Text>
           <TextInput
-            style={styles.input}
+            mode="outlined"
             value={formData.email}
             onChangeText={(text) => setFormData({ ...formData, email: text })}
             placeholder="Enter email address"
             keyboardType="email-address"
             autoCapitalize="none"
+            style={{ marginBottom: 16 }}
           />
-        </View>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Phone</Text>
+          <Text
+            variant="labelLarge"
+            style={{
+              marginBottom: 8,
+              color: theme.colors.onSurface
+            }}
+          >
+            Phone
+          </Text>
           <TextInput
-            style={styles.input}
+            mode="outlined"
             value={formData.phone}
             onChangeText={(text) => setFormData({ ...formData, phone: text })}
             placeholder="Enter phone number"
             keyboardType="phone-pad"
+            style={{ marginBottom: 16 }}
           />
-        </View>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Gender</Text>
-          <View style={styles.pickerContainer}>
+          <Text
+            variant="labelLarge"
+            style={{
+              marginBottom: 8,
+              color: theme.colors.onSurface
+            }}
+          >
+            Gender
+          </Text>
+          <Surface style={{
+            borderRadius: 4,
+            borderWidth: 1,
+            borderColor: theme.colors.outline,
+            marginBottom: 16
+          }}>
             <Picker
               selectedValue={formData.gender}
               onValueChange={(value) => setFormData({ ...formData, gender: value })}
-              style={styles.picker}
+              style={{ height: 50 }}
             >
               <Picker.Item label="Select gender" value="" />
               <Picker.Item label="Male" value="male" />
               <Picker.Item label="Female" value="female" />
               <Picker.Item label="Other" value="other" />
             </Picker>
-          </View>
-        </View>
+          </Surface>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Rating (0.0 - 10.0)</Text>
+          <Text
+            variant="labelLarge"
+            style={{
+              marginBottom: 8,
+              color: theme.colors.onSurface
+            }}
+          >
+            Rating (0.0 - 10.0)
+          </Text>
           <TextInput
-            style={styles.input}
+            mode="outlined"
             value={formData.rating}
             onChangeText={(text) => setFormData({ ...formData, rating: text })}
             placeholder="Enter DUPR-style rating"
             keyboardType="decimal-pad"
           />
-          <Text style={styles.helpText}>
+          <Text
+            variant="bodySmall"
+            style={{
+              color: theme.colors.onSurfaceVariant,
+              marginTop: 4
+            }}
+          >
             Optional: DUPR-style rating for skill-based court assignments
           </Text>
-        </View>
+        </Surface>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  cancelButton: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  form: {
-    flex: 1,
-    padding: 16,
-  },
-  formGroup: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: 'white',
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    backgroundColor: 'white',
-  },
-  picker: {
-    height: 50,
-  },
-  helpText: {
-    fontSize: 12,
-    color: colors.gray,
-    marginTop: 4,
-  },
-});
-

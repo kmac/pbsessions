@@ -75,11 +75,10 @@ function StorageLoader() {
 }
 
 const RootLayoutNav = () => {
-  // const colorScheme = useColorScheme()
 
   // Get settings from Redux store
   const settings = useSelector((state: RootState) => state.appConfig.appConfig);
-  // Alert.alert(`colorScheme: ${colorScheme}, settings: ${settings.theme} ${settings.color}`)
+
   // const colorScheme = settings.theme || 'light';
   const colorScheme = 'light';
 
@@ -93,20 +92,6 @@ const RootLayoutNav = () => {
     Themes[
       effectiveSettings.theme === 'auto' ? (colorScheme ?? 'dark') : effectiveSettings.theme
     ][effectiveSettings.color]
-
-  // const colorScheme = useColorScheme()
-  //const colorScheme = 'light'
-
-  // const settings : Setting = {
-  //   // theme: 'auto',
-  //   theme: 'light',
-  //   color: 'default',
-  // }
-
-  // const theme =
-  //   Themes[
-  //     settings.theme === 'auto' ? (colorScheme ?? 'dark') : settings.theme
-  //   ][settings.color]
 
   const { DarkTheme, LightTheme } = adaptNavigationTheme({
     reactNavigationDark: NavDarkTheme,

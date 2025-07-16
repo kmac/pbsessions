@@ -48,13 +48,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="players2"
-        options={{
-          title: 'Players2',
-          tabBarIcon: ({ color, size }) => <Users color={color} size={size || 24} />,
-        }}
-      />
-      <Tabs.Screen
         name="groups"
         options={{
           title: 'Groups',

@@ -1,32 +1,25 @@
-// src/components/SessionForm.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   ScrollView,
-  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppSelector } from '../store';
 import {
-  X,
-  Save,
-  Calendar,
-  Clock,
-  Users,
-  MapPin,
-  Plus,
-  Minus,
-  Settings
-} from 'lucide-react-native';
+  Appbar,
+  Button,
+  Card,
+  Chip,
+  Icon,
+  Surface,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
+import { useAppSelector } from '../store';
 import { Session, Court, Player, Group } from '../types';
 import { validateSessionSize } from '../utils/validation';
 import SessionPlayerManager from './SessionPlayerManager';
 import CourtManager from './CourtManager';
-import { colors } from '../theme';
 import { Alert } from '../utils/alert'
 
 interface SessionFormProps {
@@ -36,6 +29,7 @@ interface SessionFormProps {
 }
 
 export default function SessionForm({ session, onSave, onCancel }: SessionFormProps) {
+  const theme = useTheme();
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
 
@@ -62,7 +56,6 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
         courts: session.courts,
       });
     } else {
-      // Set default date/time to next hour
       const now = new Date();
       now.setHours(now.getHours() + 1, 0, 0, 0);
       setFormData(prev => ({ ...prev, dateTime: now.toISOString() }));
@@ -138,158 +131,286 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
   const validation = validateSessionSize(selectedPlayers.length, activeCourts.length);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
-          <X size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.title}>
-          {session ? 'Edit Session' : 'New Session'}
-        </Text>
-        <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-          <Save size={20} color="white" />
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={{ flex: 1 }}>
+      <Appbar.Header>
+        <Appbar.BackAction onPress={onCancel} />
+        <Appbar.Content
+          title={session ? 'Edit Session' : 'New Session'}
+          titleStyle={{ fontWeight: '600' }}
+        />
+        <Button
+          icon="content-save"
+          mode="contained"
+          onPress={handleSave}
+          style={{ marginRight: 8 }}
+        >
+          Save
+        </Button>
+      </Appbar.Header>
 
-      <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-        {/* Session Name */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Session Name *</Text>
+      <ScrollView
+        style={{ flex: 1, padding: 16 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Surface style={{
+          padding: 16,
+          borderRadius: 12,
+          marginBottom: 16
+        }}>
+          <Text
+            variant="labelLarge"
+            style={{
+              marginBottom: 8,
+              color: theme.colors.onSurface
+            }}
+          >
+            Session Name *
+          </Text>
           <TextInput
-            style={styles.input}
+            mode="outlined"
             value={formData.name}
             onChangeText={(text) => setFormData({ ...formData, name: text })}
             placeholder="Enter session name"
             autoFocus={!session}
           />
-        </View>
+        </Surface>
 
-        {/* Date & Time */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Date & Time *</Text>
-          <View style={styles.dateTimeContainer}>
-            <Calendar size={20} color={colors.gray} />
-            <Text style={styles.dateTimeDisplay}>
+        <Surface style={{
+          padding: 16,
+          borderRadius: 12,
+          marginBottom: 16
+        }}>
+          <Text
+            variant="labelLarge"
+            style={{
+              marginBottom: 8,
+              color: theme.colors.onSurface
+            }}
+          >
+            Date & Time *
+          </Text>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 12,
+            borderWidth: 1,
+            borderColor: theme.colors.outline,
+            borderRadius: 4,
+            gap: 8
+          }}>
+            <Icon source="calendar" size={20} />
+            <Text variant="bodyLarge">
               {formatTimeForInput(formData.dateTime)}
             </Text>
           </View>
-          <Text style={styles.helpText}>
+          <Text
+            variant="bodySmall"
+            style={{
+              color: theme.colors.onSurfaceVariant,
+              marginTop: 4
+            }}
+          >
             Tap to change date and time (coming soon)
           </Text>
-        </View>
+        </Surface>
 
-        {/* Players Section */}
-        <View style={styles.formGroup}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.label}>Players ({selectedPlayers.length})</Text>
-            <TouchableOpacity
-              style={styles.manageButton}
-              onPress={() => setShowPlayerManager(true)}
-            >
-              <Users size={16} color={colors.primary} />
-              <Text style={styles.manageButtonText}>Manage</Text>
-            </TouchableOpacity>
-          </View>
-
-          {selectedPlayers.length === 0 ? (
-            <View style={styles.emptyPlayers}>
-              <Users size={32} color={colors.gray} />
-              <Text style={styles.emptyText}>No players selected</Text>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowPlayerManager(true)}
-              >
-                <Plus size={16} color={colors.primary} />
-                <Text style={styles.addButtonText}>Add Players</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.playersPreview}>
-              <Text style={styles.playersText}>
-                {selectedPlayers.map(p => p.name).join(', ')}
+        <Card style={{ marginBottom: 16 }}>
+          <Card.Content>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 12
+            }}>
+              <Text variant="titleMedium" style={{ fontWeight: '600' }}>
+                Players ({selectedPlayers.length})
               </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Courts Section */}
-        <View style={styles.formGroup}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.label}>Courts ({activeCourts.length} active)</Text>
-            <TouchableOpacity
-              style={styles.manageButton}
-              onPress={() => setShowCourtManager(true)}
-            >
-              <Settings size={16} color={colors.primary} />
-              <Text style={styles.manageButtonText}>Configure</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.courtsPreview}>
-            {formData.courts.map(court => (
-              <View
-                key={court.id}
-                style={[
-                  styles.courtChip,
-                  !court.isActive && styles.courtChipInactive
-                ]}
+              <Button
+                icon="account-group"
+                mode="outlined"
+                onPress={() => setShowPlayerManager(true)}
+                compact
               >
-                <MapPin
-                  size={14}
-                  color={court.isActive ? colors.green : colors.gray}
-                />
-                <Text style={[
-                  styles.courtChipText,
-                  !court.isActive && styles.courtChipTextInactive
-                ]}>
+                Manage
+              </Button>
+            </View>
+
+            {selectedPlayers.length === 0 ? (
+              <Surface style={{
+                alignItems: 'center',
+                padding: 24,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: theme.colors.outline,
+                borderStyle: 'dashed'
+              }}>
+                <Icon source="account-group" size={32} />
+                <Text
+                  variant="bodyLarge"
+                  style={{
+                    color: theme.colors.onSurfaceVariant,
+                    marginVertical: 8
+                  }}
+                >
+                  No players selected
+                </Text>
+                <Button
+                  icon="plus"
+                  mode="outlined"
+                  onPress={() => setShowPlayerManager(true)}
+                >
+                  Add Players
+                </Button>
+              </Surface>
+            ) : (
+              <Surface style={{
+                padding: 12,
+                borderRadius: 8,
+                backgroundColor: theme.colors.surfaceVariant
+              }}>
+                <Text
+                  variant="bodyMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {selectedPlayers.map(p => p.name).join(', ')}
+                </Text>
+              </Surface>
+            )}
+          </Card.Content>
+        </Card>
+
+        <Card style={{ marginBottom: 16 }}>
+          <Card.Content>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 12
+            }}>
+              <Text variant="titleMedium" style={{ fontWeight: '600' }}>
+                Courts ({activeCourts.length} active)
+              </Text>
+              <Button
+                icon="cog-outline"
+                mode="outlined"
+                onPress={() => setShowCourtManager(true)}
+                compact
+              >
+                Configure
+              </Button>
+            </View>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {formData.courts.map(court => (
+                <Chip
+                  key={court.id}
+                  icon="map-marker-outline"
+                  style={{
+                    backgroundColor: court.isActive
+                      ? theme.colors.tertiaryContainer
+                      : theme.colors.surfaceVariant
+                  }}
+                >
                   Court {court.number}
                   {court.minimumRating ? ` (${court.minimumRating.toFixed(1)}+)` : ''}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
+                </Chip>
+              ))}
+            </View>
+          </Card.Content>
+        </Card>
 
-        {/* Validation Summary */}
         {selectedPlayers.length > 0 && activeCourts.length > 0 && (
-          <View style={styles.validationSummary}>
-            <View style={styles.summaryHeader}>
-              <Text style={styles.summaryTitle}>Session Summary</Text>
-            </View>
+          <Card>
+            <Card.Content>
+              <Text variant="titleMedium" style={{
+                fontWeight: '600',
+                marginBottom: 12
+              }}>
+                Session Summary
+              </Text>
 
-            <View style={styles.summaryStats}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total Players:</Text>
-                <Text style={styles.summaryValue}>{selectedPlayers.length}</Text>
+              <View style={{ gap: 8 }}>
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <Text variant="bodyMedium" style={{
+                    color: theme.colors.onSurfaceVariant
+                  }}>
+                    Total Players:
+                  </Text>
+                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
+                    {selectedPlayers.length}
+                  </Text>
+                </View>
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <Text variant="bodyMedium" style={{
+                    color: theme.colors.onSurfaceVariant
+                  }}>
+                    Active Courts:
+                  </Text>
+                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
+                    {activeCourts.length}
+                  </Text>
+                </View>
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <Text variant="bodyMedium" style={{
+                    color: theme.colors.onSurfaceVariant
+                  }}>
+                    Playing per game:
+                  </Text>
+                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
+                    {activeCourts.length * 4}
+                  </Text>
+                </View>
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <Text variant="bodyMedium" style={{
+                    color: theme.colors.onSurfaceVariant
+                  }}>
+                    Sitting out:
+                  </Text>
+                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
+                    {Math.max(0, selectedPlayers.length - (activeCourts.length * 4))}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Active Courts:</Text>
-                <Text style={styles.summaryValue}>{activeCourts.length}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Playing per game:</Text>
-                <Text style={styles.summaryValue}>{activeCourts.length * 4}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Sitting out:</Text>
-                <Text style={styles.summaryValue}>
-                  {Math.max(0, selectedPlayers.length - (activeCourts.length * 4))}
-                </Text>
-              </View>
-            </View>
 
-            {validation.warning && (
-              <View style={styles.warningContainer}>
-                <Text style={styles.warningText}>{validation.warning}</Text>
-              </View>
-            )}
-          </View>
+              {validation.warning && (
+                <Surface style={{
+                  backgroundColor: theme.colors.errorContainer,
+                  padding: 8,
+                  borderRadius: 6,
+                  marginTop: 12
+                }}>
+                  <Text
+                    variant="bodySmall"
+                    style={{
+                      color: theme.colors.onErrorContainer,
+                      textAlign: 'center'
+                    }}
+                  >
+                    {validation.warning}
+                  </Text>
+                </Surface>
+              )}
+            </Card.Content>
+          </Card>
         )}
       </ScrollView>
 
-      {/* Player Manager Modal
-      TODO this is sort of a duplicate - but this one works */}
       <SessionPlayerManager
         visible={showPlayerManager}
         selectedPlayerIds={formData.playerIds}
@@ -297,7 +418,6 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
         onClose={() => setShowPlayerManager(false)}
       />
 
-      {/* Court Manager Modal */}
       <CourtManager
         visible={showCourtManager}
         courts={formData.courts}
@@ -307,212 +427,3 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: 'white',
-  },
-  cancelButton: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  form: {
-    flex: 1,
-    padding: 16,
-  },
-  formGroup: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: 'white',
-  },
-  dateTimeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: 'white',
-    gap: 8,
-  },
-  dateTimeDisplay: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  helpText: {
-    fontSize: 12,
-    color: colors.gray,
-    marginTop: 4,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  manageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    gap: 4,
-  },
-  manageButtonText: {
-    color: colors.primary,
-    fontWeight: '500',
-    fontSize: 12,
-  },
-  emptyPlayers: {
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginVertical: 8,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    gap: 4,
-  },
-  addButtonText: {
-    color: colors.primary,
-    fontWeight: '500',
-  },
-  playersPreview: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  playersText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  courtsPreview: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  courtChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.greenLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  courtChipInactive: {
-    backgroundColor: colors.grayLight,
-  },
-  courtChipText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.green,
-  },
-  courtChipTextInactive: {
-    color: colors.gray,
-  },
-  validationSummary: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
-  },
-  summaryHeader: {
-    marginBottom: 12,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  summaryStats: {
-    gap: 8,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  warningContainer: {
-    backgroundColor: colors.orangeLight,
-    padding: 8,
-    borderRadius: 6,
-    marginTop: 12,
-  },
-  warningText: {
-    fontSize: 12,
-    color: colors.orange,
-    textAlign: 'center',
-  },
-});
-

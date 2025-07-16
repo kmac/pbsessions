@@ -1,19 +1,26 @@
-// src/components/RoundScoreEntryModal.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   Modal,
   ScrollView,
-  TextInput,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Save, Trophy, Plus, Minus, SkipForward } from 'lucide-react-native';
+import {
+  Appbar,
+  Button,
+  Card,
+  Chip,
+  Icon,
+  IconButton,
+  Surface,
+  Switch,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
 import { Game, Player } from '../types';
-import { colors, COURT_COLORS } from '../theme';
+import { COURT_COLORS } from '../theme';
 
 interface RoundScoreEntryModalProps {
   visible: boolean;
@@ -40,6 +47,7 @@ export default function RoundScoreEntryModal({
   onSave,
   onClose
 }: RoundScoreEntryModalProps) {
+  const theme = useTheme();
   const [courtScores, setCourtScores] = useState<CourtScore[]>([]);
 
   useEffect(() => {
@@ -143,156 +151,223 @@ export default function RoundScoreEntryModal({
     const courtColor = COURT_COLORS[index % COURT_COLORS.length];
 
     return (
-      <View key={court.gameId} style={styles.courtContainer}>
-        <View style={styles.courtHeader}>
-          <View style={styles.courtTitleRow}>
-            <View style={[styles.courtIndicator, { backgroundColor: courtColor }]} />
-            <Text style={styles.courtTitle}>Court {court.courtNumber}</Text>
+      <Card key={court.gameId} style={{ marginBottom: 16 }}>
+        <Card.Content>
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{
+                width: 12,
+                height: 12,
+                borderRadius: 6,
+                backgroundColor: courtColor
+              }} />
+              <Text variant="titleMedium" style={{ fontWeight: '600' }}>
+                Court {court.courtNumber}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text variant="labelMedium">
+                {court.hasScore ? 'Remove Score' : 'Add Score'}
+              </Text>
+              <Switch
+                value={court.hasScore}
+                onValueChange={() => toggleCourtScore(court.gameId)}
+              />
+            </View>
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.scoreToggle,
-              court.hasScore ? styles.scoreToggleActive : styles.scoreToggleInactive
-            ]}
-            onPress={() => toggleCourtScore(court.gameId)}
-          >
-            <Text style={[
-              styles.scoreToggleText,
-              court.hasScore ? styles.scoreToggleTextActive : styles.scoreToggleTextInactive
-            ]}>
-              {court.hasScore ? 'Remove Score' : 'Add Score'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {court.hasScore && (
-          <>
-            {/* Score Entry */}
-            <View style={styles.scoreSection}>
-              {/* Serve Team */}
-              <View style={[styles.teamScoreContainer, styles.serveTeamContainer]}>
-                <View style={styles.teamHeader}>
-                  <Text style={styles.teamTitle}>Serve Team</Text>
-                  {winner === 'serve' && <Trophy size={16} color={colors.green} />}
-                </View>
-
-                <View style={styles.teamPlayers}>
-                  <Text style={styles.playerName}>
-                    {court.serveTeam[0]?.name || 'Player 1'}
-                  </Text>
-                  <Text style={styles.playerName}>
-                    {court.serveTeam[1]?.name || 'Player 2'}
-                  </Text>
-                </View>
-
-                <View style={styles.scoreControls}>
-                  <TouchableOpacity
-                    style={styles.scoreButton}
-                    onPress={() => adjustScore(court.gameId, 'serve', -1)}
-                  >
-                    <Minus size={16} color={colors.primary} />
-                  </TouchableOpacity>
-
-                  <TextInput
-                    style={styles.scoreInput}
-                    value={court.serveScore.toString()}
-                    onChangeText={(text) => {
-                      const num = parseInt(text) || 0;
-                      if (num >= 0 && num <= 99) {
-                        updateCourtScore(court.gameId, 'serveScore', num);
-                      }
-                    }}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                  />
-
-                  <TouchableOpacity
-                    style={styles.scoreButton}
-                    onPress={() => adjustScore(court.gameId, 'serve', 1)}
-                  >
-                    <Plus size={16} color={colors.primary} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* VS */}
-              <View style={styles.vsDivider}>
-                <Text style={styles.vsText}>VS</Text>
-              </View>
-
-              {/* Receive Team */}
-              <View style={[styles.teamScoreContainer, styles.receiveTeamContainer]}>
-                <View style={styles.teamHeader}>
-                  <Text style={styles.teamTitle}>Receive Team</Text>
-                  {winner === 'receive' && <Trophy size={16} color={colors.green} />}
-                </View>
-
-                <View style={styles.teamPlayers}>
-                  <Text style={styles.playerName}>
-                    {court.receiveTeam[0]?.name || 'Player 1'}
-                  </Text>
-                  <Text style={styles.playerName}>
-                    {court.receiveTeam[1]?.name || 'Player 2'}
-                  </Text>
-                </View>
-
-                <View style={styles.scoreControls}>
-                  <TouchableOpacity
-                    style={styles.scoreButton}
-                    onPress={() => adjustScore(court.gameId, 'receive', -1)}
-                  >
-                    <Minus size={16} color={colors.primary} />
-                  </TouchableOpacity>
-
-                  <TextInput
-                    style={styles.scoreInput}
-                    value={court.receiveScore.toString()}
-                    onChangeText={(text) => {
-                      const num = parseInt(text) || 0;
-                      if (num >= 0 && num <= 99) {
-                        updateCourtScore(court.gameId, 'receiveScore', num);
-                      }
-                    }}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                  />
-
-                  <TouchableOpacity
-                    style={styles.scoreButton}
-                    onPress={() => adjustScore(court.gameId, 'receive', 1)}
-                  >
-                    <Plus size={16} color={colors.primary} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-
-            {/* Quick Score Buttons */}
-            <View style={styles.quickScoreSection}>
-              <Text style={styles.quickScoreTitle}>Quick Scores</Text>
-              <View style={styles.quickScoreButtons}>
-                {[
-                  { serve: 11, receive: 9 },
-                  { serve: 11, receive: 7 },
-                  { serve: 9, receive: 11 },
-                  { serve: 7, receive: 11 }
-                ].map((score, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.quickScoreButton}
-                    onPress={() => setCommonScore(court.gameId, score.serve, score.receive)}
-                  >
-                    <Text style={styles.quickScoreText}>
-                      {score.serve} - {score.receive}
+          {court.hasScore && (
+            <>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <Surface style={{
+                  flex: 1,
+                  padding: 16,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.primaryContainer
+                }}>
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 8,
+                  }}>
+                    <Text variant="titleSmall" style={{
+                      fontWeight: '600',
+                      color: theme.colors.onPrimaryContainer
+                    }}>
+                      Serve Team
                     </Text>
-                  </TouchableOpacity>
-                ))}
+                    {winner === 'serve' && <Icon source="trophy" size={16} />}
+                  </View>
+
+                  <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                    <Text variant="bodySmall" style={{
+                      color: theme.colors.onPrimaryContainer
+                    }}>
+                      {court.serveTeam[0]?.name || 'Player 1'}
+                    </Text>
+                    <Text variant="bodySmall" style={{
+                      color: theme.colors.onPrimaryContainer
+                    }}>
+                      {court.serveTeam[1]?.name || 'Player 2'}
+                    </Text>
+                  </View>
+
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}>
+                    <IconButton
+                      icon="minus"
+                      size={20}
+                      mode="contained-tonal"
+                      onPress={() => adjustScore(court.gameId, 'serve', -1)}
+                    />
+                    <TextInput
+                      mode="outlined"
+                      value={court.serveScore.toString()}
+                      onChangeText={(text) => {
+                        const num = parseInt(text) || 0;
+                        if (num >= 0 && num <= 99) {
+                          updateCourtScore(court.gameId, 'serveScore', num);
+                        }
+                      }}
+                      keyboardType="number-pad"
+                      maxLength={2}
+                      dense
+                      style={{ width: 80, textAlign: 'center' }}
+                      contentStyle={{ textAlign: 'center', fontSize: 24, fontWeight: 'bold' }}
+                    />
+                    <IconButton
+                      icon="plus"
+                      size={20}
+                      mode="contained-tonal"
+                      onPress={() => adjustScore(court.gameId, 'serve', 1)}
+                    />
+                  </View>
+                </Surface>
+
+                <View style={{ paddingHorizontal: 12 }}>
+                  <Text variant="labelSmall" style={{
+                    fontWeight: 'bold',
+                    color: theme.colors.onSurfaceVariant
+                  }}>
+                    VS
+                  </Text>
+                </View>
+
+                <Surface style={{
+                  flex: 1,
+                  padding: 16,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.secondaryContainer
+                }}>
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 8,
+                  }}>
+                    <Text variant="titleSmall" style={{
+                      fontWeight: '600',
+                      color: theme.colors.onSecondaryContainer
+                    }}>
+                      Receive Team
+                    </Text>
+                    {winner === 'receive' && <Icon source="trophy" size={16} />}
+                  </View>
+
+                  <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                    <Text variant="bodySmall" style={{
+                      color: theme.colors.onSecondaryContainer
+                    }}>
+                      {court.receiveTeam[0]?.name || 'Player 1'}
+                    </Text>
+                    <Text variant="bodySmall" style={{
+                      color: theme.colors.onSecondaryContainer
+                    }}>
+                      {court.receiveTeam[1]?.name || 'Player 2'}
+                    </Text>
+                  </View>
+
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}>
+                    <IconButton
+                      icon="minus"
+                      size={20}
+                      mode="contained-tonal"
+                      onPress={() => adjustScore(court.gameId, 'receive', -1)}
+                    />
+                    <TextInput
+                      mode="outlined"
+                      value={court.receiveScore.toString()}
+                      onChangeText={(text) => {
+                        const num = parseInt(text) || 0;
+                        if (num >= 0 && num <= 99) {
+                          updateCourtScore(court.gameId, 'receiveScore', num);
+                        }
+                      }}
+                      keyboardType="number-pad"
+                      maxLength={2}
+                      dense
+                      style={{ width: 80, textAlign: 'center' }}
+                      contentStyle={{ textAlign: 'center', fontSize: 24, fontWeight: 'bold' }}
+                    />
+                    <IconButton
+                      icon="plus"
+                      size={20}
+                      mode="contained-tonal"
+                      onPress={() => adjustScore(court.gameId, 'receive', 1)}
+                    />
+                  </View>
+                </Surface>
               </View>
-            </View>
-          </>
-        )}
-      </View>
+
+              <View style={{ alignItems: 'center' }}>
+                <Text variant="labelSmall" style={{
+                  color: theme.colors.onSurfaceVariant,
+                  marginBottom: 8
+                }}>
+                  Quick Scores
+                </Text>
+                <View style={{
+                  flexDirection: 'row',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                }}>
+                  {[
+                    { serve: 11, receive: 9 },
+                    { serve: 11, receive: 7 },
+                    { serve: 9, receive: 11 },
+                    { serve: 7, receive: 11 }
+                  ].map((score, idx) => (
+                    <Chip
+                      key={idx}
+                      onPress={() => setCommonScore(court.gameId, score.serve, score.receive)}
+                      compact
+                    >
+                      {score.serve} - {score.receive}
+                    </Chip>
+                  ))}
+                </View>
+              </View>
+            </>
+          )}
+        </Card.Content>
+      </Card>
     );
   };
 
@@ -305,281 +380,54 @@ export default function RoundScoreEntryModal({
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={styles.title}>Round Scores</Text>
-            <Text style={styles.subtitle}>
-              {courtsWithScores} of {totalCourts} courts with scores
-            </Text>
-          </View>
-          <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-            <Save size={20} color="white" />
-            <Text style={styles.saveButtonText}>Complete</Text>
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView style={{ flex: 1 }}>
+        <Appbar.Header>
+          <Appbar.BackAction onPress={onClose} />
+          <Appbar.Content
+            title="Round Scores"
+            subtitle={`${courtsWithScores} of ${totalCourts} courts with scores`}
+          />
+          <Button
+            icon="content-save"
+            mode="contained"
+            onPress={handleSave}
+            style={{ marginRight: 8 }}
+          >
+            Complete
+          </Button>
+        </Appbar.Header>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.instructions}>
-            <Text style={styles.instructionsText}>
+        <ScrollView
+          style={{ flex: 1, padding: 16 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Surface style={{
+            padding: 12,
+            borderRadius: 8,
+            marginBottom: 20,
+            backgroundColor: theme.colors.primaryContainer
+          }}>
+            <Text variant="bodyMedium" style={{
+              color: theme.colors.onPrimaryContainer,
+              textAlign: 'center'
+            }}>
               Enter scores for completed games or skip scoring for games that didn't finish.
             </Text>
-          </View>
+          </Surface>
 
           {courtScores.map(renderCourtScore)}
 
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.completeAllButton} onPress={handleSave}>
-              <Trophy size={20} color="white" />
-              <Text style={styles.completeAllButtonText}>Complete Round</Text>
-            </TouchableOpacity>
-          </View>
+          <Button
+            icon="trophy"
+            mode="contained"
+            onPress={handleSave}
+            contentStyle={{ paddingVertical: 8 }}
+            style={{ marginTop: 16, marginBottom: 32 }}
+          >
+            Complete Round
+          </Button>
         </ScrollView>
       </SafeAreaView>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: 'white',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  headerInfo: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  instructions: {
-    backgroundColor: colors.blueLight,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  instructionsText: {
-    color: colors.blue,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  courtContainer: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  courtHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  courtTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  courtIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  courtTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  scoreToggle: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  scoreToggleActive: {
-    backgroundColor: colors.green,
-    borderColor: colors.green,
-  },
-  scoreToggleInactive: {
-    backgroundColor: 'transparent',
-    borderColor: colors.gray,
-  },
-  scoreToggleText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  scoreToggleTextActive: {
-    color: 'white',
-  },
-  scoreToggleTextInactive: {
-    color: colors.gray,
-  },
-  scoreSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  teamScoreContainer: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  serveTeamContainer: {
-    backgroundColor: colors.blueLight,
-  },
-  receiveTeamContainer: {
-    backgroundColor: colors.greenLight,
-  },
-  teamHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  teamTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  teamPlayers: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  playerName: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  scoreControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  scoreButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  scoreInput: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    textAlign: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    minWidth: 60,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  vsDivider: {
-    paddingHorizontal: 12,
-  },
-  vsText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.gray,
-  },
-  quickScoreSection: {
-    alignItems: 'center',
-  },
-  quickScoreTitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  quickScoreButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  quickScoreButton: {
-    backgroundColor: colors.grayLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  quickScoreText: {
-    fontSize: 10,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  actionButtons: {
-    marginTop: 16,
-    marginBottom: 32,
-  },
-  completeAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.green,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  completeAllButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

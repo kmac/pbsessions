@@ -1,23 +1,16 @@
-// src/components/GameCard.tsx
 import React, { useState } from 'react';
 import {
   View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
 } from 'react-native';
 import {
-  Play,
-  Pause,
-  Square,
-  Edit,
-  Trophy,
-  Clock,
-  Users,
-  ChevronRight
-} from 'lucide-react-native';
+  Button,
+  Card,
+  Chip,
+  Icon,
+  Text,
+  useTheme,
+} from 'react-native-paper';
 import { Game, Player } from '../types';
-import { colors } from '../theme';
 import { Alert } from '../utils/alert'
 
 interface GameCardProps {
@@ -41,6 +34,8 @@ export default function GameCard({
   onComplete,
   onScoreEntry
 }: GameCardProps) {
+  const theme = useTheme();
+
   const getPlayer = (playerId: string) => {
     return players.find(p => p.id === playerId);
   };
@@ -82,336 +77,256 @@ export default function GameCard({
   const getActionButton = () => {
     if (actuallyCompleted) {
       return (
-        <TouchableOpacity style={styles.actionButton} onPress={onScoreEntry}>
-          <Edit size={16} color={colors.blue} />
-          <Text style={styles.editScoreText}>
-            {hasScore ? 'Edit Score' : 'Add Score'}
-          </Text>
-        </TouchableOpacity>
+        <Button
+          icon="pencil"
+          mode="outlined"
+          onPress={onScoreEntry}
+          compact
+        >
+          {hasScore ? 'Edit Score' : 'Add Score'}
+        </Button>
       );
     }
 
     if (isInProgress) {
       return (
-        <TouchableOpacity
-          style={[styles.actionButton, styles.completeButton]}
+        <Button
+          icon="stop"
+          mode="contained"
           onPress={handleGameAction}
+          compact
         >
-          <Square size={16} color="white" />
-          <Text style={styles.actionButtonText}>Complete</Text>
-        </TouchableOpacity>
+          Complete
+        </Button>
       );
     }
 
     return (
-      <TouchableOpacity
-        style={[styles.actionButton, styles.startButton]}
+      <Button
+        icon="play"
+        mode="contained"
         onPress={handleGameAction}
+        compact
       >
-        <Play size={16} color="white" />
-        <Text style={styles.actionButtonText}>Start</Text>
-      </TouchableOpacity>
+        Start
+      </Button>
     );
   };
 
-  const getStatusIndicator = () => {
+  const getStatusChip = () => {
     if (actuallyCompleted) {
       return (
-        <View style={[styles.statusBadge, styles.completedBadge]}>
-          <Trophy size={12} color={colors.green} />
-          <Text style={styles.completedBadgeText}>Completed</Text>
-        </View>
+        <Chip
+          icon="trophy"
+          compact
+          style={{ backgroundColor: theme.colors.tertiaryContainer }}
+          textStyle={{ color: theme.colors.onTertiaryContainer }}
+        >
+          Completed
+        </Chip>
       );
     }
 
     if (isInProgress) {
       return (
-        <View style={[styles.statusBadge, styles.inProgressBadge]}>
-          <Clock size={12} color={colors.orange} />
-          <Text style={styles.inProgressBadgeText}>In Progress</Text>
-        </View>
+        <Chip
+          icon="clock-outline"
+          compact
+          style={{ backgroundColor: theme.colors.errorContainer }}
+          textStyle={{ color: theme.colors.onErrorContainer }}
+        >
+          In Progress
+        </Chip>
       );
     }
 
     return (
-      <View style={[styles.statusBadge, styles.pendingBadge]}>
-        <Pause size={12} color={colors.gray} />
-        <Text style={styles.pendingBadgeText}>Pending</Text>
-      </View>
+      <Chip
+        icon="pause"
+        compact
+        style={{ backgroundColor: theme.colors.surfaceVariant }}
+        textStyle={{ color: theme.colors.onSurfaceVariant }}
+      >
+        Pending
+      </Chip>
     );
   };
 
   return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.courtInfo}>
-          <View style={[styles.courtIndicator, { backgroundColor: courtColor }]} />
-          <Text style={styles.courtText}>Court {game.courtId.slice(-1)}</Text>
-        </View>
-        {getStatusIndicator()}
-      </View>
-
-      {/* Score Display */}
-      {hasScore && (
-        <View style={styles.scoreContainer}>
-          <View style={styles.scoreRow}>
-            <Text style={styles.scoreNumber}>{game.score!.serveScore}</Text>
-            <Text style={styles.scoreDivider}>-</Text>
-            <Text style={styles.scoreNumber}>{game.score!.receiveScore}</Text>
+    <Card style={{ marginBottom: 16 }}>
+      <Card.Content>
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{
+              width: 12,
+              height: 12,
+              borderRadius: 6,
+              backgroundColor: courtColor
+            }} />
+            <Text variant="titleMedium" style={{ fontWeight: '600' }}>
+              Court {game.courtId.slice(-1)}
+            </Text>
           </View>
+          {getStatusChip()}
         </View>
-      )}
 
-      {/* Teams */}
-      <View style={styles.teamsContainer}>
-        {/* Serve Team */}
-        <View style={[styles.teamSection, styles.serveTeam]}>
-          <View style={styles.teamHeader}>
-            <Text style={styles.teamLabel}>Serve</Text>
-            {hasScore && game.score!.serveScore > game.score!.receiveScore && (
-              <Trophy size={14} color={colors.green} />
-            )}
-          </View>
-          <View style={styles.teamPlayers}>
-            <View style={styles.playerRow}>
-              <Users size={14} color={colors.textSecondary} />
-              <Text style={styles.playerName}>
-                {servePlayer1?.name || 'Player 1'}
+        {hasScore && (
+          <View style={{ alignItems: 'center', marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+              <Text variant="headlineLarge" style={{
+                fontWeight: 'bold',
+                color: theme.colors.primary
+              }}>
+                {game.score!.serveScore}
               </Text>
-              {servePlayer1?.rating && (
-                <Text style={styles.playerRating}>
-                  {servePlayer1.rating.toFixed(1)}
-                </Text>
-              )}
-            </View>
-            <View style={styles.playerRow}>
-              <Users size={14} color={colors.textSecondary} />
-              <Text style={styles.playerName}>
-                {servePlayer2?.name || 'Player 2'}
+              <Text variant="headlineSmall" style={{
+                fontWeight: 'bold',
+                color: theme.colors.onSurfaceVariant
+              }}>
+                -
               </Text>
-              {servePlayer2?.rating && (
-                <Text style={styles.playerRating}>
-                  {servePlayer2.rating.toFixed(1)}
-                </Text>
-              )}
+              <Text variant="headlineLarge" style={{
+                fontWeight: 'bold',
+                color: theme.colors.primary
+              }}>
+                {game.score!.receiveScore}
+              </Text>
             </View>
           </View>
-        </View>
+        )}
 
-        {/* VS Divider */}
-        <View style={styles.vsDivider}>
-          <Text style={styles.vsText}>VS</Text>
-        </View>
-
-        {/* Receive Team */}
-        <View style={[styles.teamSection, styles.receiveTeam]}>
-          <View style={styles.teamHeader}>
-            <Text style={styles.teamLabel}>Receive</Text>
-            {hasScore && game.score!.receiveScore > game.score!.serveScore && (
-              <Trophy size={14} color={colors.green} />
-            )}
-          </View>
-          <View style={styles.teamPlayers}>
-            <View style={styles.playerRow}>
-              <Users size={14} color={colors.textSecondary} />
-              <Text style={styles.playerName}>
-                {receivePlayer1?.name || 'Player 1'}
-              </Text>
-              {receivePlayer1?.rating && (
-                <Text style={styles.playerRating}>
-                  {receivePlayer1.rating.toFixed(1)}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+          <Card style={{
+            flex: 1,
+            backgroundColor: theme.colors.primaryContainer
+          }}>
+            <Card.Content style={{ padding: 12 }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8,
+              }}>
+                <Text variant="labelMedium" style={{
+                  fontWeight: '600',
+                  color: theme.colors.onPrimaryContainer
+                }}>
+                  Serve
                 </Text>
-              )}
-            </View>
-            <View style={styles.playerRow}>
-              <Users size={14} color={colors.textSecondary} />
-              <Text style={styles.playerName}>
-                {receivePlayer2?.name || 'Player 2'}
-              </Text>
-              {receivePlayer2?.rating && (
-                <Text style={styles.playerRating}>
-                  {receivePlayer2.rating.toFixed(1)}
-                </Text>
-              )}
-            </View>
-          </View>
-        </View>
-      </View>
+                {hasScore && game.score!.serveScore > game.score!.receiveScore && (
+                  <Icon source="trophy" size={14} />
+                )}
+              </View>
+              <View style={{ gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Icon source="account" size={14} />
+                  <Text variant="bodySmall" style={{
+                    flex: 1,
+                    fontWeight: '500',
+                    color: theme.colors.onPrimaryContainer
+                  }}>
+                    {servePlayer1?.name || 'Player 1'}
+                  </Text>
+                  {servePlayer1?.rating && (
+                    <Chip compact textStyle={{ fontSize: 10 }}>
+                      {servePlayer1.rating.toFixed(1)}
+                    </Chip>
+                  )}
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Icon source="account" size={14} />
+                  <Text variant="bodySmall" style={{
+                    flex: 1,
+                    fontWeight: '500',
+                    color: theme.colors.onPrimaryContainer
+                  }}>
+                    {servePlayer2?.name || 'Player 2'}
+                  </Text>
+                  {servePlayer2?.rating && (
+                    <Chip compact textStyle={{ fontSize: 10 }}>
+                      {servePlayer2.rating.toFixed(1)}
+                    </Chip>
+                  )}
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
 
-      {/* Action Button */}
-      <View style={styles.actionContainer}>
+          <View style={{ paddingHorizontal: 12, alignItems: 'center' }}>
+            <Text variant="labelSmall" style={{
+              fontWeight: 'bold',
+              color: theme.colors.onSurfaceVariant
+            }}>
+              VS
+            </Text>
+          </View>
+
+          <Card style={{
+            flex: 1,
+            backgroundColor: theme.colors.secondaryContainer
+          }}>
+            <Card.Content style={{ padding: 12 }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8,
+              }}>
+                <Text variant="labelMedium" style={{
+                  fontWeight: '600',
+                  color: theme.colors.onSecondaryContainer
+                }}>
+                  Receive
+                </Text>
+                {hasScore && game.score!.receiveScore > game.score!.serveScore && (
+                  <Icon source="trophy" size={14} />
+                )}
+              </View>
+              <View style={{ gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Icon source="account" size={14} />
+                  <Text variant="bodySmall" style={{
+                    flex: 1,
+                    fontWeight: '500',
+                    color: theme.colors.onSecondaryContainer
+                  }}>
+                    {receivePlayer1?.name || 'Player 1'}
+                  </Text>
+                  {receivePlayer1?.rating && (
+                    <Chip compact textStyle={{ fontSize: 10 }}>
+                      {receivePlayer1.rating.toFixed(1)}
+                    </Chip>
+                  )}
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Icon source="account" size={14} />
+                  <Text variant="bodySmall" style={{
+                    flex: 1,
+                    fontWeight: '500',
+                    color: theme.colors.onSecondaryContainer
+                  }}>
+                    {receivePlayer2?.name || 'Player 2'}
+                  </Text>
+                  {receivePlayer2?.rating && (
+                    <Chip compact textStyle={{ fontSize: 10 }}>
+                      {receivePlayer2.rating.toFixed(1)}
+                    </Chip>
+                  )}
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
+        </View>
+      </Card.Content>
+
+      <Card.Actions>
         {getActionButton()}
-      </View>
-    </View>
+      </Card.Actions>
+    </Card>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  courtInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  courtIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  courtText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  completedBadge: {
-    backgroundColor: colors.greenLight,
-  },
-  completedBadgeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.green,
-  },
-  inProgressBadge: {
-    backgroundColor: colors.orangeLight,
-  },
-  inProgressBadgeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.orange,
-  },
-  pendingBadge: {
-    backgroundColor: colors.grayLight,
-  },
-  pendingBadgeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.gray,
-  },
-  scoreContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  scoreNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  scoreDivider: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.gray,
-  },
-  teamsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  teamSection: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: colors.grayLight,
-  },
-  serveTeam: {
-    backgroundColor: colors.blueLight,
-  },
-  receiveTeam: {
-    backgroundColor: colors.greenLight,
-  },
-  teamHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  teamLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  teamPlayers: {
-    gap: 4,
-  },
-  playerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  playerName: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  playerRating: {
-    fontSize: 12,
-    color: colors.orange,
-    fontWeight: '500',
-  },
-  vsDivider: {
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  vsText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.gray,
-  },
-  actionContainer: {
-    marginTop: 8,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 6,
-  },
-  startButton: {
-    backgroundColor: colors.green,
-  },
-  completeButton: {
-    backgroundColor: colors.primary,
-  },
-  actionButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  editScoreText: {
-    color: colors.blue,
-    fontWeight: '500',
-    fontSize: 14,
-  },
-});
