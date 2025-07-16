@@ -6,6 +6,8 @@ import {
   ThemeProvider,
 } from '@react-navigation/native'
 import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/src/store';
 import { Provider as StoreProvider, useDispatch } from 'react-redux';
 import { useColorScheme } from 'react-native';
 import { SplashScreen, Stack } from 'expo-router'
@@ -18,8 +20,10 @@ import { setPlayers } from '@/src/store/slices/playersSlice';
 import { setGroups } from '@/src/store/slices/groupsSlice';
 import { setSessions } from '@/src/store/slices/sessionsSlice';
 import { setCurrentSession } from '@/src/store/slices/liveSessionSlice';
+import { setAppConfig } from '@/src/store/slices/appConfigSlice';
 import { Colors, Themes } from '@/src/ui/styles';
-import Setting from '@/src/types/Setting';
+import { Setting } from '@/src/types'
+import { Alert } from '@/src/utils/alert'
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -42,11 +46,12 @@ function StorageLoader() {
       const storage = StorageManager.getInstance();
 
       try {
-        const [players, groups, sessions, liveSession] = await Promise.all([
+        const [players, groups, sessions, liveSession, appConfig] = await Promise.all([
           storage.loadPlayers(),
           storage.loadGroups(),
           storage.loadSessions(),
           storage.loadLiveSession(),
+          storage.loadAppConfig(),
         ]);
 
         dispatch(setPlayers(players));
@@ -55,6 +60,8 @@ function StorageLoader() {
         if (liveSession) {
           dispatch(setCurrentSession(liveSession));
         }
+        dispatch(setAppConfig(appConfig));
+
       } catch (error) {
         console.error('Error loading initial data:', error);
       }
@@ -69,18 +76,37 @@ function StorageLoader() {
 
 const RootLayoutNav = () => {
   // const colorScheme = useColorScheme()
-  const colorScheme = 'light'
 
-  const settings : Setting = {
-    // theme: 'auto',
+  // Get settings from Redux store
+  const settings = useSelector((state: RootState) => state.appConfig.appConfig);
+  // Alert.alert(`colorScheme: ${colorScheme}, settings: ${settings.theme} ${settings.color}`)
+  // const colorScheme = settings.theme || 'light';
+  const colorScheme = 'light';
+
+  // Fallback to default if settings not loaded yet
+  const effectiveSettings: Setting = settings || {
     theme: 'light',
     color: 'default',
-  }
+  };
 
   const theme =
     Themes[
-      settings.theme === 'auto' ? (colorScheme ?? 'dark') : settings.theme
-    ][settings.color]
+      effectiveSettings.theme === 'auto' ? (colorScheme ?? 'dark') : effectiveSettings.theme
+    ][effectiveSettings.color]
+
+  // const colorScheme = useColorScheme()
+  //const colorScheme = 'light'
+
+  // const settings : Setting = {
+  //   // theme: 'auto',
+  //   theme: 'light',
+  //   color: 'default',
+  // }
+
+  // const theme =
+  //   Themes[
+  //     settings.theme === 'auto' ? (colorScheme ?? 'dark') : settings.theme
+  //   ][settings.color]
 
   const { DarkTheme, LightTheme } = adaptNavigationTheme({
     reactNavigationDark: NavDarkTheme,

@@ -3,6 +3,7 @@ import playersReducer from './slices/playersSlice';
 import groupsReducer from './slices/groupsSlice';
 import sessionsReducer from './slices/sessionsSlice';
 import liveSessionReducer from './slices/liveSessionSlice';
+import appConfigReducer from './slices/appConfigSlice';
 import { storageMiddleware } from './middleware/storageMiddleware';
 
 export const store = configureStore({
@@ -11,6 +12,7 @@ export const store = configureStore({
     groups: groupsReducer,
     sessions: sessionsReducer,
     liveSession: liveSessionReducer,
+    appConfig: appConfigReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

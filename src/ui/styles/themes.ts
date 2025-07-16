@@ -6,7 +6,8 @@ import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper'
 
 import Colors from '@/src/ui/styles/colors'
 
-const fonts = configureFonts({ config: { fontFamily: 'NotoSans_400Regular' } })
+// const fonts = configureFonts({ config: { fontFamily: 'NotoSans_400Regular' } })
+const fonts = configureFonts()
 
 const BaseLightTheme = {
   ...MD3LightTheme,

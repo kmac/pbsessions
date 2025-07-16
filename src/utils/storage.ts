@@ -1,7 +1,6 @@
-// src/utils/storage.ts (Updated with better error handling for web)
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { Player, Group, Session, LiveSession } from '../types';
+import { Group, LiveSession, Player, Session, Setting } from '@/src/types';
 import { Alert } from './alert';
 
 const STORAGE_KEYS = {
@@ -17,6 +16,7 @@ export interface StoredData {
   groups: Group[];
   sessions: Session[];
   liveSession: LiveSession | null;
+  appConfig: Setting;
   lastBackup?: string;
   version: string;
 }
@@ -117,12 +117,22 @@ export class StorageManager {
     return liveSession;
   }
 
+  async saveAppConfig(appConfig: Setting): Promise<void> {
+    await this.saveData(STORAGE_KEYS.APP_CONFIG, appConfig);
+  }
+
+  async loadAppConfig(): Promise<Setting> {
+    const setting = await this.loadData<Setting>(STORAGE_KEYS.APP_CONFIG);
+    return setting || { color: 'default', theme: 'light' }
+  }
+
   async exportAllData(): Promise<StoredData> {
-    const [players, groups, sessions, liveSession] = await Promise.all([
+    const [players, groups, sessions, liveSession, appConfig] = await Promise.all([
       this.loadPlayers(),
       this.loadGroups(),
       this.loadSessions(),
-      this.loadLiveSession()
+      this.loadLiveSession(),
+      this.loadAppConfig()
     ]);
 
     return {
@@ -130,6 +140,7 @@ export class StorageManager {
       groups,
       sessions,
       liveSession,
+      appConfig,
       lastBackup: new Date().toISOString(),
       version: '1.0.0',
     };

@@ -1,3 +1,5 @@
+import Colors from '@/src/ui/styles/colors'
+
 export interface Player {
   id: string;
   name: string;
@@ -80,4 +82,11 @@ export interface GameAssignment {
   serveTeam: [Player, Player];
   receiveTeam: [Player, Player];
   sittingOut: Player[];
+}
+
+export type Color = keyof typeof Colors.light
+
+export interface Setting {
+  color: Color;
+  theme: 'light' | 'dark' | 'auto';
 }
