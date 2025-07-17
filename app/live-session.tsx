@@ -24,6 +24,9 @@ import {
   endLiveSession,
   updatePlayerStats as updatePlayerStatsInStore
 } from '../src/store/slices/liveSessionSlice';
+import {
+  endSession as endSession,
+} from '../src/store/slices/sessionsSlice';
 import { SessionRoundManager } from '@/src/utils/sessionRoundManager';
 import RoundGameCard from '@/src/components/RoundGameCard';
 import RoundScoreEntryModal from '@/src/components/RoundScoreEntryModal';
@@ -32,6 +35,7 @@ import BetweenRoundsModal from '@/src/components/BetweenRoundsModal';
 import RoundTimer from '@/src/components/RoundTimer';
 import { COURT_COLORS } from '@/src/theme';
 import { Alert } from '@/src/utils/alert';
+import { SessionState } from '@/src/types';
 
 export default function LiveSessionScreen() {
   const theme = useTheme();
@@ -151,6 +155,7 @@ export default function LiveSessionScreen() {
             text: 'End Session',
             style: 'destructive',
             onPress: () => {
+              dispatch(endSession(currentSession.sessionId));
               dispatch(endLiveSession());
               router.back();
             },
@@ -166,6 +171,7 @@ export default function LiveSessionScreen() {
           {
             text: 'End Session',
             onPress: () => {
+              dispatch(endSession(currentSession.sessionId));
               dispatch(endLiveSession());
               router.back();
             },

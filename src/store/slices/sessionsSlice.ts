@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Session } from '@/src/types';
+import { Session, SessionState } from '@/src/types';
 
 interface SessionsState {
   sessions: Session[];
@@ -17,11 +17,12 @@ const sessionsSlice = createSlice({
   name: 'sessions',
   initialState,
   reducers: {
-    addSession: (state, action: PayloadAction<Omit<Session, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    addSession: (state, action: PayloadAction<Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>>) => {
       const now = new Date().toISOString();
       const newSession: Session = {
         ...action.payload,
         id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        state: SessionState.Unstarted,
         createdAt: now,
         updatedAt: now,
       };
@@ -42,12 +43,28 @@ const sessionsSlice = createSlice({
     startLiveSession: (state, action: PayloadAction<string>) => {
       const session = state.sessions.find(s => s.id === action.payload);
       if (session) {
+        session.state = SessionState.Live,
         session.updatedAt = new Date().toISOString();
       }
     },
-    endLiveSession: (state, action: PayloadAction<string>) => {
+    endSession: (state, action: PayloadAction<string>) => {
       const session = state.sessions.find(s => s.id === action.payload);
       if (session) {
+        session.state = SessionState.Complete,
+        session.updatedAt = new Date().toISOString();
+      }
+    },
+    archiveSession: (state, action: PayloadAction<string>) => {
+      const session = state.sessions.find(s => s.id === action.payload);
+      if (session) {
+        session.state = SessionState.Archived,
+        session.updatedAt = new Date().toISOString();
+      }
+    },
+    restoreSession: (state, action: PayloadAction<string>) => {
+      const session = state.sessions.find(s => s.id === action.payload);
+      if (session) {
+        session.state = SessionState.Complete,
         session.updatedAt = new Date().toISOString();
       }
     },
@@ -66,13 +83,15 @@ const sessionsSlice = createSlice({
 
 export const {
   addSession,
-  updateSession,
+  archiveSession,
+  endSession,
   removeSession,
-  startLiveSession,
-  endLiveSession,
-  setSessions,
-  setLoading,
+  restoreSession,
   setError,
+  setLoading,
+  setSessions,
+  startLiveSession,
+  updateSession,
 } = sessionsSlice.actions;
 
 export default sessionsSlice.reducer;

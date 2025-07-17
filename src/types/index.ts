@@ -27,12 +27,20 @@ export interface Court {
   isActive: boolean;
 }
 
+export enum SessionState {
+  Unstarted,
+  Live,
+  Complete,
+  Archived
+}
+
 export interface Session {
   id: string;
   name: string;
   dateTime: string;
   playerIds: string[];
   courts: Court[];
+  state: SessionState,
   createdAt: string;
   updatedAt: string;
 }

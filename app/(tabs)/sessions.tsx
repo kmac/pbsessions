@@ -11,6 +11,7 @@ import {
   Button,
   Card,
   Chip,
+  FAB,
   Icon,
   IconButton,
   Surface,
@@ -19,20 +20,15 @@ import {
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '@/src/store';
 import {
-  Plus,
-  Calendar,
-  Play,
-  Edit2,
-  Trash2,
-  Users,
-  MapPin,
-  Clock,
-  ExternalLink,
-  Settings
-} from 'lucide-react-native';
-import { addSession, updateSession, removeSession, startLiveSession } from '@/src/store/slices/sessionsSlice';
+  addSession,
+  archiveSession,
+  updateSession,
+  removeSession,
+  startLiveSession
+} from '@/src/store/slices/sessionsSlice';
 import { setCurrentSession } from '@/src/store/slices/liveSessionSlice';
-import { Session } from '@/src/types';
+import { Session, SessionState } from '@/src/types';
+import ArchivedSessions from '@/src/components/ArchivedSessions';
 import SessionForm from '@/src/components/SessionForm';
 import { Alert } from '@/src/utils/alert'
 
@@ -45,8 +41,10 @@ export default function SessionsTab() {
   const { currentSession } = useAppSelector((state) => state.liveSession);
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
 
+  // TODO rationalize with SessionState
   const isSessionLive = (sessionId: string) => currentSession ? sessionId === currentSession.sessionId : false;
 
   const handleDeleteSession = (session: Session) => {
@@ -126,12 +124,28 @@ export default function SessionsTab() {
     router.push('/live-session');
   };
 
+  const handleArchiveSession = (session: Session) => {
+    if (isSessionLive(session.id)) {
+      Alert.alert(
+        'Cannot Archive',
+        'Cannot archive a live session. End the session first.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    dispatch(archiveSession(session.id));
+  };
+
   const navigateToGroups = () => {
     router.push('/groups');
   };
 
   const navigateToPlayers = () => {
     router.push('/');
+  };
+
+  const navigateToArchive = () => {
+    router.push('/archived');
   };
 
   const getSessionPlayers = (session: Session) => {
@@ -164,6 +178,22 @@ export default function SessionsTab() {
       dispatch(addSession(sessionData as Omit<Session, 'id' | 'createdAt' | 'updatedAt'>));
     }
     setModalVisible(false);
+  };
+
+  function isUnstarted(session: Session) {
+    return session.state === SessionState.Unstarted;
+  };
+
+  function isLive(session: Session) {
+    return session.state === SessionState.Live;
+  };
+
+  function isComplete(session: Session) {
+    return session.state === SessionState.Complete;
+  };
+
+  function isArchived(session: Session) {
+    return session.state === SessionState.Archived;
   };
 
   const renderSession = ({ item }: { item: Session }) => {
@@ -199,7 +229,7 @@ export default function SessionsTab() {
 
           <View style={{ marginBottom: 12 }}>
             <Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 8 }}>
-              {item.name}
+              {isComplete(item) ? `${item.name} (Complete)` : item.name}
             </Text>
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -259,29 +289,46 @@ export default function SessionsTab() {
               icon="play"
               mode="contained"
               onPress={() => router.push('/live-session')}
-              style={{ flex: 1 }}
             >
               Continue Live Session
             </Button>
           ) : (
             <>
-              <Button
-                icon="play"
-                mode="contained"
-                onPress={() => handleStartLiveSession(item)}
-              >
-                Start Session
-              </Button>
-
+              {isUnstarted(item) && (
+                <Button
+                  icon="play"
+                  mode="contained"
+                  onPress={() => handleStartLiveSession(item)}
+                >
+                  Start Session
+                </Button>
+              )}
+              {isComplete(item) && !isArchived(item) && (
+                <>
+                  <Button
+                    icon="archive"
+                    mode="outlined"
+                    disabled={true}
+                    onPress={() => { }}
+                  >
+                    View Session
+                  </Button>
+                </>
+              )}
               <View style={{ flexDirection: 'row', gap: 4 }}>
                 <IconButton
-                  icon="pencil"
-                  size={20}
-                  onPress={() => handleEditSession(item)}
+                  icon="archive"
+                  mode="contained"
+                  onPress={() => handleArchiveSession(item)}
                 />
+                {!isComplete(item) && <IconButton
+                  icon="pencil"
+                  mode="contained-tonal"
+                  onPress={() => handleEditSession(item)}
+                />}
                 <IconButton
                   icon="delete"
-                  size={20}
+                  mode="contained-tonal"
                   onPress={() => handleDeleteSession(item)}
                 />
               </View>
@@ -380,19 +427,28 @@ export default function SessionsTab() {
               Add Players
             </Button>
           ) : (
-            <Button
-              icon="plus"
-              mode="contained"
-              onPress={() => setModalVisible(true)}
-            >
-              New Session
-            </Button>
+            <View style={{ flexDirection: 'row', gap: 8, }}>
+              <Button
+                icon="plus"
+                mode="contained"
+                onPress={() => setModalVisible(true)}
+              >
+                New Session
+              </Button>
+              <Button
+                icon="archive"
+                mode="elevated"
+                onPress={() => setArchiveModalVisible(true)}
+              >
+                View Archive
+              </Button>
+            </View>
           )}
         </View>
       </Surface>
 
       <FlatList
-        data={sessions}
+        data={sessions.filter((session) => session.state != SessionState.Archived)}
         renderItem={renderSession}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16 }}
@@ -400,6 +456,29 @@ export default function SessionsTab() {
         ListEmptyComponent={<EmptyState />}
       />
 
+      <FAB
+        icon="plus"
+        label="New Session"
+        style={{
+          position: 'absolute',
+          margin: 16,
+          right: 0,
+          bottom: 0,
+        }}
+        onPress={() => setModalVisible(true)}
+      />
+
+      <Modal
+        visible={modalArchiveVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <ArchivedSessions
+          onCancel={() => {
+            setArchiveModalVisible(false);
+          }}
+        />
+      </Modal>
       <Modal
         visible={modalVisible}
         animationType="slide"

@@ -298,6 +298,18 @@ export default function PlayersTab() {
         }
       />
 
+      {/*<FAB
+        icon="account-plus"
+        label="Add Player"
+        style={{
+          position: 'absolute',
+          margin: 16,
+          right: 0,
+          bottom: 0,
+        }}
+        onPress={() => setModalVisible(true)}
+      />*/}
+
       <Modal
         visible={modalVisible}
         animationType="slide"

@@ -62,6 +62,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="archived"
+        options={{
+          href: null,
+          title: 'Archived',
+          tabBarIcon: ({ color, size }) => <Settings color={color} size={size || 24} />,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           href: null,
