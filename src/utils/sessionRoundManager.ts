@@ -36,13 +36,15 @@ export class SessionRoundManager {
     });
   }
 
-  generateGameAssignments(gameNumber: number): GameAssignment[] {
+  generateGameAssignments(sittingOut? : Player[]): GameAssignment[] {
     const assignments: GameAssignment[] = [];
     const availablePlayers = [...this.players];
     const playersPerGame = this.courts.length * 4;
 
     // Step 1: Determine who sits out (Equal playing time - Priority #2)
-    const sittingOut = this.selectSittingOutPlayers(availablePlayers, playersPerGame);
+    if (!sittingOut) {
+      sittingOut = this.selectSittingOutPlayers(availablePlayers, playersPerGame);
+    }
     const playingPlayers = availablePlayers.filter(p => !sittingOut.includes(p));
 
     // Step 2: Assign players to courts based on rating requirements (Priority #1)

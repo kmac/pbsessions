@@ -229,7 +229,7 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
                 icon="account-group"
                 mode="outlined"
                 onPress={() => setShowPlayerManager(true)}
-                compact
+                compact={true}
               >
                 Manage
               </Button>
@@ -294,7 +294,7 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
                 icon="cog-outline"
                 mode="outlined"
                 onPress={() => setShowCourtManager(true)}
-                compact
+                compact={true}
               >
                 Configure
               </Button>

@@ -11,19 +11,30 @@ import {
   Button,
   Card,
   Chip,
+  FAB,
   Icon,
+  IconButton,
   Surface,
   Text,
   useTheme,
 } from 'react-native-paper';
-import { Game, Player } from '../types';
-import { COURT_COLORS } from '../theme';
+import {
+  updateCurrentSessionGames,
+  generateNextRound,
+} from '@/src/store/slices/liveSessionSlice';
+import { useAppDispatch, useAppSelector } from '@/src/store';
+import { Game, Player, PlayerStats } from '../types';
+import PlayerStatsModal from '@/src/components/PlayerStatsModal'
+import { SessionRoundManager } from '@/src/utils/sessionRoundManager'
+import { Alert } from '@/src/utils/alert';
 
 interface BetweenRoundsModalProps {
   visible: boolean;
   currentRound: number;
   games: Game[];
   allPlayers: Player[];
+  playerStats: PlayerStats[];
+  roundAssigner: SessionRoundManager;
   onStartRound: () => void;
   onClose: () => void;
 }
@@ -33,22 +44,173 @@ export default function BetweenRoundsModal({
   currentRound,
   games,
   allPlayers,
+  playerStats,
+  roundAssigner,
   onStartRound,
   onClose
 }: BetweenRoundsModalProps) {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
+  const [selectedPlayers, setSelectedPlayers] = useState(new Map<string, Player>());
+  const [statsModalVisible, setStatsModalVisible] = useState(false);
+  const showRating = false;
+
   const getPlayer = (playerId: string) => allPlayers.find(p => p.id === playerId);
 
-  const playingPlayers = games.flatMap(game => [
-    game.serveTeam.player1Id,
-    game.serveTeam.player2Id,
-    game.receiveTeam.player1Id,
-    game.receiveTeam.player2Id,
-  ]).map(getPlayer).filter(Boolean) as Player[];
-
+  // const playingPlayers = games.flatMap(game => [
+  //   game.serveTeam.player1Id,
+  //   game.serveTeam.player2Id,
+  //   game.receiveTeam.player1Id,
+  //   game.receiveTeam.player2Id,
+  // ]).map(getPlayer).filter(Boolean) as Player[];
+  //
   const sittingOutPlayers = games.length > 0
     ? games[0].sittingOutIds.map(getPlayer).filter(Boolean) as Player[]
     : [];
+
+  function playerSelectDisabled(player: Player | undefined) {
+    if (!player) {
+      return true;
+    }
+    if (selectedPlayers.has(player.id)) {
+      return false;
+    }
+    return selectedPlayers.size >= 2;
+  }
+
+  function togglePlayerSelected(player: Player) {
+    if (player) {
+      if (selectedPlayers.has(player.id)) {
+        selectedPlayers.delete(player.id);
+        setSelectedPlayers(new Map(selectedPlayers));
+      } else {
+        if (!playerSelectDisabled(player)) {
+          setSelectedPlayers(new Map(selectedPlayers.set(player.id, player)));
+        }
+      }
+    }
+  }
+
+  function getPlayerSelected(player: Player | undefined): boolean {
+    if (!player) {
+      return false;
+    }
+    return (selectedPlayers.has(player.id));
+  }
+
+  function handleSwapPlayers() {
+    if (selectedPlayers.size !== 2) {
+      return;
+    }
+
+    const playerIds = Array.from(selectedPlayers.keys());
+    const [playerId1, playerId2] = playerIds;
+
+    // Find positions of both players in the games
+    const findPlayerPosition = (id: string) => {
+      for (let gameIndex = 0; gameIndex < games.length; gameIndex++) {
+        const game = games[gameIndex];
+
+        if (game.serveTeam.player1Id === id) return { gameIndex, position: 'serveTeam.player1Id' };
+        if (game.serveTeam.player2Id === id) return { gameIndex, position: 'serveTeam.player2Id' };
+        if (game.receiveTeam.player1Id === id) return { gameIndex, position: 'receiveTeam.player1Id' };
+        if (game.receiveTeam.player2Id === id) return { gameIndex, position: 'receiveTeam.player2Id' };
+
+        // Check sitting out players
+        const sittingIndex = game.sittingOutIds.indexOf(id);
+        if (sittingIndex !== -1) return { gameIndex, position: `sittingOut.${sittingIndex}` };
+      }
+      return null;
+    };
+
+    const position1 = findPlayerPosition(playerId1);
+    const position2 = findPlayerPosition(playerId2);
+
+    if (!position1 || !position2) {
+      console.error('Could not find positions for selected players');
+      return;
+    }
+
+    // Create new games array with swapped players
+    const newGames = games.map((game, gameIndex) => {
+      const newGame = { ...game };
+
+      // Helper function to set player at position
+      const setPlayerAtPosition = (pos: string, playerId: string) => {
+        if (pos === 'serveTeam.player1Id') {
+          newGame.serveTeam = { ...newGame.serveTeam, player1Id: playerId };
+        } else if (pos === 'serveTeam.player2Id') {
+          newGame.serveTeam = { ...newGame.serveTeam, player2Id: playerId };
+        } else if (pos === 'receiveTeam.player1Id') {
+          newGame.receiveTeam = { ...newGame.receiveTeam, player1Id: playerId };
+        } else if (pos === 'receiveTeam.player2Id') {
+          newGame.receiveTeam = { ...newGame.receiveTeam, player2Id: playerId };
+        } else if (pos.startsWith('sittingOut.')) {
+          const index = parseInt(pos.split('.')[1]);
+          newGame.sittingOutIds = [...newGame.sittingOutIds];
+          newGame.sittingOutIds[index] = playerId;
+        }
+      };
+
+      // Perform the swap
+      if (gameIndex === position1.gameIndex) {
+        setPlayerAtPosition(position1.position, playerId2);
+      }
+      if (gameIndex === position2.gameIndex) {
+        setPlayerAtPosition(position2.position, playerId1);
+      }
+
+      return newGame;
+    });
+
+    // Update the store with new games
+    dispatch(updateCurrentSessionGames(newGames));
+
+    // Clear selected players
+    setSelectedPlayers(new Map());
+  }
+
+  function handleReshufflePlayers(includeSitting: boolean) {
+    let sittingOut = undefined;
+    if (includeSitting) {
+      sittingOut = sittingOutPlayers;
+    }
+    const assignments = roundAssigner.generateGameAssignments(sittingOut);
+
+    if (assignments.length === 0) {
+      Alert.alert(
+        'Cannot Generate Round',
+        'Unable to create game assignments. Check player and court availability.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const newGames: Game[] = assignments.map((assignment, index) => ({
+      id: `game_${currentRound}_${assignment.court.id}_${Date.now()}_${index}`,
+      sessionId: games[0].sessionId,
+      gameNumber: currentRound,
+      courtId: assignment.court.id,
+      serveTeam: {
+        player1Id: assignment.serveTeam[0].id,
+        player2Id: assignment.serveTeam[1].id,
+      },
+      receiveTeam: {
+        player1Id: assignment.receiveTeam[0].id,
+        player2Id: assignment.receiveTeam[1].id,
+      },
+      sittingOutIds: assignment.sittingOut.map(p => p.id),
+      isCompleted: false,
+    }));
+
+    // Clear selected players after reshuffling since assignments have changed
+    setSelectedPlayers(new Map());
+
+    dispatch(updateCurrentSessionGames(newGames));
+    //dispatch(generateNextRound({assignments}));
+    //dispatch(updateCurrentSessionGames(newGames));
+
+  }
 
   const renderCourtAssignment = ({ item, index }: { item: Game; index: number }) => {
     const servePlayer1 = getPlayer(item.serveTeam.player1Id);
@@ -56,29 +218,21 @@ export default function BetweenRoundsModal({
     const receivePlayer1 = getPlayer(item.receiveTeam.player1Id);
     const receivePlayer2 = getPlayer(item.receiveTeam.player2Id);
 
-    const courtColor = COURT_COLORS[index % COURT_COLORS.length];
-
     return (
       <Card style={{ marginBottom: 12 }}>
         <Card.Content>
           <View style={{
             flexDirection: 'row',
-            alignItems: 'center',
+            // alignContent: 'left',
             gap: 8,
             marginBottom: 12,
           }}>
-            <View style={{
-              width: 12,
-              height: 12,
-              borderRadius: 6,
-              backgroundColor: courtColor
-            }} />
             <Text variant="titleMedium" style={{ fontWeight: '600' }}>
               Court {item.courtId.slice(-1)}
             </Text>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 6 }}>
             <Surface style={{
               flex: 1,
               padding: 12,
@@ -93,35 +247,30 @@ export default function BetweenRoundsModal({
               }}>
                 Serve
               </Text>
-              <Text variant="bodySmall" style={{
-                textAlign: 'center',
-                marginBottom: 4,
-                color: theme.colors.onPrimaryContainer
-              }}>
-                {servePlayer1?.name} & {servePlayer2?.name}
-              </Text>
-              <View style={{ flexDirection: 'row', gap: 4 }}>
-                {servePlayer1?.rating && (
-                  <Chip compact textStyle={{ fontSize: 9 }}>
-                    {servePlayer1.rating.toFixed(1)}
-                  </Chip>
-                )}
-                {servePlayer2?.rating && (
-                  <Chip compact textStyle={{ fontSize: 9 }}>
-                    {servePlayer2.rating.toFixed(1)}
-                  </Chip>
-                )}
+              <View style={{ flexDirection: 'column', gap: 5 }}>
+                <Chip
+                  mode="outlined"
+                  disabled={playerSelectDisabled(servePlayer1)}
+                  selected={getPlayerSelected(servePlayer1)}
+                  onPress={() => { servePlayer1 && togglePlayerSelected(servePlayer1) }}
+                >
+                  {servePlayer1?.name}
+                  {showRating && servePlayer1?.rating && ` (${servePlayer1?.rating.toFixed(2)})`}
+                </Chip>
+                <Chip
+                  mode="outlined"
+                  disabled={playerSelectDisabled(servePlayer2)}
+                  selected={getPlayerSelected(servePlayer2)}
+                  onPress={() => { servePlayer2 && togglePlayerSelected(servePlayer2) }}
+                >
+                  {servePlayer2?.name}
+                  {showRating && servePlayer2?.rating && ` (${servePlayer2?.rating.toFixed(2)})`}
+                </Chip>
               </View>
             </Surface>
 
-            <View style={{ paddingHorizontal: 8 }}>
-              <Text variant="labelSmall" style={{
-                fontWeight: 'bold',
-                color: theme.colors.onSurfaceVariant
-              }}>
-                VS
-              </Text>
-            </View>
+            {/*<View style={{ paddingHorizontal: 8 }}>
+            </View>*/}
 
             <Surface style={{
               flex: 1,
@@ -137,24 +286,27 @@ export default function BetweenRoundsModal({
               }}>
                 Receive
               </Text>
-              <Text variant="bodySmall" style={{
-                textAlign: 'center',
-                marginBottom: 4,
-                color: theme.colors.onSecondaryContainer
-              }}>
-                {receivePlayer1?.name} & {receivePlayer2?.name}
-              </Text>
-              <View style={{ flexDirection: 'row', gap: 4 }}>
-                {receivePlayer1?.rating && (
-                  <Chip compact textStyle={{ fontSize: 9 }}>
-                    {receivePlayer1.rating.toFixed(1)}
+              <View style={{ flexDirection: 'column', gap: 5 }}>
+                <View style={{ flexDirection: 'column' }}>
+                  <View style={{ flexDirection: 'row' }}>
+                    <Chip mode="outlined"
+                      disabled={playerSelectDisabled(receivePlayer1)}
+                      selected={getPlayerSelected(receivePlayer1)}
+                      onPress={() => { receivePlayer1 && togglePlayerSelected(receivePlayer1) }}
+                    >
+                      {receivePlayer1?.name}
+                      {showRating && receivePlayer1?.rating && ` (${receivePlayer1?.rating.toFixed(2)})`}
+                    </Chip>
+                  </View>
+                  <Chip mode="outlined"
+                    disabled={playerSelectDisabled(receivePlayer2)}
+                    selected={getPlayerSelected(receivePlayer2)}
+                    onPress={() => { receivePlayer2 && togglePlayerSelected(receivePlayer2) }}
+                  >
+                    {receivePlayer2?.name}
+                    {showRating && receivePlayer2?.rating && ` (${receivePlayer2?.rating.toFixed(2)})`}
                   </Chip>
-                )}
-                {receivePlayer2?.rating && (
-                  <Chip compact textStyle={{ fontSize: 9 }}>
-                    {receivePlayer2.rating.toFixed(1)}
-                  </Chip>
-                )}
+                </View>
               </View>
             </Surface>
           </View>
@@ -176,73 +328,13 @@ export default function BetweenRoundsModal({
             title={`Round ${currentRound} Ready`}
             subtitle="Review assignments and start when ready"
           />
+          {/*<Appbar.Action icon="Swap Players" onPress={() => {}}/>*/}
         </Appbar.Header>
 
         <ScrollView
           style={{ flex: 1, padding: 16 }}
           showsVerticalScrollIndicator={false}
         >
-          <Card style={{ marginBottom: 24 }}>
-            <Card.Content>
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                marginBottom: 16,
-              }}>
-                <Icon source="check-circle" size={20} />
-                <Text variant="titleMedium" style={{ fontWeight: '600' }}>
-                  Round {currentRound} Generated
-                </Text>
-              </View>
-
-              <View style={{ gap: 8 }}>
-                <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <Text variant="bodyMedium" style={{
-                    color: theme.colors.onSurfaceVariant
-                  }}>
-                    Playing:
-                  </Text>
-                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
-                    {playingPlayers.length} players
-                  </Text>
-                </View>
-                <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <Text variant="bodyMedium" style={{
-                    color: theme.colors.onSurfaceVariant
-                  }}>
-                    Courts:
-                  </Text>
-                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
-                    {games.length} courts
-                  </Text>
-                </View>
-                <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <Text variant="bodyMedium" style={{
-                    color: theme.colors.onSurfaceVariant
-                  }}>
-                    Sitting out:
-                  </Text>
-                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
-                    {sittingOutPlayers.length} players
-                  </Text>
-                </View>
-              </View>
-            </Card.Content>
-          </Card>
-
           <View style={{ marginBottom: 24 }}>
             <Text variant="titleMedium" style={{
               fontWeight: '600',
@@ -251,11 +343,14 @@ export default function BetweenRoundsModal({
               Court Assignments
             </Text>
             <FlatList
-              data={games}
+              data={games ? games : []}
               renderItem={renderCourtAssignment}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
             />
+            <View>
+              <Text variant="bodyMedium" style={{ fontWeight: 400 }}>Select any two players to enable position swap (for sit-out or partnering)</Text>
+            </View>
           </View>
 
           {sittingOutPlayers.length > 0 && (
@@ -268,63 +363,72 @@ export default function BetweenRoundsModal({
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {sittingOutPlayers.map(player => (
-                  <Chip key={player.id} icon="account">
+                  <Chip mode="outlined"
+                    disabled={playerSelectDisabled(player)}
+                    selected={getPlayerSelected(player)}
+                    onPress={() => { player && togglePlayerSelected(player) }}
+                  >
                     {player.name}
-                    {player.rating && ` (${player.rating.toFixed(1)})`}
+                    {showRating && player.rating && ` (${player.rating.toFixed(2)})`}
                   </Chip>
                 ))}
               </View>
             </View>
           )}
 
-          <Surface style={{
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 24,
-            backgroundColor: theme.colors.tertiaryContainer
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-              marginBottom: 8,
-            }}>
-              <Icon source="refresh" size={16} />
-              <Text variant="titleSmall" style={{
-                fontWeight: '600',
-                color: theme.colors.onTertiaryContainer
-              }}>
-                Manual Adjustments
-              </Text>
-            </View>
-            <Text variant="bodySmall" style={{
-              color: theme.colors.onTertiaryContainer,
-              lineHeight: 16
-            }}>
-              Player swapping and manual sit-out selection coming in future updates.
-            </Text>
-          </Surface>
-
-          <View style={{ gap: 12, marginBottom: 32 }}>
+          <View style={{ flexDirection: 'row', alignContent: 'space-between', columnGap: 12 }}>
             <Button
               icon="play"
               mode="contained"
               onPress={onStartRound}
-              contentStyle={{ paddingVertical: 8 }}
+              contentStyle={{ padding: 8 }}
             >
               Start Round {currentRound}
             </Button>
-
             <Button
+              icon="refresh"
               mode="outlined"
-              onPress={onClose}
-              contentStyle={{ paddingVertical: 8 }}
+              onPress={() => { handleReshufflePlayers(false) }}
+              contentStyle={{ padding: 8 }}
             >
-              Make Adjustments
+              Reshuffle (non-sitting)
+            </Button>
+            <Button
+              icon="chart-box"
+              mode="elevated"
+              onPress={() => { setStatsModalVisible(true) }}
+              contentStyle={{ padding: 8 }}
+            >
+              Show Player Stats
             </Button>
           </View>
         </ScrollView>
+
+        <FAB
+          icon="swap-horizontal-bold"
+          label="Swap Players"
+          size='large'
+          variant='secondary'
+          style={{
+            position: 'absolute',
+            margin: 16,
+            right: 0,
+            bottom: 30,
+          }}
+          visible={selectedPlayers.size === 2}
+          disabled={selectedPlayers.size != 2}
+          onPress={handleSwapPlayers}
+        />
+
       </SafeAreaView>
+
+      <PlayerStatsModal
+        visible={statsModalVisible}
+        players={allPlayers}
+        stats={playerStats}
+        onClose={() => setStatsModalVisible(false)}
+      />
+
     </Modal>
   );
 }

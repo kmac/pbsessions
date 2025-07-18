@@ -12,7 +12,7 @@ import { Provider as StoreProvider, useDispatch } from 'react-redux';
 import { useColorScheme } from 'react-native';
 import { SplashScreen, Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { adaptNavigationTheme, PaperProvider } from 'react-native-paper'
+import { adaptNavigationTheme, Appbar, PaperProvider } from 'react-native-paper'
 
 import { store } from '@/src/store';
 import { StorageManager } from '@/src/utils/storage';
@@ -22,6 +22,7 @@ import { setSessions } from '@/src/store/slices/sessionsSlice';
 import { setCurrentSession } from '@/src/store/slices/liveSessionSlice';
 import { setAppConfig } from '@/src/store/slices/appConfigSlice';
 import { Colors, Themes } from '@/src/ui/styles';
+import { StackHeader } from '@/src/components/StackHeader';
 import { Setting } from '@/src/types'
 import { Alert } from '@/src/utils/alert'
 
@@ -90,7 +91,7 @@ const RootLayoutNav = () => {
 
   const theme =
     Themes[
-      effectiveSettings.theme === 'auto' ? (colorScheme ?? 'dark') : effectiveSettings.theme
+    effectiveSettings.theme === 'auto' ? (colorScheme ?? 'dark') : effectiveSettings.theme
     ][effectiveSettings.color]
 
   const { DarkTheme, LightTheme } = adaptNavigationTheme({
@@ -111,7 +112,19 @@ const RootLayoutNav = () => {
       <PaperProvider theme={theme}>
 
         <StorageLoader />
-        <Stack>
+        <Stack
+          screenOptions={{
+            // animation: 'slide_from_bottom',
+            header: (props) => (
+              <Appbar.Header>
+                <Appbar.BackAction onPress={() => { }} />
+                <Appbar.Content title="Title" />
+                <Appbar.Action icon="calendar" onPress={() => { }} />
+                <Appbar.Action icon="magnify" onPress={() => { }} />
+              </Appbar.Header>
+            ),
+          }}
+        >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
             name="live-session"

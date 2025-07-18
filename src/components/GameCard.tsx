@@ -81,7 +81,7 @@ export default function GameCard({
           icon="pencil"
           mode="outlined"
           onPress={onScoreEntry}
-          compact
+          compact={true}
         >
           {hasScore ? 'Edit Score' : 'Add Score'}
         </Button>
@@ -94,7 +94,7 @@ export default function GameCard({
           icon="stop"
           mode="contained"
           onPress={handleGameAction}
-          compact
+          compact={true}
         >
           Complete
         </Button>
@@ -106,7 +106,7 @@ export default function GameCard({
         icon="play"
         mode="contained"
         onPress={handleGameAction}
-        compact
+        compact={true}
       >
         Start
       </Button>
@@ -118,7 +118,7 @@ export default function GameCard({
       return (
         <Chip
           icon="trophy"
-          compact
+          compact={true}
           style={{ backgroundColor: theme.colors.tertiaryContainer }}
           textStyle={{ color: theme.colors.onTertiaryContainer }}
         >
@@ -131,7 +131,7 @@ export default function GameCard({
       return (
         <Chip
           icon="clock-outline"
-          compact
+          compact={true}
           style={{ backgroundColor: theme.colors.errorContainer }}
           textStyle={{ color: theme.colors.onErrorContainer }}
         >
@@ -143,7 +143,7 @@ export default function GameCard({
     return (
       <Chip
         icon="pause"
-        compact
+        compact={true}
         style={{ backgroundColor: theme.colors.surfaceVariant }}
         textStyle={{ color: theme.colors.onSurfaceVariant }}
       >
@@ -233,7 +233,7 @@ export default function GameCard({
                     {servePlayer1?.name || 'Player 1'}
                   </Text>
                   {servePlayer1?.rating && (
-                    <Chip compact textStyle={{ fontSize: 10 }}>
+                    <Chip compact={true} textStyle={{ fontSize: 10 }}>
                       {servePlayer1.rating.toFixed(1)}
                     </Chip>
                   )}
@@ -248,7 +248,7 @@ export default function GameCard({
                     {servePlayer2?.name || 'Player 2'}
                   </Text>
                   {servePlayer2?.rating && (
-                    <Chip compact textStyle={{ fontSize: 10 }}>
+                    <Chip compact={true} textStyle={{ fontSize: 10 }}>
                       {servePlayer2.rating.toFixed(1)}
                     </Chip>
                   )}
@@ -298,7 +298,7 @@ export default function GameCard({
                     {receivePlayer1?.name || 'Player 1'}
                   </Text>
                   {receivePlayer1?.rating && (
-                    <Chip compact textStyle={{ fontSize: 10 }}>
+                    <Chip compact={true} textStyle={{ fontSize: 10 }}>
                       {receivePlayer1.rating.toFixed(1)}
                     </Chip>
                   )}
@@ -313,7 +313,7 @@ export default function GameCard({
                     {receivePlayer2?.name || 'Player 2'}
                   </Text>
                   {receivePlayer2?.rating && (
-                    <Chip compact textStyle={{ fontSize: 10 }}>
+                    <Chip compact={true} textStyle={{ fontSize: 10 }}>
                       {receivePlayer2.rating.toFixed(1)}
                     </Chip>
                   )}

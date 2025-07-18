@@ -123,14 +123,14 @@ export default function ArchivedSessions({ onCancel }: ArchivedSessionsProps) {
           </View>
 
           <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
-            <Chip icon="account-group" compact>
+            <Chip icon="account-group" compact={true}>
               {sessionPlayers.length} players
             </Chip>
-            <Chip icon="map-marker-outline" compact>
+            <Chip icon="map-marker-outline" compact={true}>
               {activeCourts.length} courts
             </Chip>
             {activeCourts.some(c => c.minimumRating) && (
-              <Chip icon="cog-outline" compact>
+              <Chip icon="cog-outline" compact={true}>
                 Rated
               </Chip>
             )}

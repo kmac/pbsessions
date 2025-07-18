@@ -14,25 +14,11 @@ const initialState: LiveSessionState = {
   error: null,
 };
 
-// Note on createSlice:
-// A function that accepts an initial state, an object full of reducer
-// functions, and a "slice name", and automatically generates action creators
-// and action types that correspond to the reducers and state.
-
-const liveSessionSlice = createSlice({
-  name: 'liveSession',
-  initialState,
-  reducers: {
-    setCurrentSession: (state, action: PayloadAction<LiveSession>) => {
-      state.currentSession = action.payload;
-    },
-    generateNextRound: (state, action: PayloadAction<{ assignments: GameAssignment[] }>) => {
-      if (!state.currentSession) return;
-
-      const newGames: Game[] = action.payload.assignments.map((assignment, index) => ({
-        id: `game_${state.currentSession!.currentGameNumber}_${assignment.court.id}_${Date.now()}_${index}`,
-        sessionId: state.currentSession!.sessionId,
-        gameNumber: state.currentSession!.currentGameNumber,
+function convertAssignmentsToGames(liveSession: LiveSession, assignments : GameAssignment[]) {
+      const newGames: Game[] = assignments.map((assignment, index) => ({
+        id: `game_${liveSession!.currentGameNumber}_${assignment.court.id}_${Date.now()}_${index}`,
+        sessionId: liveSession!.sessionId,
+        gameNumber: liveSession!.currentGameNumber,
         courtId: assignment.court.id,
         serveTeam: {
           player1Id: assignment.serveTeam[0].id,
@@ -46,11 +32,39 @@ const liveSessionSlice = createSlice({
         isCompleted: false,
       }));
 
+  return newGames;
+}
+
+// Note on createSlice:
+// A function that accepts an initial state, an object full of reducer
+// functions, and a "slice name", and automatically generates action creators
+// and action types that correspond to the reducers and state.
+
+const liveSessionSlice = createSlice({
+  name: 'liveSession',
+  initialState,
+  reducers: {
+    setCurrentSession: (state, action: PayloadAction<LiveSession>) => {
+      state.currentSession = action.payload;
+    },
+    updateCurrentSessionGames: (state, action: PayloadAction<Game[]>) => {
+      if (!state.currentSession) {
+        return;
+      }
+      // replace the activeGames array with the new games
+      state.currentSession.activeGames = action.payload;
+    },
+    generateNextRound: (state, action: PayloadAction<{ assignments: GameAssignment[] }>) => {
+      if (!state.currentSession) {
+        return;
+      }
+      const newGames: Game[] = convertAssignmentsToGames(state.currentSession, action.payload.assignments);
       state.currentSession.activeGames = newGames;
     },
     startRound: (state) => {
-      if (!state.currentSession) return;
-
+      if (!state.currentSession) {
+        return;
+      }
       const now = new Date().toISOString();
 
       // Mark all games in the round as started
@@ -61,8 +75,9 @@ const liveSessionSlice = createSlice({
     completeRound: (state, action: PayloadAction<{
       scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }
     }>) => {
-      if (!state.currentSession) return;
-
+      if (!state.currentSession) {
+        return;
+      }
       const now = new Date().toISOString();
 
       // Mark all games as completed and apply scores
@@ -108,15 +123,16 @@ const liveSessionSlice = createSlice({
 });
 
 export const {
-  setCurrentSession,
-  generateNextRound,
-  startRound,
   completeRound,
-  updatePlayerStats,
   endLiveSession,
-  updateGameScore,
-  setLoading,
+  generateNextRound,
+  setCurrentSession,
   setError,
+  setLoading,
+  startRound,
+  updateCurrentSessionGames,
+  updateGameScore,
+  updatePlayerStats,
 } = liveSessionSlice.actions;
 
 export default liveSessionSlice.reducer;

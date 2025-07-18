@@ -101,7 +101,7 @@ export default function LiveSessionScreen() {
   const completedRounds = currentSession.currentGameNumber - 1;
 
   const handleGenerateNewRound = () => {
-    const assignments = roundAssigner.generateGameAssignments(currentSession.currentGameNumber);
+    const assignments = roundAssigner.generateGameAssignments();
 
     if (assignments.length === 0) {
       Alert.alert(
@@ -516,6 +516,8 @@ export default function LiveSessionScreen() {
         currentRound={isRoundCompleted ? currentSession.currentGameNumber : currentSession.currentGameNumber}
         games={currentRoundGames}
         allPlayers={sessionPlayers}
+        playerStats={currentSession.playerStats}
+        roundAssigner={roundAssigner}
         onStartRound={handleStartRound}
         onClose={() => setBetweenRoundsVisible(false)}
       />

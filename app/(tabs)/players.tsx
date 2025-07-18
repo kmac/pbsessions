@@ -259,7 +259,7 @@ export default function PlayersTab() {
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.surfaceVariant
       }}>
-        <Text variant="titleMedium" style={{ fontWeight: '600' }}>
+        <Text variant="headlineMedium" style={{ fontWeight: 'bold' }}>
           Players ({players.length})
         </Text>
         <View style={{ flexDirection: 'row', gap: 8, }}>

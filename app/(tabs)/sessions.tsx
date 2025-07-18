@@ -144,10 +144,6 @@ export default function SessionsTab() {
     router.push('/');
   };
 
-  const navigateToArchive = () => {
-    router.push('/archived');
-  };
-
   const getSessionPlayers = (session: Session) => {
     return players.filter(player => session.playerIds.includes(player.id));
   };
@@ -221,7 +217,7 @@ export default function SessionsTab() {
                 backgroundColor: theme.colors.tertiary
               }}
               textStyle={{ color: theme.colors.onTertiary, fontWeight: 'bold' }}
-              compact
+              compact={true}
             >
               LIVE
             </Chip>
@@ -248,14 +244,14 @@ export default function SessionsTab() {
           </View>
 
           <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
-            <Chip icon="account-group" compact>
+            <Chip icon="account-group" compact={true}>
               {sessionPlayers.length} players
             </Chip>
-            <Chip icon="map-marker-outline" compact>
+            <Chip icon="map-marker-outline" compact={true}>
               {activeCourts.length} courts
             </Chip>
             {activeCourts.some(c => c.minimumRating) && (
-              <Chip icon="cog-outline" compact>
+              <Chip icon="cog-outline" compact={true}>
                 Rated
               </Chip>
             )}

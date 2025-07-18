@@ -357,7 +357,7 @@ export default function RoundScoreEntryModal({
                     <Chip
                       key={idx}
                       onPress={() => setCommonScore(court.gameId, score.serve, score.receive)}
-                      compact
+                      compact={true}
                     >
                       {score.serve} - {score.receive}
                     </Chip>

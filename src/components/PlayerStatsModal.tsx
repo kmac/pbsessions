@@ -322,7 +322,7 @@ export default function PlayerStatsModal({
               <Button
                 mode={sortBy === 'name' ? 'contained' : 'outlined'}
                 onPress={() => setSortBy('name')}
-                compact
+                compact={true}
               >
                 Name
               </Button>
@@ -330,7 +330,7 @@ export default function PlayerStatsModal({
               <Button
                 mode={sortBy === 'gamesPlayed' ? 'contained' : 'outlined'}
                 onPress={() => setSortBy('gamesPlayed')}
-                compact
+                compact={true}
               >
                 Games Played
               </Button>
@@ -338,7 +338,7 @@ export default function PlayerStatsModal({
               <Button
                 mode={sortBy === 'gamesSatOut' ? 'contained' : 'outlined'}
                 onPress={() => setSortBy('gamesSatOut')}
-                compact
+                compact={true}
               >
                 Sat Out
               </Button>
@@ -346,7 +346,7 @@ export default function PlayerStatsModal({
               <Button
                 mode={sortBy === 'totalScore' ? 'contained' : 'outlined'}
                 onPress={() => setSortBy('totalScore')}
-                compact
+                compact={true}
               >
                 Total Score
               </Button>

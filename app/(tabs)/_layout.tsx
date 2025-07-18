@@ -2,7 +2,10 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
 // import { useColorScheme } from 'react-native';
+import { Appbar, Icon, Tooltip } from 'react-native-paper';
+import { router } from 'expo-router';
 import { Users, Users2, Calendar, Settings } from 'lucide-react-native';
+import { TabsHeader } from '@/src/components/TabsHeader';
 
 import Colors from '@/src/theme/Colors';
 import { useClientOnlyValue } from '@/src/utils/useClientOnlyValue';
@@ -22,18 +25,22 @@ export default function TabLayout() {
   return (
     <Tabs
       // screenOptions={{
-        // tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        // headerShown: useClientOnlyValue(false, true),
-        // headerStyle: {
-        //   backgroundColor: '#f8fafc',
-        // },
-        // headerTitleStyle: {
-        //   fontWeight: 'bold',
-        // },
-      // }}>
-      >
+      // tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+      // Disable the static render of the header on web
+      // to prevent a hydration error in React Navigation v6.
+      // headerShown: useClientOnlyValue(false, true),
+      // headerStyle: {
+      //   backgroundColor: '#f8fafc',
+      // },
+      // headerTitleStyle: {
+      //   fontWeight: 'bold',
+      // },
+      screenOptions={{
+        tabBarHideOnKeyboard: true,
+        header: (props) => <TabsHeader navProps={props} children={undefined} />,
+      }}
+    >
+
       <Tabs.Screen
         name="index"
         options={{
@@ -45,7 +52,38 @@ export default function TabLayout() {
         options={{
           title: 'Players',
           tabBarIcon: ({ color, size }) => <Users color={color} size={size || 24} />,
+          // tabBarIcon: (props) => (
+          //   <MaterialCommunityIcons
+          //     {...props}
+          //     size={24}
+          //     name={props.focused ? 'account' : 'account-outline'}
+          //   />
+          // ),
+          headerLeft: () => (
+            <Icon
+              source="camera"
+              size={20}
+            />
+          ),
+          headerTitle : "Switch",
+          headerRight: () => (
+            <>
+              <Tooltip title='Search'>
+                <Appbar.Action
+                  icon="magnify"
+                  onPress={() => { }}
+                />
+              </Tooltip>
+              <Tooltip title='Settings'>
+                <Appbar.Action
+                  icon="menu"
+                  onPress={() => router.push('/settings')}
+                />
+              </Tooltip>
+            </>
+          ),
         }}
+
       />
       <Tabs.Screen
         name="groups"
