@@ -22,7 +22,8 @@ import {
   startRound,
   completeRound,
   endLiveSession,
-  updatePlayerStats as updatePlayerStatsInStore
+  updatePlayerStats as updatePlayerStatsInStore,
+  updateCourts
 } from '../src/store/slices/liveSessionSlice';
 import {
   endSession as endSession,
@@ -35,7 +36,7 @@ import BetweenRoundsModal from '@/src/components/BetweenRoundsModal';
 import RoundTimer from '@/src/components/RoundTimer';
 import { COURT_COLORS } from '@/src/theme';
 import { Alert } from '@/src/utils/alert';
-import { SessionState } from '@/src/types';
+import { Court, SessionState } from '@/src/types';
 
 export default function LiveSessionScreen() {
   const theme = useTheme();
@@ -53,6 +54,12 @@ export default function LiveSessionScreen() {
   const sessionPlayers = players.filter(p => currentSession?.sessionId &&
     sessions.find(s => s.id === currentSession.sessionId)?.playerIds.includes(p.id));
   const session = sessions.find(s => s.id === currentSession?.sessionId);
+  if (currentSession) {
+    // currentSession.courts = session ? [...session.courts] :[];
+    if (!currentSession.courts) {
+      dispatch(updateCourts(session ? [...session.courts] : []));
+    }
+  }
 
   if (!currentSession || !session) {
     return (
@@ -85,7 +92,7 @@ export default function LiveSessionScreen() {
 
   const roundAssigner = new SessionRoundManager(
     sessionPlayers,
-    session.courts,
+    currentSession.courts,
     currentSession.playerStats
   );
 
@@ -94,7 +101,7 @@ export default function LiveSessionScreen() {
   const isRoundCompleted = currentRoundGames.length > 0 && currentRoundGames.every(g => g.isCompleted);
   const hasActiveRound = currentRoundGames.length > 0;
 
-  const activeCourts = session.courts.filter(c => c.isActive);
+  const activeCourts = currentSession.courts ? currentSession.courts.filter(c => c.isActive) : [];
   const sittingOutThisRound = hasActiveRound
     ? currentRoundGames[0]?.sittingOutIds.length || 0
     : 0;
@@ -515,6 +522,7 @@ export default function LiveSessionScreen() {
         visible={betweenRoundsVisible}
         currentRound={isRoundCompleted ? currentSession.currentGameNumber : currentSession.currentGameNumber}
         games={currentRoundGames}
+        // courts={[...session.courts]}
         allPlayers={sessionPlayers}
         playerStats={currentSession.playerStats}
         roundAssigner={roundAssigner}

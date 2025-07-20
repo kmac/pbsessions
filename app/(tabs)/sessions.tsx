@@ -116,6 +116,7 @@ export default function SessionsTab() {
     dispatch(setCurrentSession({
       sessionId: session.id,
       currentGameNumber: 1,
+      courts: [...session.courts],
       activeGames: [],
       playerStats: [],
       isActive: true,

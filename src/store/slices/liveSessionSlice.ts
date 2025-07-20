@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { LiveSession, Game, PlayerStats, GameAssignment } from '@/src/types';
+import { LiveSession, Court, Game, PlayerStats, GameAssignment } from '@/src/types';
 // import { Alert } from '@/src/utils/alert';
 
 interface LiveSessionState {
@@ -46,6 +46,12 @@ const liveSessionSlice = createSlice({
   reducers: {
     setCurrentSession: (state, action: PayloadAction<LiveSession>) => {
       state.currentSession = action.payload;
+    },
+    updateCourts: (state, action: PayloadAction<Court[]>) => {
+      if (!state.currentSession) {
+        return;
+      }
+      state.currentSession.courts = action.payload;
     },
     updateCurrentSessionGames: (state, action: PayloadAction<Game[]>) => {
       if (!state.currentSession) {
@@ -131,6 +137,7 @@ export const {
   setLoading,
   startRound,
   updateCurrentSessionGames,
+  updateCourts,
   updateGameScore,
   updatePlayerStats,
 } = liveSessionSlice.actions;

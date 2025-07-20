@@ -48,6 +48,7 @@ export interface Session {
 export interface LiveSession {
   sessionId: string;
   currentGameNumber: number;
+  courts: Court[];
   activeGames: Game[];
   playerStats: PlayerStats[];
   isActive: boolean;

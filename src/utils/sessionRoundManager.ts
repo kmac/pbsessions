@@ -36,7 +36,7 @@ export class SessionRoundManager {
     });
   }
 
-  generateGameAssignments(sittingOut? : Player[]): GameAssignment[] {
+  generateGameAssignments(sittingOut?: Player[]): GameAssignment[] {
     const assignments: GameAssignment[] = [];
     const availablePlayers = [...this.players];
     const playersPerGame = this.courts.length * 4;
@@ -73,8 +73,10 @@ export class SessionRoundManager {
 
     const sittingOutCount = players.length - neededPlayers;
 
+    const randomPlayers = this.shuffleArray(players);
+
     // Sort by: 1) sit-out count (ascending), 2) games played (descending)
-    const playersSortedBySitOuts = players.sort((a, b) => {
+    const playersSortedBySitOuts = randomPlayers.sort((a, b) => {
       const aStats = this.playerStats.get(a.id)!;
       const bStats = this.playerStats.get(b.id)!;
 
@@ -95,9 +97,19 @@ export class SessionRoundManager {
     return playersSortedBySitOuts.slice(0, sittingOutCount);
   }
 
+  // Fisher-Yates shuffle algorithm
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
   private assignPlayersToCourts(playingPlayers: Player[]): Player[][] {
     const courtAssignments: Player[][] = Array(this.courts.length).fill(null).map(() => []);
-    const remainingPlayers = [...playingPlayers];
+    const remainingPlayers = this.shuffleArray(playingPlayers);
 
     // TODO: it looks to me that we'll have to sort the courts by minimum
     // rating first, so that higher rating players get selected for higher
@@ -175,11 +187,11 @@ export class SessionRoundManager {
 
       // Calculate partner diversity score (higher is better)
       const diversityScore = this.getPartnershipScore(team1[0], team1[1]) +
-                            this.getPartnershipScore(team2[0], team2[1]);
+        this.getPartnershipScore(team2[0], team2[1]);
 
       // Prefer rating balance, but use diversity as tiebreaker
       const isBetter = ratingDifference < bestBalance.difference ||
-                      (ratingDifference === bestBalance.difference && diversityScore > bestBalance.diversityScore);
+        (ratingDifference === bestBalance.difference && diversityScore > bestBalance.diversityScore);
 
       if (isBetter) {
         bestBalance = {
