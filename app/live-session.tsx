@@ -24,7 +24,7 @@ import {
   endLiveSession,
   updatePlayerStats as updatePlayerStatsInStore,
   updateCourts
-} from '../src/store/slices/liveSessionSlice';
+} from '@/src/store/slices/liveSessionSlice';
 import {
   endSession as endSession,
 } from '../src/store/slices/sessionsSlice';
@@ -60,6 +60,8 @@ export default function LiveSessionScreen() {
       dispatch(updateCourts(session ? [...session.courts] : []));
     }
   }
+  const showRatings = currentSession ? currentSession.showRatings : false;
+  const scoring = currentSession ? currentSession.scoring : false;
 
   if (!currentSession || !session) {
     return (
@@ -134,7 +136,34 @@ export default function LiveSessionScreen() {
       return;
     }
     setScoreModalVisible(true);
+    // if (scoring) {
+    //   setScoreModalVisible(true);
+    // } else {
+    //   handleRoundScoresSubmitted(null);
+    // }
   };
+
+  // const handleRoundNoScoring = () => {
+  //   const scores: Map<string, { serveScore: number; receiveScore: number } | undefined> = new Map()
+  //   currentRoundGames.forEach(game => {
+  //     const score = undefined;
+  //     scores.set(game.id, score);
+  //     roundAssigner.updatePlayerStatsForGame(game, score);
+  //   });
+  //   //score?: { serveScore: number; receiveScore: number }
+  //   dispatch(completeRound({ scores }));
+  //
+  //   currentRoundGames.forEach(game => {
+  //     const score = scores[game.id];
+  //     roundAssigner.updatePlayerStatsForGame(game, score || undefined);
+  //   });
+  //
+  //   const updatedStats = roundAssigner.getPlayerStats();
+  //   dispatch(updatePlayerStatsInStore(updatedStats));
+  //
+  //   setScoreModalVisible(false);
+  //   setRoundStartTime(null);
+  // };
 
   const handleRoundScoresSubmitted = (scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }) => {
     dispatch(completeRound({ scores }));
@@ -263,19 +292,15 @@ export default function LiveSessionScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <Appbar.Header style={{ backgroundColor: '#059669' }}>
-        <Appbar.BackAction iconColor="white" onPress={() => router.back()} />
+      <Appbar.Header>
+        {/*<Appbar.BackAction iconColor="white" onPress={() => router.back()} />*/}
+        <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content
           title={session.name}
-          subtitle={hasActiveRound ? `Round ${currentSession.currentGameNumber}` : `${completedRounds} rounds completed`}
-          titleStyle={{ color: 'white', fontWeight: 'bold' }}
-          subtitleStyle={{ color: 'rgba(255,255,255,0.8)' }}
         />
         <Button
           mode="contained-tonal"
           onPress={handleEndSession}
-          buttonColor="rgba(255,255,255,0.2)"
-          textColor="white"
           style={{ marginRight: 8 }}
         >
           End Session

@@ -192,7 +192,7 @@ export default function RoundScoreEntryModal({
                   alignItems: 'center',
                   backgroundColor: theme.colors.primaryContainer
                 }}>
-                  <View style={{
+                  {/*<View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 8,
@@ -205,15 +205,17 @@ export default function RoundScoreEntryModal({
                       Serve Team
                     </Text>
                     {winner === 'serve' && <Icon source="trophy" size={16} />}
-                  </View>
+                  </View>*/}
 
                   <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                    <Text variant="bodySmall" style={{
+                    <Text variant="bodyMedium" style={{
+                      fontWeight: '600',
                       color: theme.colors.onPrimaryContainer
                     }}>
                       {court.serveTeam[0]?.name || 'Player 1'}
                     </Text>
-                    <Text variant="bodySmall" style={{
+                    <Text variant="bodyMedium" style={{
+                      fontWeight: '600',
                       color: theme.colors.onPrimaryContainer
                     }}>
                       {court.serveTeam[1]?.name || 'Player 2'}
@@ -244,7 +246,7 @@ export default function RoundScoreEntryModal({
                       maxLength={2}
                       dense
                       style={{ width: 80, textAlign: 'center' }}
-                      contentStyle={{ textAlign: 'center', fontSize: 24, fontWeight: 'bold' }}
+                      contentStyle={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}
                     />
                     <IconButton
                       icon="plus"
@@ -271,28 +273,30 @@ export default function RoundScoreEntryModal({
                   alignItems: 'center',
                   backgroundColor: theme.colors.secondaryContainer
                 }}>
-                  <View style={{
+                  {/*<View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 8,
                     marginBottom: 8,
                   }}>
-                    <Text variant="titleSmall" style={{
+                    <Text variant="titleMedium" style={{
                       fontWeight: '600',
                       color: theme.colors.onSecondaryContainer
                     }}>
                       Receive Team
                     </Text>
                     {winner === 'receive' && <Icon source="trophy" size={16} />}
-                  </View>
+                  </View>*/}
 
                   <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                    <Text variant="bodySmall" style={{
+                    <Text variant="bodyMedium" style={{
+                      fontWeight: '600',
                       color: theme.colors.onSecondaryContainer
                     }}>
                       {court.receiveTeam[0]?.name || 'Player 1'}
                     </Text>
-                    <Text variant="bodySmall" style={{
+                    <Text variant="bodyMedium" style={{
+                      fontWeight: '600',
                       color: theme.colors.onSecondaryContainer
                     }}>
                       {court.receiveTeam[1]?.name || 'Player 2'}
@@ -323,7 +327,7 @@ export default function RoundScoreEntryModal({
                       maxLength={2}
                       dense
                       style={{ width: 80, textAlign: 'center' }}
-                      contentStyle={{ textAlign: 'center', fontSize: 24, fontWeight: 'bold' }}
+                      contentStyle={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}
                     />
                     <IconButton
                       icon="plus"

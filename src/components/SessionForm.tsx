@@ -8,15 +8,22 @@ import {
   Appbar,
   Button,
   Card,
+  Checkbox,
   Chip,
   Icon,
+  RadioButton,
   Surface,
+  Switch,
   Text,
   TextInput,
   useTheme,
 } from 'react-native-paper';
+import {
+  DatePickerInput,
+  TimePickerModal,
+} from 'react-native-paper-dates';
 import { useAppSelector } from '../store';
-import { Session, Court, Player, Group } from '../types';
+import { Session, SessionState, Court, Player, Group } from '../types';
 import { validateSessionSize } from '../utils/validation';
 import SessionPlayerManager from './SessionPlayerManager';
 import CourtManager from './CourtManager';
@@ -24,14 +31,17 @@ import { Alert } from '../utils/alert'
 
 interface SessionFormProps {
   session?: Session | null;
-  onSave: (session: Session | Omit<Session, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSave: (session: Session | Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
 }
 
 export default function SessionForm({ session, onSave, onCancel }: SessionFormProps) {
   const theme = useTheme();
   const { players } = useAppSelector((state) => state.players);
-  const { groups } = useAppSelector((state) => state.groups);
+  //const { groups } = useAppSelector((state) => state.groups);
+  const { appConfig } = useAppSelector((state) => state.appConfig);
+  const [scoring, setScoring] = useState(appConfig.defaultUseScoring);
+  const [useRatings, setUseRatings] = useState(appConfig.defaultUseRatings);
 
   const [formData, setFormData] = useState({
     name: `${new Date().toDateString()}`,
@@ -42,6 +52,8 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
       { id: 'court2', number: 2, minimumRating: undefined, isActive: true },
       { id: 'court3', number: 3, minimumRating: undefined, isActive: true },
     ] as Court[],
+    scoring: appConfig.defaultUseScoring,
+    showRatings: appConfig.defaultUseRatings,
   });
 
   const [showPlayerManager, setShowPlayerManager] = useState(false);
@@ -54,6 +66,8 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
         dateTime: session.dateTime,
         playerIds: session.playerIds,
         courts: session.courts,
+        scoring: session.scoring,
+        showRatings: session.showRatings,
       });
     } else {
       const now = new Date();
@@ -85,6 +99,8 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
       dateTime: formData.dateTime,
       playerIds: formData.playerIds,
       courts: formData.courts,
+      scoring: formData.scoring,
+      showRatings: formData.showRatings,
     };
 
     if (session) {
@@ -177,7 +193,7 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
 
         <Surface style={{
           padding: 16,
-          borderRadius: 12,
+          // borderRadius: 12,
           marginBottom: 16
         }}>
           <Text
@@ -187,31 +203,70 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
               color: theme.colors.onSurface
             }}
           >
-            Date & Time *
+            Settings
           </Text>
+
           <View style={{
             flexDirection: 'row',
-            alignItems: 'center',
+            //alignItems: 'flex-start',
+            //alignContent: 'space-evenly',
             padding: 12,
             borderWidth: 1,
             borderColor: theme.colors.outline,
             borderRadius: 4,
             gap: 8
           }}>
-            <Icon source="calendar" size={20} />
-            <Text variant="bodyLarge">
-              {formatTimeForInput(formData.dateTime)}
-            </Text>
+            <DatePickerInput
+              locale="en"
+              label="Date"
+              value={new Date(formData.dateTime)}
+              //onChange={(d) => setInputDate(d)}
+              onChange={(d) => { }}
+              inputMode="start"
+              style={{
+                flex: 1,
+                //width: 200,
+              }}
+              mode="outlined"
+            />
+            {/*<TimePickerModal
+              visible={false}
+              onDismiss={() => {}}
+              onConfirm={() => {}}
+              hours={12}
+              minutes={14}
+            />*/}
+            <View style={{ flexDirection: 'row', flex: 2 }}>
+              {/*<Text>Scoring Enabled:</Text>
+              <Switch value={scoring} onValueChange={() => setScoring(!scoring)} />
+              <RadioButton
+                value="Scoring Enabled"
+                status={scoring ? 'checked' : 'unchecked'}
+                onPress={() => setScoring(!scoring)}
+              />*/}
+              <Checkbox.Item
+                label="Scoring Enabled"
+                status={scoring ? 'checked' : 'unchecked'}
+                onPress={() => {
+                  setScoring(!scoring);
+                }}
+              />
+              {/*<Text>Use Ratings:</Text>
+              <Switch value={useRatings} onValueChange={() => setUseRatings(!useRatings)} />
+              <RadioButton
+                value="Use Ratings"
+                status={useRatings ? 'checked' : 'unchecked'}
+                onPress={() => setUseRatings(!useRatings)}
+              />*/}
+              <Checkbox.Item
+                label="Use Ratings"
+                status={useRatings ? 'checked' : 'unchecked'}
+                onPress={() => {
+                  setUseRatings(!useRatings);
+                }}
+              />
+            </View>
           </View>
-          <Text
-            variant="bodySmall"
-            style={{
-              color: theme.colors.onSurfaceVariant,
-              marginTop: 4
-            }}
-          >
-            Tap to change date and time (coming soon)
-          </Text>
         </Surface>
 
         <Card style={{ marginBottom: 16 }}>

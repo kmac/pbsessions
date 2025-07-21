@@ -113,6 +113,8 @@ export default function SessionsTab() {
     }
 
     dispatch(startLiveSession(session.id));
+
+    // Instantiate a new LiveSession:
     dispatch(setCurrentSession({
       sessionId: session.id,
       currentGameNumber: 1,
@@ -120,6 +122,8 @@ export default function SessionsTab() {
       activeGames: [],
       playerStats: [],
       isActive: true,
+      scoring: true,
+      showRatings: true
     }));
 
     router.push('/live-session');
@@ -167,12 +171,12 @@ export default function SessionsTab() {
     });
   };
 
-  const handleSaveSession = (sessionData: Session | Omit<Session, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveSession = (sessionData: Session | Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>) => {
     if (editingSession) {
       dispatch(updateSession(sessionData as Session));
       setEditingSession(null);
     } else {
-      dispatch(addSession(sessionData as Omit<Session, 'id' | 'createdAt' | 'updatedAt'>));
+      dispatch(addSession(sessionData as Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>));
     }
     setModalVisible(false);
   };
@@ -274,7 +278,9 @@ export default function SessionsTab() {
                 numberOfLines={2}
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                {sessionPlayers.map(p => p.name).join(', ')}
+                {sessionPlayers.sort((a, b) => a.name.localeCompare(b.name))
+                  .map(p => p.name)
+                  .join(', ')}
               </Text>
             </View>
           )}

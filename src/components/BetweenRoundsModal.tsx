@@ -67,7 +67,9 @@ export default function BetweenRoundsModal({
   const [courtDisabled, setCourtDisabled] = useState<boolean>(false);
 
   const { currentSession } = useAppSelector((state) => state.liveSession);
-  const showRating = true;
+  const { appConfig } = useAppSelector((state) => state.appConfig);
+  const showRating = currentSession ? currentSession.showRatings : false;
+  const scoring = currentSession ? currentSession.scoring : false;
 
   const getPlayer = (playerId: string) =>
     allPlayers.find((p) => p.id === playerId);
@@ -530,14 +532,16 @@ export default function BetweenRoundsModal({
       presentationStyle="pageSheet"
     >
       <SafeAreaView style={{ flex: 1 }}>
-        <Appbar.Header>
-          <Appbar.BackAction onPress={onClose} />
-          <Appbar.Content
-            title={`Round ${currentRound} Ready`}
-            subtitle="Review assignments and start when ready"
-          />
-          {/*<Appbar.Action icon="Swap Players" onPress={() => {}}/>*/}
-        </Appbar.Header>
+        <Appbar>
+          <Appbar.Header>
+            <Appbar.BackAction onPress={onClose} />
+            <Appbar.Content
+              title={`Round ${currentRound} Ready`}
+              subtitle="Review assignments and start when ready"
+            />
+            {/*<Appbar.Action icon="Swap Players" onPress={() => {}}/>*/}
+          </Appbar.Header>
+        </Appbar>
 
         <ScrollView
           style={{ flex: 1, padding: 16 }}
@@ -560,6 +564,9 @@ export default function BetweenRoundsModal({
               scrollEnabled={false}
             />
             <View>
+            <Text variant="bodyMedium" style={{ fontWeight: 400 }}>
+              Review assignments and start when ready
+            </Text>
               <Text variant="bodyMedium" style={{ fontWeight: 400 }}>
                 Select any two players to enable position swap (for sit-out or
                 partnering)
@@ -680,6 +687,7 @@ export default function BetweenRoundsModal({
             Configure settings for Court {currentCourtId.slice(-1)}
           </Text>
 
+          {/*
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
             <Switch
               value={courtDisabled}
@@ -689,6 +697,7 @@ export default function BetweenRoundsModal({
               Disable Court
             </Text>
           </View>
+          */}
 
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
             <Checkbox

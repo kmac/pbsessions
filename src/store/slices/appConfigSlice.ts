@@ -8,7 +8,7 @@ interface AppConfigState {
 }
 
 const initialState: AppConfigState = {
-  appConfig: { color: 'default', theme: 'light' },
+  appConfig: { color: 'default', theme: 'light', defaultUseScoring: true, defaultUseRatings: true },
   loading: false,
   error: null,
 };

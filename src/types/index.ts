@@ -41,6 +41,8 @@ export interface Session {
   playerIds: string[];
   courts: Court[];
   state: SessionState,
+  scoring: boolean;
+  showRatings: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,6 +53,8 @@ export interface LiveSession {
   courts: Court[];
   activeGames: Game[];
   playerStats: PlayerStats[];
+  scoring: boolean;
+  showRatings: boolean;
   isActive: boolean;
 }
 
@@ -98,4 +102,6 @@ export type Color = keyof typeof Colors.light
 export interface Setting {
   color: Color;
   theme: 'light' | 'dark' | 'auto';
+  defaultUseScoring: boolean,
+  defaultUseRatings: boolean,
 }
