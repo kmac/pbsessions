@@ -293,7 +293,6 @@ export default function LiveSessionScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Appbar.Header>
-        {/*<Appbar.BackAction iconColor="white" onPress={() => router.back()} />*/}
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content
           title={session.name}
