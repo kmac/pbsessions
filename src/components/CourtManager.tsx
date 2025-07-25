@@ -57,6 +57,7 @@ export default function CourtManager({
 
     const newCourt: Court = {
       id: `court${localCourts.length + 1}`,
+      name: `Court ${localCourts.length + 1}`,
       number: localCourts.length + 1,
       minimumRating: undefined,
       isActive: true,
@@ -69,7 +70,6 @@ export default function CourtManager({
       Alert.alert('Cannot Remove', 'Must have at least one court');
       return;
     }
-
     setLocalCourts(localCourts.filter(c => c.id !== courtId));
   };
 
@@ -81,14 +81,14 @@ export default function CourtManager({
 
   const toggleCourt = (courtId: string) => {
     const court = localCourts.find(c => c.id === courtId);
-    if (!court) return;
-
+    if (!court) {
+      return;
+    }
     const activeCourts = localCourts.filter(c => c.isActive);
     if (court.isActive && activeCourts.length === 1) {
       Alert.alert('Cannot Deactivate', 'At least one court must be active');
       return;
     }
-
     updateCourt(courtId, { isActive: !court.isActive });
   };
 
@@ -98,6 +98,10 @@ export default function CourtManager({
       return;
     }
     updateCourt(courtId, { minimumRating: numRating });
+  };
+
+  function setCourtName(courtId: string, name: string) {
+    updateCourt(courtId, { name: name });
   };
 
   const activeCourts = localCourts.filter(c => c.isActive);
@@ -111,11 +115,11 @@ export default function CourtManager({
       <SafeAreaView style={{ flex: 1 }}>
         <Appbar.Header>
           <Appbar.BackAction onPress={onClose} />
-          <Appbar.Content 
+          <Appbar.Content
             title="Court Configuration"
             titleStyle={{ fontWeight: '600' }}
           />
-          <Button 
+          <Button
             icon="content-save"
             mode="contained"
             onPress={handleSave}
@@ -125,60 +129,60 @@ export default function CourtManager({
           </Button>
         </Appbar.Header>
 
-        <ScrollView 
-          style={{ flex: 1, padding: 16 }} 
+        <ScrollView
+          style={{ flex: 1, padding: 16 }}
           showsVerticalScrollIndicator={false}
         >
-          <Surface style={{ 
-            borderRadius: 12, 
-            padding: 16, 
-            marginBottom: 24 
+          <Surface style={{
+            borderRadius: 12,
+            padding: 16,
+            marginBottom: 24
           }}>
-            <View style={{ 
-              flexDirection: 'row', 
-              justifyContent: 'space-around' 
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-around'
             }}>
               <View style={{ alignItems: 'center' }}>
-                <Text variant="headlineMedium" style={{ 
+                <Text variant="headlineMedium" style={{
                   fontWeight: 'bold',
                   color: theme.colors.primary,
-                  marginBottom: 4 
+                  marginBottom: 4
                 }}>
                   {localCourts.length}
                 </Text>
-                <Text variant="labelMedium" style={{ 
+                <Text variant="labelMedium" style={{
                   color: theme.colors.onSurfaceVariant,
-                  textAlign: 'center' 
+                  textAlign: 'center'
                 }}>
                   Total Courts
                 </Text>
               </View>
               <View style={{ alignItems: 'center' }}>
-                <Text variant="headlineMedium" style={{ 
+                <Text variant="headlineMedium" style={{
                   fontWeight: 'bold',
                   color: theme.colors.primary,
-                  marginBottom: 4 
+                  marginBottom: 4
                 }}>
                   {activeCourts.length}
                 </Text>
-                <Text variant="labelMedium" style={{ 
+                <Text variant="labelMedium" style={{
                   color: theme.colors.onSurfaceVariant,
-                  textAlign: 'center' 
+                  textAlign: 'center'
                 }}>
                   Active Courts
                 </Text>
               </View>
               <View style={{ alignItems: 'center' }}>
-                <Text variant="headlineMedium" style={{ 
+                <Text variant="headlineMedium" style={{
                   fontWeight: 'bold',
                   color: theme.colors.primary,
-                  marginBottom: 4 
+                  marginBottom: 4
                 }}>
                   {activeCourts.length * 4}
                 </Text>
-                <Text variant="labelMedium" style={{ 
+                <Text variant="labelMedium" style={{
                   color: theme.colors.onSurfaceVariant,
-                  textAlign: 'center' 
+                  textAlign: 'center'
                 }}>
                   Players per Game
                 </Text>
@@ -187,11 +191,11 @@ export default function CourtManager({
           </Surface>
 
           <View style={{ marginBottom: 24 }}>
-            <View style={{ 
+            <View style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: 16 
+              marginBottom: 16
             }}>
               <Text variant="titleLarge" style={{ fontWeight: '600' }}>
                 Courts
@@ -207,11 +211,11 @@ export default function CourtManager({
             </View>
 
             {localCourts.map((court, index) => (
-              <Card 
-                key={court.id} 
-                style={{ 
+              <Card
+                key={court.id}
+                style={{
                   marginBottom: 12,
-                  opacity: court.isActive ? 1 : 0.7 
+                  opacity: court.isActive ? 1 : 0.7
                 }}
               >
                 <Card.Content>
@@ -231,15 +235,30 @@ export default function CourtManager({
                         width: 12,
                         height: 12,
                         borderRadius: 6,
-                        backgroundColor: COURT_COLORS[index % COURT_COLORS.length]
+                        // backgroundColor: COURT_COLORS[index % COURT_COLORS.length]
                       }} />
-                      <Text variant="titleMedium" style={{ 
+                      <Text variant="titleMedium" style={{
                         fontWeight: '600',
-                        flex: 1,
+                        // flex: 1,
                         color: court.isActive ? theme.colors.onSurface : theme.colors.onSurfaceVariant
                       }}>
-                        Court {court.number}
+                        {court.name ? court.name : `Court ${court.number}`}
                       </Text>
+                      <TextInput
+                        mode="flat"
+                        value={court.name ? court.name : `Court ${court.number}`}
+                        onChangeText={(text) => setCourtName(court.id, text)}
+                        placeholder="Optional"
+                        keyboardType="default"
+                        dense
+                        style={{
+                          /*width: 80,*/
+                          textAlign: 'left',
+                          fontWeight: '600',
+                          // flex: 2,
+                          color: court.isActive ? theme.colors.onSurface : theme.colors.onSurfaceVariant,
+                        }}
+                      />
                       <Switch
                         value={court.isActive}
                         onValueChange={() => toggleCourt(court.id)}
@@ -257,10 +276,10 @@ export default function CourtManager({
                   </View>
 
                   {court.isActive && (
-                    <Surface style={{ 
-                      padding: 12, 
+                    <Surface style={{
+                      padding: 12,
                       borderRadius: 8,
-                      backgroundColor: theme.colors.surfaceVariant 
+                      backgroundColor: theme.colors.surfaceVariant
                     }}>
                       <View style={{
                         flexDirection: 'row',
@@ -270,12 +289,13 @@ export default function CourtManager({
                         <View style={{
                           flexDirection: 'row',
                           alignItems: 'center',
-                          flex: 1,
+                          // flex: 1,
                           gap: 8,
                         }}>
                           <Icon source="star-outline" size={16} />
-                          <Text variant="labelMedium" style={{ 
-                            fontWeight: '500' 
+                          <Text variant="labelMedium" style={{
+                            fontWeight: '500',
+                            marginRight: 10
                           }}>
                             Minimum Rating
                           </Text>
@@ -284,15 +304,15 @@ export default function CourtManager({
                           mode="outlined"
                           value={court.minimumRating?.toString() || ''}
                           onChangeText={(text) => setMinimumRating(court.id, text)}
-                          placeholder="Optional"
+                          placeholder="e.g. 3.5"
                           keyboardType="decimal-pad"
                           dense
-                          style={{ width: 80, textAlign: 'center' }}
+                          style={{ width: 100, textAlign: 'center' }}
                         />
                       </View>
-                      <Text variant="bodySmall" style={{ 
+                      <Text variant="bodySmall" style={{
                         color: theme.colors.onSurfaceVariant,
-                        fontStyle: 'italic' 
+                        fontStyle: 'italic'
                       }}>
                         Only players with this rating or higher can be assigned to this court
                       </Text>
@@ -304,10 +324,10 @@ export default function CourtManager({
           </View>
 
           {activeCourts.some(c => c.minimumRating) && (
-            <Surface style={{ 
-              borderRadius: 12, 
+            <Surface style={{
+              borderRadius: 12,
               padding: 16,
-              backgroundColor: theme.colors.tertiaryContainer 
+              backgroundColor: theme.colors.tertiaryContainer
             }}>
               <View style={{
                 flexDirection: 'row',
@@ -316,16 +336,16 @@ export default function CourtManager({
                 marginBottom: 8,
               }}>
                 <Icon source="cog-outline" size={20} />
-                <Text variant="titleMedium" style={{ 
+                <Text variant="titleMedium" style={{
                   fontWeight: '600',
-                  color: theme.colors.onTertiaryContainer 
+                  color: theme.colors.onTertiaryContainer
                 }}>
                   Rating Requirements
                 </Text>
               </View>
-              <Text variant="bodyMedium" style={{ 
+              <Text variant="bodyMedium" style={{
                 color: theme.colors.onTertiaryContainer,
-                lineHeight: 20 
+                lineHeight: 20
               }}>
                 Courts with minimum ratings will prioritize players based on skill level.
                 Players without ratings will be assigned to courts without minimum requirements.

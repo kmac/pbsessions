@@ -22,6 +22,7 @@ export interface Group {
 
 export interface Court {
   id: string;
+  name: string;
   number: number;
   minimumRating?: number;
   isActive: boolean;
@@ -71,7 +72,10 @@ export interface Game {
     player1Id: string;
     player2Id: string;
   };
+
+  // TODO: I hate this:
   sittingOutIds: string[];
+
   score?: {
     serveScore: number;
     receiveScore: number;

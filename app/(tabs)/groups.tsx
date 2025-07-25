@@ -33,7 +33,7 @@ export default function GroupsTab() {
   const { groups, loading } = useAppSelector((state) => state.groups);
   const { players } = useAppSelector((state) => state.players);
 
-  const [modalVisible, setModalVisible] = useState(false);
+  const [groupModalVisible, setGroupModalVisible] = useState(false);
   const [playerManagerVisible, setPlayerManagerVisible] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -55,7 +55,7 @@ export default function GroupsTab() {
 
   const handleEditGroup = (group: Group) => {
     setEditingGroup(group);
-    setModalVisible(true);
+    setGroupModalVisible(true);
   };
 
   const handleManagePlayers = (group: Group) => {
@@ -209,7 +209,7 @@ export default function GroupsTab() {
     } else {
       dispatch(addGroup(groupData as Omit<Group, 'id' | 'createdAt' | 'updatedAt'>));
     }
-    setModalVisible(false);
+    setGroupModalVisible(false);
   };
 
   return (
@@ -252,7 +252,7 @@ export default function GroupsTab() {
           <Button
             icon="plus"
             mode="contained"
-            onPress={() => setModalVisible(true)}
+            onPress={() => setGroupModalVisible(true)}
           >
             Add Group
           </Button>
@@ -271,7 +271,7 @@ export default function GroupsTab() {
       />
 
       <Modal
-        visible={modalVisible}
+        visible={groupModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
       >
@@ -279,7 +279,7 @@ export default function GroupsTab() {
           group={editingGroup}
           onSave={handleSaveGroup}
           onCancel={() => {
-            setModalVisible(false);
+            setGroupModalVisible(false);
             setEditingGroup(null);
           }}
         />

@@ -224,7 +224,7 @@ export default function ArchivedSessions({ onCancel }: ArchivedSessionsProps) {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SessionForm
+        <SessionFormModal
           session={editingSession}
           onSave={() => {}}
           onCancel={() => {

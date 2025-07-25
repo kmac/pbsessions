@@ -14,23 +14,23 @@ const initialState: LiveSessionState = {
   error: null,
 };
 
-function convertAssignmentsToGames(liveSession: LiveSession, assignments : GameAssignment[]) {
-      const newGames: Game[] = assignments.map((assignment, index) => ({
-        id: `game_${liveSession!.currentGameNumber}_${assignment.court.id}_${Date.now()}_${index}`,
-        sessionId: liveSession!.sessionId,
-        gameNumber: liveSession!.currentGameNumber,
-        courtId: assignment.court.id,
-        serveTeam: {
-          player1Id: assignment.serveTeam[0].id,
-          player2Id: assignment.serveTeam[1].id,
-        },
-        receiveTeam: {
-          player1Id: assignment.receiveTeam[0].id,
-          player2Id: assignment.receiveTeam[1].id,
-        },
-        sittingOutIds: assignment.sittingOut.map(p => p.id),
-        isCompleted: false,
-      }));
+function convertAssignmentsToGames(liveSession: LiveSession, assignments: GameAssignment[]) {
+  const newGames: Game[] = assignments.map((assignment, index) => ({
+    id: `game_${liveSession!.currentGameNumber}_${assignment.court.id}_${Date.now()}_${index}`,
+    sessionId: liveSession!.sessionId,
+    gameNumber: liveSession!.currentGameNumber,
+    courtId: assignment.court.id,
+    serveTeam: {
+      player1Id: assignment.serveTeam[0].id,
+      player2Id: assignment.serveTeam[1].id,
+    },
+    receiveTeam: {
+      player1Id: assignment.receiveTeam[0].id,
+      player2Id: assignment.receiveTeam[1].id,
+    },
+    sittingOutIds: assignment.sittingOut.map(p => p.id),
+    isCompleted: false,
+  }));
 
   return newGames;
 }
@@ -39,6 +39,10 @@ function convertAssignmentsToGames(liveSession: LiveSession, assignments : GameA
 // A function that accepts an initial state, an object full of reducer
 // functions, and a "slice name", and automatically generates action creators
 // and action types that correspond to the reducers and state.
+//
+// Note on reducer:
+// Think of a reducer as an event listener which handles events based
+// on the received action (event) type.
 
 const liveSessionSlice = createSlice({
   name: 'liveSession',

@@ -26,6 +26,8 @@ import { StackHeader } from '@/src/components/StackHeader';
 import { Setting } from '@/src/types'
 import { Alert } from '@/src/utils/alert'
 
+import { router } from 'expo-router';
+
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -117,7 +119,7 @@ const RootLayoutNav = () => {
             // animation: 'slide_from_bottom',
             header: (props) => (
               <Appbar.Header>
-                <Appbar.BackAction onPress={() => { }} />
+                <Appbar.BackAction onPress={() => { router.push('/sessions');}} />
                 <Appbar.Content title="Title" />
                 <Appbar.Action icon="calendar" onPress={() => { }} />
                 <Appbar.Action icon="magnify" onPress={() => { }} />
@@ -129,15 +131,16 @@ const RootLayoutNav = () => {
           <Stack.Screen
             name="live-session"
             options={{
+              headerShown: false,
               presentation: 'modal',
               title: 'Live Session',
-              headerStyle: {
-                backgroundColor: '#059669',
-              },
-              headerTintColor: '#fff',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
+              // headerStyle: {
+              //   backgroundColor: '#059669',
+              // },
+              // headerTintColor: '#fff',
+              // headerTitleStyle: {
+              //   fontWeight: 'bold',
+              // },
             }}
           />
         </Stack>

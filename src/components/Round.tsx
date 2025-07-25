@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Modal, ScrollView, FlatList } from "react-native";
+import { View, Modal, ScrollView, StyleSheet, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
@@ -23,25 +23,20 @@ import {
   updateCourts,
 } from "@/src/store/slices/liveSessionSlice";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import { Court, Game, Player, PlayerStats } from "@/src/types";
+import { Court, Game, LiveSession, Player, PlayerStats } from "@/src/types";
+import { getEmptyLiveSession, getLiveSessionPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
+const theme = useTheme();
 
 interface RoundProps {
   editing: boolean;
   roundNumber: number;
-  games: Game[];
-  allPlayers: Player[];
-  onStartRound: () => void;
 }
 
 export default function Round({
   editing,
   roundNumber,
-  games,
-  allPlayers,
-  onStartRound,
 }: RoundProps) {
-  const theme = useTheme();
   const dispatch = useAppDispatch();
   const [selectedPlayers, setSelectedPlayers] = useState(new Map<string, Player>());
   const [selectedCourts, setSelectedCourts] = useState(new Set<string>());
@@ -53,12 +48,21 @@ export default function Round({
   const [courtDisabled, setCourtDisabled] = useState<boolean>(false);
   const { currentSession } = useAppSelector((state) => state.liveSession);
   const { appConfig } = useAppSelector((state) => state.appConfig);
+
+  const { sessions } = useAppSelector((state) => state.sessions);
+  const { players } = useAppSelector((state) => state.players);
+  const games = currentSession ? currentSession.activeGames : [];
+  const courts = currentSession ? currentSession.courts : [];
+  const sessionPlayers: Player[] = currentSession ? getLiveSessionPlayers(currentSession, sessions, players) : [];
+
   const showRating = currentSession ? currentSession.showRatings : false;
   const scoring = currentSession ? currentSession.scoring : false;
 
-  const getPlayer = (playerId: string) =>
-    allPlayers.find((p) => p.id === playerId);
-  const courts = currentSession?.courts;
+  const chipMode = editing ? "outlined" : "flat";
+
+  function getPlayer(playerId: string) {
+    return sessionPlayers.find((p) => p.id === playerId);
+  }
 
   function getCourt(courtId: string): Court | undefined {
     return courts?.find((c) => c.id === courtId);
@@ -73,7 +77,9 @@ export default function Round({
   }
 
   function updateCourt(court: Court) {
-    if (!courts) return;
+    if (!courts) {
+      return;
+    }
     const newCourts = [...courts];
     for (let index = 0; index < courts.length; index++) {
       if (court.id === newCourts[index].id) {
@@ -99,10 +105,14 @@ export default function Round({
   //   game.receiveTeam.player2Id,
   // ]).map(getPlayer).filter(Boolean) as Player[];
   //
+
   const sittingOutPlayers =
     games.length > 0
       ? (games[0].sittingOutIds.map(getPlayer).filter(Boolean) as Player[])
       : [];
+
+  function getSittingOutPlayers() {
+  }
 
   function playerSelectDisabled(player: Player | undefined) {
     if (!player) {
@@ -329,8 +339,8 @@ export default function Round({
             }}
           >
             <Chip // Court
-              mode="outlined"
-              // disabled={courtSelectDisabled(item.courtId)}
+              mode={chipMode}
+              //disabled={!editing}
               // selected={getCourtSelected(item.courtId)}
               // onPress={() => {
               //   item.courtId && toggleCourtSelected(item.courtId);
@@ -340,8 +350,7 @@ export default function Round({
               }}
             >
               <Text variant="titleMedium" style={{ fontWeight: "600" }}>
-                Court {game.courtId.slice(-1)}{" "}
-                {/*// TODO this probably breaks with > 10 courts */}
+                {getCourt(game.courtId)?.name ? getCourt(game.courtId)?.name : "Court"}
                 {/*getCourtMinimumRating(item.courtId) && ` (${getCourtMinimumRating(item.courtId)})`*/}
               </Text>
               {getCourtMinimumRating(game.courtId) && (<Badge size={22}>{getCourtMinimumRating(game.courtId)}</Badge>)}
@@ -360,13 +369,7 @@ export default function Round({
             style={{ flexDirection: "row", alignItems: "center", columnGap: 6 }}
           >
             <Surface  // Serve side
-              style={{
-                flex: 1,
-                padding: 12,
-                borderRadius: 8,
-                alignItems: "center",
-                backgroundColor: theme.colors.primaryContainer,
-              }}
+              style={styles.courtSurface}
             >
               <Text variant="labelMedium" style={{
                 fontWeight: "600",
@@ -374,11 +377,18 @@ export default function Round({
                 color: theme.colors.onPrimaryContainer,
               }}
               >
-                Serve
+                <Text variant="labelLarge" style={{
+                  fontWeight: "bold",
+                  marginBottom: 4,
+                  color: theme.colors.onPrimaryContainer,
+                }}>
+                  {game.score ? ` : ${game.score?.serveScore}` : 'Serve'}
+                </Text>
               </Text>
-              <View style={{ flexDirection: "column", gap: 5 }}>
+              <View style={{ flexDirection: "column", alignItems: "stretch", gap: 5 }}>
                 <Chip
-                  mode="outlined"
+                  mode={chipMode}
+                  //disabled={!editing || playerSelectDisabled(servePlayer1)}
                   disabled={playerSelectDisabled(servePlayer1)}
                   selected={getPlayerSelected(servePlayer1)}
                   onPress={() => {
@@ -391,7 +401,7 @@ export default function Round({
                     ` (${servePlayer1?.rating.toFixed(2)})`}
                 </Chip>
                 <Chip
-                  mode="outlined"
+                  mode={chipMode}
                   disabled={playerSelectDisabled(servePlayer2)}
                   selected={getPlayerSelected(servePlayer2)}
                   onPress={() => {
@@ -406,13 +416,7 @@ export default function Round({
               </View>
             </Surface>
             <Surface  // Receive side
-              style={{
-                flex: 1,
-                padding: 12,
-                borderRadius: 8,
-                alignItems: "center",
-                backgroundColor: theme.colors.secondaryContainer,
-              }}
+              style={styles.courtSurface}
             >
               <Text
                 variant="labelMedium"
@@ -422,35 +426,37 @@ export default function Round({
                   color: theme.colors.onSecondaryContainer,
                 }}
               >
-                Receive
+                <Text variant="labelLarge" style={{
+                  fontWeight: "bold",
+                  marginBottom: 4,
+                  color: theme.colors.onPrimaryContainer,
+                }}>
+                  {game.score ? ` : ${game.score?.receiveScore}` : 'Receive'}
+                </Text>
               </Text>
               <View style={{ flexDirection: "column", gap: 5 }}>
-                <View style={{ flexDirection: "column" }}>
-                  <View style={{ flexDirection: "row" }}>
-                    <Chip
-                      mode="outlined"
-                      disabled={playerSelectDisabled(receivePlayer1)}
-                      selected={getPlayerSelected(receivePlayer1)}
-                      onPress={() => {
-                        editing && receivePlayer1 && togglePlayerSelected(receivePlayer1);
-                      }}
-                    >
-                      {receivePlayer1?.name}
-                      {showRating && receivePlayer1?.rating && ` (${receivePlayer1?.rating.toFixed(2)})`}
-                    </Chip>
-                  </View>
-                  <Chip
-                    mode="outlined"
-                    disabled={playerSelectDisabled(receivePlayer2)}
-                    selected={getPlayerSelected(receivePlayer2)}
-                    onPress={() => {
-                      editing && receivePlayer2 && togglePlayerSelected(receivePlayer2);
-                    }}
-                  >
-                    {receivePlayer2?.name}
-                    {showRating && receivePlayer2?.rating && ` (${receivePlayer2?.rating.toFixed(2)})`}
-                  </Chip>
-                </View>
+                <Chip
+                  mode={chipMode}
+                  disabled={playerSelectDisabled(receivePlayer1)}
+                  selected={getPlayerSelected(receivePlayer1)}
+                  onPress={() => {
+                    editing && receivePlayer1 && togglePlayerSelected(receivePlayer1);
+                  }}
+                >
+                  {receivePlayer1?.name}
+                  {showRating && receivePlayer1?.rating && ` (${receivePlayer1?.rating.toFixed(2)})`}
+                </Chip>
+                <Chip
+                  mode={chipMode}
+                  disabled={playerSelectDisabled(receivePlayer2)}
+                  selected={getPlayerSelected(receivePlayer2)}
+                  onPress={() => {
+                    editing && receivePlayer2 && togglePlayerSelected(receivePlayer2);
+                  }}
+                >
+                  {receivePlayer2?.name}
+                  {showRating && receivePlayer2?.rating && ` (${receivePlayer2?.rating.toFixed(2)})`}
+                </Chip>
               </View>
             </Surface>
           </View>
@@ -461,62 +467,24 @@ export default function Round({
 
   return (
     <SafeAreaView>
-      <ScrollView
-        style={{ flex: 1, padding: 16 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={{ marginBottom: 24 }}>
-          <Text
-            variant="titleMedium"
-            style={{
-              fontWeight: "600",
-              marginBottom: 12,
-            }}
-          >
-            Courts
-          </Text>
-          <FlatList
-            data={games ? games : []}
-            renderItem={renderCourtAssignmentItem}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-          />
-        </View>
-
-        {sittingOutPlayers.length > 0 && (
-          <View style={{ marginBottom: 24 }}>
-            <Text
-              variant="titleMedium"
-              style={{
-                fontWeight: "600",
-                marginBottom: 12,
-              }}
-            >
-              Sitting Out
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {sittingOutPlayers.map((player) => (
-                <Chip
-                  mode="outlined"
-                  disabled={playerSelectDisabled(player)}
-                  selected={getPlayerSelected(player)}
-                  onPress={() => {
-                    player && togglePlayerSelected(player);
-                  }}
-                >
-                  {player.name}
-                  {showRating &&
-                    player.rating &&
-                    ` (${player.rating.toFixed(2)})`}
-                </Chip>
-              ))}
-            </View>
-          </View>
-        )}
-      </ScrollView>
-
-      {editing && (
-        <>
+      <View style={{ marginBottom: 24 }}>
+        {/*<Text
+          variant="titleMedium"
+          style={{
+            fontWeight: "600",
+            marginBottom: 12,
+          }}
+        >
+          Courts
+        </Text>
+        */}
+        <FlatList
+          data={games ? games : []}
+          renderItem={renderCourtAssignmentItem}
+          keyExtractor={(item) => item.id}
+          scrollEnabled={false}
+        />
+        {editing && (
           <FAB
             icon="swap-horizontal-bold"
             label="Swap Players"
@@ -527,39 +495,82 @@ export default function Round({
               margin: 16,
               right: 0,
               bottom: 30,
+              // position: 'absolute',
+              // margin: 16,
+              // marginTop: 40,
+              // right: 0,
+              // bottom: 0,
             }}
             visible={selectedPlayers.size === 2}
             disabled={selectedPlayers.size != 2}
             onPress={handleSwapPlayers}
           />
-          <FAB
-            icon="swap-horizontal-bold"
-            label="Assign Court Rating"
-            size="large"
-            variant="tertiary"
+        )}
+
+      </View>
+
+      {sittingOutPlayers.length > 0 && (
+        <View style={{ marginBottom: 24 }}>
+          <Text
+            variant="titleMedium"
             style={{
-              position: "absolute",
-              margin: 16,
-              right: 0,
-              bottom: 30,
+              fontWeight: "600",
+              marginBottom: 12,
             }}
-            visible={selectedCourts.size === 1}
-            disabled={selectedCourts.size != 1}
-            onPress={handleSetCourtRating}
-          />
-
-          <Dialog
-            visible={courtSettingDialogVisible}
-            onDismiss={handleCancelCourtRating}
-            style={{ alignSelf: 'center', width: '80%', maxWidth: 400 }}
           >
-            <Dialog.Title>Court Settings</Dialog.Title>
-            <Dialog.Content>
-              <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
-                Configure settings for Court {currentCourtId.slice(-1)}
-              </Text>
+            Sitting Out
+          </Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {sittingOutPlayers.map((player) => (
+              <Chip
+                mode={chipMode}
+                disabled={playerSelectDisabled(player)}
+                selected={getPlayerSelected(player)}
+                onPress={() => {
+                  editing && player && togglePlayerSelected(player);
+                }}
+              >
+                {player.name}
+                {showRating &&
+                  player.rating &&
+                  ` (${player.rating.toFixed(2)})`}
+              </Chip>
+            ))}
+          </View>
 
-              {/*
+        </View>
+      )}
+
+      {editing && (
+        <FAB
+          icon="swap-horizontal-bold"
+          label="Assign Court Rating"
+          size="large"
+          variant="tertiary"
+          style={{
+            position: "absolute",
+            margin: 16,
+            right: 0,
+            bottom: 30,
+          }}
+          visible={selectedCourts.size === 1}
+          disabled={selectedCourts.size != 1}
+          onPress={handleSetCourtRating}
+        />
+      )}
+
+      <Dialog
+        visible={courtSettingDialogVisible}
+        onDismiss={handleCancelCourtRating}
+        style={{ alignSelf: 'center', width: '80%', maxWidth: 400 }}
+      >
+        <Dialog.Title>Court Settings</Dialog.Title>
+        <Dialog.Content>
+          <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+            Configure settings for Court {currentCourtId.slice(-1)}
+          </Text>
+
+          {/*
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
                 <Switch
                   value={courtDisabled}
@@ -571,37 +582,46 @@ export default function Round({
               </View>
               */}
 
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
-                <Checkbox
-                  status={ratingEnabled ? "checked" : "unchecked"}
-                  onPress={() => handleRatingEnabledChange(!ratingEnabled)}
-                />
-                <Text variant="bodyMedium" style={{ marginLeft: 8 }}>
-                  Enable minimum rating requirement
-                </Text>
-              </View>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+            <Checkbox
+              status={ratingEnabled ? "checked" : "unchecked"}
+              onPress={() => handleRatingEnabledChange(!ratingEnabled)}
+            />
+            <Text variant="bodyMedium" style={{ marginLeft: 8 }}>
+              Enable minimum rating requirement
+            </Text>
+          </View>
 
-              <TextInput
-                label="Minimum Rating"
-                value={ratingInput}
-                onChangeText={setRatingInput}
-                keyboardType="numeric"
-                mode="outlined"
-                placeholder="e.g. 4.0"
-                disabled={!ratingEnabled}
-                style={{
-                  opacity: ratingEnabled ? 1 : 0.5,
-                  width: 150
-                }}
-              />
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={handleCancelCourtRating}>Cancel</Button>
-              <Button onPress={handleSaveCourtRating}>Save</Button>
-            </Dialog.Actions>
-          </Dialog>
-        </>
-      )}
+          <TextInput
+            label="Minimum Rating"
+            value={ratingInput}
+            onChangeText={setRatingInput}
+            keyboardType="numeric"
+            mode="outlined"
+            placeholder="e.g. 4.0"
+            disabled={!ratingEnabled}
+            style={{
+              opacity: ratingEnabled ? 1 : 0.5,
+              width: 150
+            }}
+          />
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button onPress={handleCancelCourtRating}>Cancel</Button>
+          <Button onPress={handleSaveCourtRating}>Save</Button>
+        </Dialog.Actions>
+      </Dialog>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  courtSurface: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.primaryContainer,
+  },
+});

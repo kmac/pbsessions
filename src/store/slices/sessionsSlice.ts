@@ -31,6 +31,12 @@ const sessionsSlice = createSlice({
     updateSession: (state, action: PayloadAction<Session>) => {
       const index = state.sessions.findIndex(s => s.id === action.payload.id);
       if (index !== -1) {
+        const session = action.payload;
+
+        if (session.state === SessionState.Live) {
+          // TODO need to update live session
+        }
+
         state.sessions[index] = {
           ...action.payload,
           updatedAt: new Date().toISOString(),
@@ -45,6 +51,17 @@ const sessionsSlice = createSlice({
       if (session) {
         session.state = SessionState.Live,
         session.updatedAt = new Date().toISOString();
+      }
+    },
+    updateLiveSession: (state, action: PayloadAction<Session>) => {
+      const session = state.sessions.find(s => s.id === action.payload.id);
+      if (session) {
+        if (session.state === SessionState.Live) {
+
+          session.courts
+
+          session.updatedAt = new Date().toISOString();
+        }
       }
     },
     endSession: (state, action: PayloadAction<string>) => {
@@ -91,6 +108,7 @@ export const {
   setLoading,
   setSessions,
   startLiveSession,
+  updateLiveSession,
   updateSession,
 } = sessionsSlice.actions;
 

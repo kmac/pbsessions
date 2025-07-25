@@ -33,6 +33,11 @@ interface SessionPlayerManagerProps {
 
 type ViewMode = 'players' | 'groups';
 
+
+
+// TODO delete this - use ? instead
+
+
 export default function SessionPlayerManager({
   visible,
   selectedPlayerIds,

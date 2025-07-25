@@ -42,7 +42,7 @@ export default function GroupPlayerManager({
 }: GroupPlayerManagerProps) {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const { players } = useAppSelector((state) => state.players);
+  const { players: allPlayers } = useAppSelector((state) => state.players);
 
   const currentGroup = useAppSelector((state) =>
     state.groups.groups.find(g => g.id === group.id)
@@ -68,7 +68,6 @@ export default function GroupPlayerManager({
     dispatch(addPlayer(playerData));
 
     setTimeout(() => {
-      const allPlayers = players;
       const newPlayer = allPlayers[allPlayers.length - 1];
       if (newPlayer && !isPlayerInGroup(newPlayer.id)) {
         dispatch(addPlayerToGroup({ groupId: group.id, playerId: newPlayer.id }));
@@ -79,12 +78,12 @@ export default function GroupPlayerManager({
     Alert.alert('Success', `${playerData.name} has been added to the group!`);
   };
 
-  const filteredPlayers = players.filter(player =>
+  const filteredPlayers = allPlayers.filter(player =>
     player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (player.email && player.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const groupPlayers = players.filter(player => isPlayerInGroup(player.id));
+  const groupPlayers = allPlayers.filter(player => isPlayerInGroup(player.id));
   const availablePlayers = filteredPlayers.filter(player => !isPlayerInGroup(player.id));
 
   const renderPlayerItem = ({ item, showActions = true }: {

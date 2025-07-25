@@ -29,16 +29,15 @@ import SessionPlayerManager from './SessionPlayerManager';
 import CourtManager from './CourtManager';
 import { Alert } from '../utils/alert'
 
-interface SessionFormProps {
+interface SessionFormModalProps {
   session?: Session | null;
   onSave: (session: Session | Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
 }
 
-export default function SessionForm({ session, onSave, onCancel }: SessionFormProps) {
+export default function SessionFormModal({ session, onSave, onCancel }: SessionFormModalProps) {
   const theme = useTheme();
   const { players } = useAppSelector((state) => state.players);
-  //const { groups } = useAppSelector((state) => state.groups);
   const { appConfig } = useAppSelector((state) => state.appConfig);
   const [scoring, setScoring] = useState(appConfig.defaultUseScoring);
   const [useRatings, setUseRatings] = useState(appConfig.defaultUseRatings);
@@ -48,9 +47,9 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
     dateTime: new Date().toISOString(),
     playerIds: [] as string[],
     courts: [
-      { id: 'court1', number: 1, minimumRating: undefined, isActive: true },
-      { id: 'court2', number: 2, minimumRating: undefined, isActive: true },
-      { id: 'court3', number: 3, minimumRating: undefined, isActive: true },
+      { id: 'court1', number: 1, name: 'Court 1', minimumRating: undefined, isActive: true },
+      { id: 'court2', number: 2, name: 'Court 2', minimumRating: undefined, isActive: true },
+      { id: 'court3', number: 3, name: 'Court 3', minimumRating: undefined, isActive: true },
     ] as Court[],
     scoring: appConfig.defaultUseScoring,
     showRatings: appConfig.defaultUseRatings,
@@ -77,17 +76,16 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
   }, [session]);
 
   const handleSave = () => {
+    // Saves formData which is then persisted
     if (!formData.name.trim()) {
       Alert.alert('Validation Error', 'Session name is required');
       return;
     }
-
     const activeCourts = formData.courts.filter(c => c.isActive);
     if (activeCourts.length === 0) {
       Alert.alert('Validation Error', 'At least one court must be active');
       return;
     }
-
     const validation = validateSessionSize(formData.playerIds.length, activeCourts.length);
     if (!validation.isValid) {
       Alert.alert('Validation Error', validation.error);
@@ -107,10 +105,10 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
       onSave({ ...session, ...sessionData });
     } else {
       onSave(sessionData);
-    }
 
-    if (validation.warning) {
-      Alert.alert('Session Created', validation.warning);
+      if (validation.warning) {
+        Alert.alert('Session Created', validation.warning);
+      }
     }
   };
 
@@ -327,7 +325,7 @@ export default function SessionForm({ session, onSave, onCancel }: SessionFormPr
                   variant="bodyMedium"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  {selectedPlayers.map(p => p.name).join(', ')}
+                  {selectedPlayers.map(p => p.name).sort().join(', ')}
                 </Text>
               </Surface>
             )}

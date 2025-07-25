@@ -26,10 +26,13 @@ import {
   removeSession,
   startLiveSession
 } from '@/src/store/slices/sessionsSlice';
-import { setCurrentSession } from '@/src/store/slices/liveSessionSlice';
+import {
+  setCurrentSession,
+  updateCourts,
+} from '@/src/store/slices/liveSessionSlice';
 import { Session, SessionState } from '@/src/types';
 import ArchivedSessions from '@/src/components/ArchivedSessions';
-import SessionForm from '@/src/components/SessionForm';
+import SessionFormModal from '@/src/components/SessionFormModal';
 import { Alert } from '@/src/utils/alert'
 
 export default function SessionsTab() {
@@ -40,7 +43,7 @@ export default function SessionsTab() {
   const { groups } = useAppSelector((state) => state.groups);
   const { currentSession } = useAppSelector((state) => state.liveSession);
 
-  const [modalVisible, setModalVisible] = useState(false);
+  const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
 
@@ -71,8 +74,26 @@ export default function SessionsTab() {
     );
   };
 
+  function openEditSessionModal(session: Session) {
+    setEditingSession(session);
+    setEditSessionModalVisible(true);
+  }
+
+  function closeEditSessionModal() {
+    setEditingSession(null);
+    setEditSessionModalVisible(false);
+  }
+
   const handleEditSession = (session: Session) => {
-    if (isSessionLive(session.id)) {
+    // if (isSessionLive(session.id)) {
+    //   Alert.alert(
+    //     'Cannot Edit',
+    //     'Cannot edit a live session. End the session first.',
+    //     [{ text: 'OK' }]
+    //   );
+    //   return;
+    // }
+    if (editingSession) {
       Alert.alert(
         'Cannot Edit',
         'Cannot edit a live session. End the session first.',
@@ -80,8 +101,7 @@ export default function SessionsTab() {
       );
       return;
     }
-    setEditingSession(session);
-    setModalVisible(true);
+    openEditSessionModal(session);
   };
 
   const handleStartLiveSession = (session: Session) => {
@@ -112,6 +132,7 @@ export default function SessionsTab() {
       return;
     }
 
+    // updates session state to 'live'
     dispatch(startLiveSession(session.id));
 
     // Instantiate a new LiveSession:
@@ -173,12 +194,15 @@ export default function SessionsTab() {
 
   const handleSaveSession = (sessionData: Session | Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>) => {
     if (editingSession) {
-      dispatch(updateSession(sessionData as Session));
-      setEditingSession(null);
+      const data = sessionData as Session;
+      dispatch(updateSession(data));
+      if (data.state === SessionState.Live) {
+        dispatch(updateCourts(data.courts));
+      }
     } else {
       dispatch(addSession(sessionData as Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>));
     }
-    setModalVisible(false);
+    closeEditSessionModal();
   };
 
   function isUnstarted(session: Session) {
@@ -287,56 +311,55 @@ export default function SessionsTab() {
         </Card.Content>
 
         <Card.Actions style={{ justifyContent: 'space-between' }}>
-          {isCurrentLive ? (
-            <Button
-              icon="play"
-              mode="contained"
-              onPress={() => router.push('/live-session')}
-            >
-              Continue Live Session
-            </Button>
-          ) : (
-            <>
-              {isUnstarted(item) && (
+          <>
+            {isCurrentLive && (
+              <Button
+                icon="play"
+                mode="contained"
+                onPress={() => router.push('/live-session')}
+              >
+                Continue Live Session
+              </Button>
+            )}
+            {isUnstarted(item) && (
+              <Button
+                icon="play"
+                mode="contained"
+                onPress={() => handleStartLiveSession(item)}
+              >
+                Start Session
+              </Button>
+            )}
+            {/*isComplete(item) &&*/ !isArchived(item) && (
+              <>
                 <Button
-                  icon="play"
-                  mode="contained"
-                  onPress={() => handleStartLiveSession(item)}
-                >
-                  Start Session
-                </Button>
-              )}
-              {isComplete(item) && !isArchived(item) && (
-                <>
-                  <Button
-                    icon="archive"
-                    mode="outlined"
-                    disabled={true}
-                    onPress={() => { }}
-                  >
-                    View Session
-                  </Button>
-                </>
-              )}
-              <View style={{ flexDirection: 'row', gap: 4 }}>
-                <IconButton
                   icon="archive"
-                  mode="contained"
-                  onPress={() => handleArchiveSession(item)}
-                />
-                {!isComplete(item) && <IconButton
-                  icon="pencil"
-                  mode="contained-tonal"
-                  onPress={() => handleEditSession(item)}
-                />}
-                <IconButton
-                  icon="delete"
-                  mode="contained-tonal"
-                  onPress={() => handleDeleteSession(item)}
-                />
-              </View>
-            </>
-          )}
+                  mode="outlined"
+                  disabled={true}
+                  onPress={() => { }}
+                >
+                  View Session
+                </Button>
+              </>
+            )}
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              {/*!isComplete(item) &&*/ <IconButton
+                icon="pencil"
+                mode="contained"
+                onPress={() => handleEditSession(item)}
+              />}
+              <IconButton
+                icon="archive"
+                mode="contained"
+                onPress={() => handleArchiveSession(item)}
+              />
+              <IconButton
+                icon="delete"
+                mode="contained"
+                onPress={() => handleDeleteSession(item)}
+              />
+            </View>
+          </>
         </Card.Actions>
       </Card>
     );
@@ -378,7 +401,7 @@ export default function SessionsTab() {
           <Button
             icon="plus"
             mode="contained"
-            onPress={() => setModalVisible(true)}
+            onPress={() => setEditSessionModalVisible(true)}
           >
             Create First Session
           </Button>
@@ -434,7 +457,7 @@ export default function SessionsTab() {
               <Button
                 icon="plus"
                 mode="contained"
-                onPress={() => setModalVisible(true)}
+                onPress={() => setEditSessionModalVisible(true)}
               >
                 New Session
               </Button>
@@ -459,6 +482,7 @@ export default function SessionsTab() {
         ListEmptyComponent={<EmptyState />}
       />
 
+      {/*
       <FAB
         icon="plus"
         label="New Session"
@@ -468,8 +492,9 @@ export default function SessionsTab() {
           right: 0,
           bottom: 0,
         }}
-        onPress={() => setModalVisible(true)}
+        onPress={() => setEditSessionModalVisible(true)}
       />
+      */}
 
       <Modal
         visible={modalArchiveVisible}
@@ -477,23 +502,19 @@ export default function SessionsTab() {
         presentationStyle="pageSheet"
       >
         <ArchivedSessions
-          onCancel={() => {
-            setArchiveModalVisible(false);
-          }}
+          onCancel={() => { setArchiveModalVisible(false); }}
         />
       </Modal>
+
       <Modal
-        visible={modalVisible}
+        visible={editSessionModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SessionForm
+        <SessionFormModal
           session={editingSession}
           onSave={handleSaveSession}
-          onCancel={() => {
-            setModalVisible(false);
-            setEditingSession(null);
-          }}
+          onCancel={closeEditSessionModal}
         />
       </Modal>
     </SafeAreaView>
