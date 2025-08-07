@@ -19,7 +19,7 @@ import { StorageManager } from '@/src/utils/storage';
 import { setPlayers } from '@/src/store/slices/playersSlice';
 import { setGroups } from '@/src/store/slices/groupsSlice';
 import { setSessions } from '@/src/store/slices/sessionsSlice';
-import { setCurrentSession } from '@/src/store/slices/liveSessionSlice';
+import { setLiveSession } from '@/src/store/slices/liveSessionSlice';
 import { setAppConfig } from '@/src/store/slices/appConfigSlice';
 import { Colors, Themes } from '@/src/ui/styles';
 import { StackHeader } from '@/src/components/StackHeader';
@@ -61,7 +61,7 @@ function StorageLoader() {
         dispatch(setGroups(groups));
         dispatch(setSessions(sessions));
         if (liveSession) {
-          dispatch(setCurrentSession(liveSession));
+          dispatch(setLiveSession(liveSession));
         }
         dispatch(setAppConfig(appConfig));
 

@@ -27,7 +27,7 @@ import {
   startLiveSession
 } from '@/src/store/slices/sessionsSlice';
 import {
-  setCurrentSession,
+  setLiveSession,
   updateCourts,
 } from '@/src/store/slices/liveSessionSlice';
 import { Session, SessionState } from '@/src/types';
@@ -41,7 +41,7 @@ export default function SessionsTab() {
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
-  const { currentSession } = useAppSelector((state) => state.liveSession);
+  const { currentLiveSession: currentSession } = useAppSelector((state) => state.liveSession);
 
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
@@ -136,7 +136,8 @@ export default function SessionsTab() {
     dispatch(startLiveSession(session.id));
 
     // Instantiate a new LiveSession:
-    dispatch(setCurrentSession({
+    //
+    dispatch(setLiveSession({
       sessionId: session.id,
       currentGameNumber: 1,
       courts: [...session.courts],
@@ -192,7 +193,7 @@ export default function SessionsTab() {
     });
   };
 
-  const handleSaveSession = (sessionData: Session | Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>) => {
+  function handleSaveSession(sessionData: Session | Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>) {
     if (editingSession) {
       const data = sessionData as Session;
       dispatch(updateSession(data));
@@ -311,55 +312,49 @@ export default function SessionsTab() {
         </Card.Content>
 
         <Card.Actions style={{ justifyContent: 'space-between' }}>
-          <>
-            {isCurrentLive && (
+          {isLive(item) && (
+            <Button
+              icon="play"
+              mode="contained"
+              onPress={() => router.push('/live-session')}
+            >
+              Continue Live Session
+            </Button>
+          )}
+          {isUnstarted(item) && (
+            <Button
+              icon="play"
+              mode="contained"
+              onPress={() => handleStartLiveSession(item)}
+            >
+              Start Session
+            </Button>
+          )}
+          <View style={{ flexDirection: 'row', gap: 2 }}>
+            {!isLive(item) && !isArchived(item) && (
               <Button
-                icon="play"
-                mode="contained"
-                onPress={() => router.push('/live-session')}
-              >
-                Continue Live Session
-              </Button>
-            )}
-            {isUnstarted(item) && (
-              <Button
-                icon="play"
-                mode="contained"
-                onPress={() => handleStartLiveSession(item)}
-              >
-                Start Session
-              </Button>
-            )}
-            {/*isComplete(item) &&*/ !isArchived(item) && (
-              <>
-                <Button
-                  icon="archive"
-                  mode="outlined"
-                  disabled={true}
-                  onPress={() => { }}
-                >
-                  View Session
-                </Button>
-              </>
-            )}
-            <View style={{ flexDirection: 'row', gap: 4 }}>
-              {/*!isComplete(item) &&*/ <IconButton
-                icon="pencil"
-                mode="contained"
-                onPress={() => handleEditSession(item)}
-              />}
-              <IconButton
                 icon="archive"
-                mode="contained"
-                onPress={() => handleArchiveSession(item)}
-              />
-              <IconButton
-                icon="delete"
-                mode="contained"
-                onPress={() => handleDeleteSession(item)}
-              />
-            </View>
-          </>
+                mode="text"
+                disabled={true}
+                onPress={() => { }}
+              >View</Button>
+            )}
+            {/*!isComplete(item) &&*/ <Button
+              icon="pencil"
+              mode="text"
+              onPress={() => handleEditSession(item)}
+            >Edit</Button>}
+            <Button
+              icon="archive"
+              mode="text"
+              onPress={() => handleArchiveSession(item)}
+            >Archive</Button>
+            <Button
+              icon="delete"
+              mode="text"
+              onPress={() => handleDeleteSession(item)}
+            >Delete</Button>
+          </View>
         </Card.Actions>
       </Card>
     );
@@ -403,7 +398,7 @@ export default function SessionsTab() {
             mode="contained"
             onPress={() => setEditSessionModalVisible(true)}
           >
-            Create First Session
+            Create Session
           </Button>
 
           {groups.length === 0 && (

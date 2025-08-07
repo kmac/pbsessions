@@ -22,7 +22,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import {
-  updateCurrentSessionGames,
+  updateGames,
   updateCourts,
 } from "@/src/store/slices/liveSessionSlice";
 import { useAppDispatch, useAppSelector } from "@/src/store";
@@ -50,7 +50,7 @@ export default function BetweenRoundsModal({
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [helpDialogVisible, setHelpDialogVisible] = useState(false);
 
-  const { currentSession } = useAppSelector((state) => state.liveSession);
+  const { currentLiveSession: currentSession } = useAppSelector((state) => state.liveSession);
   const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
 
@@ -107,7 +107,7 @@ export default function BetweenRoundsModal({
       isCompleted: false,
     }));
 
-    dispatch(updateCurrentSessionGames(newGames));
+    dispatch(updateGames(newGames));
 
     // Clear selected players after reshuffling since assignments have changed
     setSelectedPlayers(new Map());

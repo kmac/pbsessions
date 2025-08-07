@@ -22,14 +22,13 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Plus, Edit2, Trash2, Users } from 'lucide-react-native';
 import { RootState } from '@/src/store';
 import { addPlayer, updatePlayer, removePlayer } from '@/src/store/slices/playersSlice';
-import { Player } from '@/src/types';
+import { getShortGender } from '@/src/utils/util';
+import { Group, Player } from '@/src/types';
 import PlayerForm from '@/src/components/PlayerForm';
+import PlayerManager from '@/src/components/PlayerManager';
 import BulkAddModal from '@/src/components/BulkAddModal';
-import { colors } from '@/src/theme';
 import { Alert } from '@/src/utils/alert'
 import { APP_CONFIG } from '@/src/constants';
-// import Colors from '@/src/ui/styles/colors';
-// import Themes from '@/src/ui/styles/themes';
 
 import { useTheme } from 'react-native-paper'
 
@@ -99,6 +98,16 @@ export default function PlayersTab() {
     return groups.filter(group => group.playerIds.includes(playerId)).length;
   };
 
+  function getPlayerGroups(playerId: string): Group[] {
+    return groups.filter(group => group.playerIds.includes(playerId));
+  }
+
+  function getPlayerGroupNames(playerId: string): string {
+    return getPlayerGroups(playerId)
+      .map(group => group.name)
+      .join(', ');
+  }
+
   const getPlayerDetails = (item: Player) => {
     let details = "";
     let separator = "";
@@ -122,19 +131,6 @@ export default function PlayersTab() {
       return `${name} ${getShortGender(gender)}`;
     }
     return name;
-  }
-
-  const getShortGender = (gender: 'male' | 'female' | 'other' | undefined) => {
-    switch (gender) {
-      case 'male':
-        return '(M)';
-      case 'female':
-        return '(F)';
-      case 'other':
-        return '(O)';
-      default:
-        return '';
-    }
   }
 
   function getAvatar(gender: 'male' | 'female' | 'other' | undefined, props: any) {
@@ -209,16 +205,20 @@ export default function PlayersTab() {
               alignItems: 'center',
               marginRight: 20,
             }}>
-              <Icon source="account-group" size={20} />
-              <Text style={{
-                fontSize: 10,
-                fontWeight: '300',
-                // color: theme.colors.primary,
-                // backgroundColor: themeColors.backdrop,
-                flexDirection: 'row',
-                alignItems: 'center',
-                flex: 3, marginLeft: 5
-              }}>{getPlayerGroupCount(item.id)} groups</Text>
+              {getPlayerGroupNames(item.id) &&
+                <>
+                  <Icon source="account-group" size={20} />
+                  <Text style={{
+                    fontSize: 12,
+                    fontWeight: '400',
+                    // color: theme.colors.primary,
+                    // backgroundColor: themeColors.backdrop,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    flex: 3, marginLeft: 5
+                  }}>Groups: {getPlayerGroupNames(item.id)}</Text>
+                </>
+              }
             </View>
           </View>
         )}
@@ -245,6 +245,8 @@ export default function PlayersTab() {
     </Surface>
   );
 
+  const useNew = false;
+
   return (
     <SafeAreaView style={{
       flex: 1,
@@ -269,35 +271,40 @@ export default function PlayersTab() {
         </View>
       </View>
 
-      <FlatList
-        data={[...players].sort((a, b) => a.name.localeCompare(b.name))}
-        renderItem={renderPlayerList}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, }}
-        showsVerticalScrollIndicator={true}
-        ListEmptyComponent={
-          <View style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 64,
-          }}>
-            <Users size={48} />
-            <Text style={{
-              fontSize: 18,
-              fontWeight: '600',
-              marginTop: 16,
-            }}>No players yet</Text>
-            <Text style={{
-              fontSize: 14,
-              // color: colors.gray,
-              marginTop: 4,
+      {useNew ?
+        <PlayerManager
+          players={[...players].sort((a, b) => a.name.localeCompare(b.name))}
+        />
+        :
+        <FlatList
+          data={[...players].sort((a, b) => a.name.localeCompare(b.name))}
+          renderItem={renderPlayerList}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ padding: 16, }}
+          showsVerticalScrollIndicator={true}
+          ListEmptyComponent={
+            <View style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingVertical: 64,
             }}>
-              Add players to start organizing sessions
-            </Text>
-          </View>
-        }
-      />
-
+              <Users size={48} />
+              <Text style={{
+                fontSize: 18,
+                fontWeight: '600',
+                marginTop: 16,
+              }}>No players yet</Text>
+              <Text style={{
+                fontSize: 14,
+                // color: colors.gray,
+                marginTop: 4,
+              }}>
+                Add players to start organizing sessions
+              </Text>
+            </View>
+          }
+        />
+      }
       {/*<FAB
         icon="account-plus"
         label="Add Player"

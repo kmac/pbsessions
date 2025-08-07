@@ -3,13 +3,13 @@ import { LiveSession, Court, Game, PlayerStats, GameAssignment } from '@/src/typ
 // import { Alert } from '@/src/utils/alert';
 
 interface LiveSessionState {
-  currentSession: LiveSession | null;
+  currentLiveSession: LiveSession | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: LiveSessionState = {
-  currentSession: null,
+  currentLiveSession: null,
   loading: false,
   error: null,
 };
@@ -48,50 +48,50 @@ const liveSessionSlice = createSlice({
   name: 'liveSession',
   initialState,
   reducers: {
-    setCurrentSession: (state, action: PayloadAction<LiveSession>) => {
-      state.currentSession = action.payload;
+    setLiveSession: (state, action: PayloadAction<LiveSession>) => {
+      state.currentLiveSession = action.payload;
     },
     updateCourts: (state, action: PayloadAction<Court[]>) => {
-      if (!state.currentSession) {
+      if (!state.currentLiveSession) {
         return;
       }
-      state.currentSession.courts = action.payload;
+      state.currentLiveSession.courts = action.payload;
     },
-    updateCurrentSessionGames: (state, action: PayloadAction<Game[]>) => {
-      if (!state.currentSession) {
+    updateGames: (state, action: PayloadAction<Game[]>) => {
+      if (!state.currentLiveSession) {
         return;
       }
       // replace the activeGames array with the new games
-      state.currentSession.activeGames = action.payload;
+      state.currentLiveSession.activeGames = action.payload;
     },
     generateNextRound: (state, action: PayloadAction<{ assignments: GameAssignment[] }>) => {
-      if (!state.currentSession) {
+      if (!state.currentLiveSession) {
         return;
       }
-      const newGames: Game[] = convertAssignmentsToGames(state.currentSession, action.payload.assignments);
-      state.currentSession.activeGames = newGames;
+      const newGames: Game[] = convertAssignmentsToGames(state.currentLiveSession, action.payload.assignments);
+      state.currentLiveSession.activeGames = newGames;
     },
     startRound: (state) => {
-      if (!state.currentSession) {
+      if (!state.currentLiveSession) {
         return;
       }
       const now = new Date().toISOString();
 
       // Mark all games in the round as started
-      state.currentSession.activeGames.forEach(game => {
+      state.currentLiveSession.activeGames.forEach(game => {
         game.startedAt = now;
       });
     },
     completeRound: (state, action: PayloadAction<{
       scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }
     }>) => {
-      if (!state.currentSession) {
+      if (!state.currentLiveSession) {
         return;
       }
       const now = new Date().toISOString();
 
       // Mark all games as completed and apply scores
-      state.currentSession.activeGames.forEach(game => {
+      state.currentLiveSession.activeGames.forEach(game => {
         game.isCompleted = true;
         game.completedAt = now;
 
@@ -102,23 +102,23 @@ const liveSessionSlice = createSlice({
       });
 
       // Increment the round number for the next round
-      state.currentSession.currentGameNumber += 1;
+      state.currentLiveSession.currentGameNumber += 1;
     },
     updatePlayerStats: (state, action: PayloadAction<PlayerStats[]>) => {
-      if (!state.currentSession) return;
+      if (!state.currentLiveSession) return;
       console.log(`updatePlayerStats: ${action.payload}`);
-      state.currentSession.playerStats = action.payload;
+      state.currentLiveSession.playerStats = action.payload;
     },
     endLiveSession: (state) => {
-      state.currentSession = null;
+      state.currentLiveSession = null;
     },
     updateGameScore: (state, action: PayloadAction<{
       gameId: string;
       score: { serveScore: number; receiveScore: number }
     }>) => {
-      if (!state.currentSession) return;
+      if (!state.currentLiveSession) return;
 
-      const game = state.currentSession.activeGames.find(g => g.id === action.payload.gameId);
+      const game = state.currentLiveSession.activeGames.find(g => g.id === action.payload.gameId);
       if (game) {
         game.score = action.payload.score;
       }
@@ -136,11 +136,11 @@ export const {
   completeRound,
   endLiveSession,
   generateNextRound,
-  setCurrentSession,
+  setLiveSession,
   setError,
   setLoading,
   startRound,
-  updateCurrentSessionGames,
+  updateGames,
   updateCourts,
   updateGameScore,
   updatePlayerStats,

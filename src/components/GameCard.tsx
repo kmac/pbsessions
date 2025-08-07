@@ -13,6 +13,8 @@ import {
 import { Game, Player } from '../types';
 import { Alert } from '../utils/alert'
 
+// TODO not used - delete
+
 interface GameCardProps {
   game: Game;
   players: Player[];

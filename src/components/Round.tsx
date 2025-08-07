@@ -19,7 +19,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import {
-  updateCurrentSessionGames,
+  updateGames,
   updateCourts,
 } from "@/src/store/slices/liveSessionSlice";
 import { useAppDispatch, useAppSelector } from "@/src/store";
@@ -46,7 +46,7 @@ export default function Round({
   const [ratingInput, setRatingInput] = useState<string>("");
   const [ratingEnabled, setRatingEnabled] = useState<boolean>(false);
   const [courtDisabled, setCourtDisabled] = useState<boolean>(false);
-  const { currentSession } = useAppSelector((state) => state.liveSession);
+  const { currentLiveSession: currentSession } = useAppSelector((state) => state.liveSession);
   const { appConfig } = useAppSelector((state) => state.appConfig);
 
   const { sessions } = useAppSelector((state) => state.sessions);
@@ -245,7 +245,7 @@ export default function Round({
     });
 
     // Update the store with new games
-    dispatch(updateCurrentSessionGames(newGames));
+    dispatch(updateGames(newGames));
 
     // Clear selected players
     setSelectedPlayers(new Map());

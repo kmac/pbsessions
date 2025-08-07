@@ -1,6 +1,22 @@
 import { LiveSession, Player, Session, } from "@/src/types";
 
-export function getEmptyLiveSession() : LiveSession {
+export function getShortGender(gender: 'male' | 'female' | 'other' | undefined, parenthesize? : boolean) : string {
+  if (typeof parenthesize === 'undefined') {
+    parenthesize = true;
+  }
+  switch (gender) {
+    case 'male':
+      return parenthesize ? '(M)' : 'M';
+    case 'female':
+      return parenthesize ? '(F)' : 'F';
+    case 'other':
+      return parenthesize ? '(O)' : 'O';
+    default:
+      return '';
+  }
+}
+
+export function getEmptyLiveSession(): LiveSession {
   const emptyLiveSession = {
     sessionId: '0',
     currentGameNumber: 0,

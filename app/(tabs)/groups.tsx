@@ -143,7 +143,7 @@ export default function GroupsTab() {
 
         <Card.Actions style={{ justifyContent: 'space-between' }}>
           <Button
-            icon="account-plus-outline"
+            icon="account-multiple-plus-outline"
             mode="outlined"
             onPress={() => handleManagePlayers(item)}
           >
@@ -242,6 +242,7 @@ export default function GroupsTab() {
           gap: 8,
           marginLeft: 12,
         }}>
+          {/*
           <Button
             icon="open-in-new"
             mode="outlined"
@@ -249,6 +250,7 @@ export default function GroupsTab() {
           >
             Manage Players
           </Button>
+          */}
           <Button
             icon="plus"
             mode="contained"

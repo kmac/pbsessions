@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Session, SessionState } from '@/src/types';
+import { Court, Session, SessionState } from '@/src/types';
 
 interface SessionsState {
   sessions: Session[];
@@ -43,6 +43,34 @@ const sessionsSlice = createSlice({
         };
       }
     },
+    addCourtToSession: (state, action: PayloadAction<{ sessionId: string; court: Court }>) => {
+      const session = state.sessions.find(s => s.id === action.payload.sessionId);
+      if (session && !session.courts.find(c => c.id === action.payload.court.id)) {
+        session.courts.push(action.payload.court);
+        session.updatedAt = new Date().toISOString();
+      }
+    },
+    removeCourtFromSession: (state, action: PayloadAction<{ sessionId: string; courtId: string }>) => {
+      const session = state.sessions.find(s => s.id === action.payload.sessionId);
+      if (session) {
+        session.courts = session.courts.filter(c => c.id !== action.payload.courtId);
+        session.updatedAt = new Date().toISOString();
+      }
+    },
+    addPlayerToSession: (state, action: PayloadAction<{ sessionId: string; playerId: string }>) => {
+      const session = state.sessions.find(s => s.id === action.payload.sessionId);
+      if (session && !session.playerIds.includes(action.payload.playerId)) {
+        session.playerIds.push(action.payload.playerId);
+        session.updatedAt = new Date().toISOString();
+      }
+    },
+    removePlayerFromSession: (state, action: PayloadAction<{ sessionId: string; playerId: string }>) => {
+      const session = state.sessions.find(s => s.id === action.payload.sessionId);
+      if (session) {
+        session.playerIds = session.playerIds.filter(id => id !== action.payload.playerId);
+        session.updatedAt = new Date().toISOString();
+      }
+    },
     removeSession: (state, action: PayloadAction<string>) => {
       state.sessions = state.sessions.filter(s => s.id !== action.payload);
     },
@@ -58,7 +86,8 @@ const sessionsSlice = createSlice({
       if (session) {
         if (session.state === SessionState.Live) {
 
-          session.courts
+          // TODO handle courts
+          //session.courts
 
           session.updatedAt = new Date().toISOString();
         }
@@ -99,9 +128,13 @@ const sessionsSlice = createSlice({
 });
 
 export const {
+  addCourtToSession,
+  addPlayerToSession,
   addSession,
   archiveSession,
   endSession,
+  removeCourtFromSession,
+  removePlayerFromSession,
   removeSession,
   restoreSession,
   setError,

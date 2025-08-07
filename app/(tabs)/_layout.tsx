@@ -100,6 +100,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="live-session"
+        options={{
+          title: 'Live Session',
+          tabBarIcon: ({ color, size }) => <Calendar color={color} size={size || 24} />,
+        }}
+      />
+      {/*
+      <Tabs.Screen
         name="archived"
         options={{
           href: null,
@@ -107,6 +115,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Settings color={color} size={size || 24} />,
         }}
       />
+      */}
       <Tabs.Screen
         name="settings"
         options={{

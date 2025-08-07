@@ -26,6 +26,7 @@ import { useAppSelector } from '../store';
 import { Session, SessionState, Court, Player, Group } from '../types';
 import { validateSessionSize } from '../utils/validation';
 import SessionPlayerManager from './SessionPlayerManager';
+import Session2PlayerManager from './Session2PlayerManager';
 import CourtManager from './CourtManager';
 import { Alert } from '../utils/alert'
 
@@ -43,6 +44,7 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
   const [useRatings, setUseRatings] = useState(appConfig.defaultUseRatings);
 
   const [formData, setFormData] = useState({
+    // defaults
     name: `${new Date().toDateString()}`,
     dateTime: new Date().toISOString(),
     playerIds: [] as string[],
@@ -76,7 +78,7 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
   }, [session]);
 
   const handleSave = () => {
-    // Saves formData which is then persisted
+    // Saves formData which is then persisted by calling the 'onSave' callback
     if (!formData.name.trim()) {
       Alert.alert('Validation Error', 'Session name is required');
       return;
@@ -105,24 +107,23 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
       onSave({ ...session, ...sessionData });
     } else {
       onSave(sessionData);
-
       if (validation.warning) {
         Alert.alert('Session Created', validation.warning);
       }
     }
   };
 
-  const formatTimeForInput = (isoString: string) => {
-    const date = new Date(isoString);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).replace(',', '');
-  };
+  // const formatTimeForInput = (isoString: string) => {
+  //   const date = new Date(isoString);
+  //   return date.toLocaleString('en-US', {
+  //     year: 'numeric',
+  //     month: '2-digit',
+  //     day: '2-digit',
+  //     hour: '2-digit',
+  //     minute: '2-digit',
+  //     hour12: false,
+  //   }).replace(',', '');
+  // };
 
   const getSelectedPlayers = () => {
     return players.filter(p => formData.playerIds.includes(p.id));
@@ -279,7 +280,7 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
                 Players ({selectedPlayers.length})
               </Text>
               <Button
-                icon="account-group"
+                icon="account-multiple"
                 mode="outlined"
                 onPress={() => setShowPlayerManager(true)}
                 compact={true}
@@ -297,7 +298,7 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
                 borderColor: theme.colors.outline,
                 borderStyle: 'dashed'
               }}>
-                <Icon source="account-group" size={32} />
+                <Icon source="account-multiple-plus" size={32} />
                 <Text
                   variant="bodyLarge"
                   style={{
@@ -464,8 +465,16 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
         )}
       </ScrollView>
 
-      <SessionPlayerManager
+      {/*<SessionPlayerManager
         visible={showPlayerManager}
+        selectedPlayerIds={formData.playerIds}
+        onSelectionChange={updatePlayerIds}
+        onClose={() => setShowPlayerManager(false)}
+      />*/}
+
+      <Session2PlayerManager
+        visible={showPlayerManager}
+        name={formData.name}
         selectedPlayerIds={formData.playerIds}
         onSelectionChange={updatePlayerIds}
         onClose={() => setShowPlayerManager(false)}

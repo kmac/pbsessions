@@ -16,19 +16,19 @@ import {
   Text,
   useTheme,
 } from 'react-native-paper';
-import { useAppSelector, useAppDispatch } from '../src/store';
+import { useAppSelector, useAppDispatch } from '@/src/store';
 import {
   completeRound,
   endLiveSession,
   generateNextRound,
   startRound,
-  updateCurrentSessionGames,
-  updatePlayerStats as updatePlayerStatsInStore,
+  updateGames,
+  updatePlayerStats,
   updateCourts
 } from '@/src/store/slices/liveSessionSlice';
 import {
   endSession as endSession,
-} from '../src/store/slices/sessionsSlice';
+} from '@/src/store/slices/sessionsSlice';
 import { SessionRoundManager } from '@/src/utils/sessionRoundManager';
 //import RoundGameCard from '@/src/components/RoundGameCard';
 import Round from "@/src/components/Round";
@@ -45,7 +45,7 @@ export default function LiveSessionScreen() {
   const dispatch = useAppDispatch();
 
   // useAppSelector, useAppDispatch is redux
-  const { currentSession } = useAppSelector((state) => state.liveSession);
+  const { currentLiveSession: currentSession } = useAppSelector((state) => state.liveSession);
   const liveSession: LiveSession = currentSession ? currentSession : getEmptyLiveSession();
   const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
@@ -84,7 +84,7 @@ export default function LiveSessionScreen() {
           </Text>
           <Button
             mode="outlined"
-            onPress={() => router.back()}
+            onPress={() => router.push('/sessions')}
             icon="arrow-left"
           >
             Back to Sessions
@@ -158,7 +158,7 @@ export default function LiveSessionScreen() {
   //   });
   //
   //   const updatedStats = roundAssigner.getPlayerStats();
-  //   dispatch(updatePlayerStatsInStore(updatedStats));
+  //   dispatch(updatePlayerStats(updatedStats));
   //
   //   setScoreModalVisible(false);
   //   setRoundStartTime(null);
@@ -173,7 +173,7 @@ export default function LiveSessionScreen() {
     });
 
     const updatedStats = getRoundAssigner().getPlayerStats();
-    dispatch(updatePlayerStatsInStore(updatedStats));
+    dispatch(updatePlayerStats(updatedStats));
 
     setScoreModalVisible(false);
     setRoundStartTime(null);
