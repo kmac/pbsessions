@@ -23,6 +23,7 @@ import { useAppSelector, useAppDispatch } from '@/src/store';
 import { addPlayerToSession, removePlayerFromSession } from '@/src/store/slices/sessionsSlice';
 import { addPlayer } from '@/src/store/slices/playersSlice';
 import { Player } from '@/src/types';
+import PlayerCard from './PlayerCard';
 import QuickPlayerForm from './QuickPlayerForm';
 import { Alert } from '@/src/utils/alert'
 import { APP_CONFIG } from '@/src/constants';
@@ -95,76 +96,13 @@ export default function Session2PlayerManager({
     item: Player;
     showActions?: boolean;
   }) {
-
-    const isSelected = isPlayerSelected(item.id);
-
     return (
-      <Card
-        style={{
-          marginBottom: 8,
-          backgroundColor: isSelected
-            ? theme.colors.primaryContainer
-            : theme.colors.surface
-        }}
-      >
-        <Card.Content>
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <View style={{ flex: 1 }}>
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 8
-              }}>
-                <Text
-                  variant="titleMedium"
-                  style={{
-                    fontWeight: '600',
-                    flex: 1,
-                    color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurface
-                  }}
-                >
-                  {item.name}
-                </Text>
-                {item.rating && (
-                  <Chip icon="star-outline" compact>
-                    {item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}
-                  </Chip>
-                )}
-              </View>
-
-              <View style={{ gap: 4 }}>
-                {item.gender && (
-                  <Text
-                    variant="bodySmall"
-                    style={{
-                      color: isSelected
-                        ? theme.colors.onPrimaryContainer
-                        : theme.colors.onSurfaceVariant,
-                      fontStyle: 'italic'
-                    }}
-                  >
-                    {item.gender}
-                  </Text>
-                )}
-              </View>
-            </View>
-
-            {showActions && (
-              <IconButton
-                icon={isSelected ? "check-circle" : "circle-outline"}
-                size={24}
-                iconColor={isSelected ? theme.colors.primary : theme.colors.outline}
-                onPress={() => handleTogglePlayer(item.id)}
-              />
-            )}
-          </View>
-        </Card.Content>
-      </Card>
+      <PlayerCard
+        player={item}
+        isSelected={isPlayerSelected(item.id)}
+        onToggle={handleTogglePlayer}
+        showActions={showActions}
+      />
     );
   };
 

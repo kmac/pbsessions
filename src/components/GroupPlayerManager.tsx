@@ -21,87 +21,98 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { useAppSelector, useAppDispatch } from '@/src/store';
-import { addPlayerToGroup, removePlayerFromGroup } from '@/src/store/slices/groupsSlice';
 import { addPlayer } from '@/src/store/slices/playersSlice';
 import { Group, Player } from '@/src/types';
+import PlayerCard from './PlayerCard';
 import QuickPlayerForm from './QuickPlayerForm';
 import { Alert } from '@/src/utils/alert'
 import { APP_CONFIG } from '@/src/constants';
 
 interface GroupPlayerManagerProps {
   visible: boolean;
-  group: Group;
-  onClose: () => void;
+  groupName: string;
+  groupPlayers: Player[];
+  onSave: (players: Player[]) => void;
+  onCancel: () => void;
 }
 
 type ViewMode = 'group' | 'select' | 'add';
 
-// TODO convert to lists
-// List.Accordian
-
 export default function GroupPlayerManager({
   visible,
-  group,
-  onClose
+  groupName,
+  groupPlayers,
+  onSave,
+  onCancel
 }: GroupPlayerManagerProps) {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { players: allPlayers } = useAppSelector((state) => state.players);
 
-  const currentGroup = useAppSelector((state) =>
-    state.groups.groups.find(g => g.id === group.id)
-  ) || group;
+  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>(groupPlayers);
+  const selectedPlayerIds = selectedPlayers.map(item => item.id);
 
-  const [selectedGroups, setSelectedGroups] = useState<Group[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('select');
   const [searchQuery, setSearchQuery] = useState('');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
-  const isPlayerInGroup = (playerId: string) => {
-    return currentGroup.playerIds.includes(playerId);
+  function isPlayerSelected(player: Player) {
+    return selectedPlayerIds.includes(player.id);
   };
 
-  const handleTogglePlayer = (player: Player) => {
-    if (isPlayerInGroup(player.id)) {
-      dispatch(removePlayerFromGroup({ groupId: currentGroup.id, playerId: player.id }));
+  function addPlayerToSelected(player: Player) {
+    setSelectedPlayers([...selectedPlayers, player]);
+  }
+
+  function handleTogglePlayer(player: Player) {
+    if (isPlayerSelected(player)) {
+      setSelectedPlayers(selectedPlayers.filter(item => item.id !== player.id));
     } else {
-      dispatch(addPlayerToGroup({ groupId: currentGroup.id, playerId: player.id }));
+      addPlayerToSelected(player);
     }
-  };
-
-  const handleQuickAddPlayer = (playerData: Omit<Player, 'id' | 'createdAt' | 'updatedAt'>) => {
-    dispatch(addPlayer(playerData));
-
-    setTimeout(() => {
-      const newPlayer = allPlayers[allPlayers.length - 1];
-      if (newPlayer && !isPlayerInGroup(newPlayer.id)) {
-        dispatch(addPlayerToGroup({ groupId: group.id, playerId: newPlayer.id }));
-      }
-    }, 100);
-
-    setShowQuickAdd(false);
-    Alert.alert('Success', `${playerData.name} has been added to the group!`);
   };
 
   const filteredPlayers = allPlayers.filter(player =>
     player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (player.email && player.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+  const availablePlayers = filteredPlayers.filter(player => !isPlayerSelected(player));
 
-  const groupPlayers: Player[] = allPlayers.filter(player => isPlayerInGroup(player.id));
-  const availablePlayers = filteredPlayers.filter(player => !isPlayerInGroup(player.id));
+  function handleQuickAddPlayer(playerData: Omit<Player, 'id' | 'createdAt' | 'updatedAt'>) {
+    dispatch(addPlayer(playerData));
 
-  const renderPlayerItem = ({ item, showActions = true }: {
-    item: Player;
-    showActions?: boolean;
-  }) => {
-    const isSelected = isPlayerInGroup(item.id);
+    setTimeout(() => {
+      const newPlayer = allPlayers[allPlayers.length - 1];
+      addPlayerToSelected(newPlayer);
+    }, 100);
+
+    setShowQuickAdd(false);
+    Alert.alert('Success', `${playerData.name} has been added to the group!`);
+  };
+
+  const handleSave = () => {
+    onSave(selectedPlayers);
+  };
+
+  function renderPlayer({ item }: { item: Player }) {
+    return (
+      <PlayerCard
+        player={item}
+        isSelected={selectedPlayerIds.includes(item.id)}
+        onToggle={handleTogglePlayer}
+        showActions={true}
+      />
+    );
+  };
+
+  const renderPlayerOrig = ({ item, showActions = true }: { item: Player; showActions?: boolean; }) => {
+    const playerInGroup = isPlayerSelected(item);
 
     return (
       <Card
         style={{
           marginBottom: 8,
-          backgroundColor: isSelected
+          backgroundColor: playerInGroup
             ? theme.colors.primaryContainer
             : theme.colors.surface
         }}
@@ -124,7 +135,7 @@ export default function GroupPlayerManager({
                   style={{
                     fontWeight: '600',
                     flex: 1,
-                    color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurface
+                    color: playerInGroup ? theme.colors.onPrimaryContainer : theme.colors.onSurface
                   }}
                 >
                   {item.name}
@@ -141,7 +152,7 @@ export default function GroupPlayerManager({
                   <Text
                     variant="bodySmall"
                     style={{
-                      color: isSelected
+                      color: playerInGroup
                         ? theme.colors.onPrimaryContainer
                         : theme.colors.onSurfaceVariant,
                       fontStyle: 'italic'
@@ -155,9 +166,9 @@ export default function GroupPlayerManager({
 
             {showActions && (
               <IconButton
-                icon={isSelected ? "check-circle" : "circle-outline"}
+                icon={playerInGroup ? "check-circle" : "circle-outline"}
                 size={24}
-                iconColor={isSelected ? theme.colors.primary : theme.colors.outline}
+                iconColor={playerInGroup ? theme.colors.primary : theme.colors.outline}
                 onPress={() => handleTogglePlayer(item)}
               />
             )}
@@ -249,10 +260,9 @@ export default function GroupPlayerManager({
 
       <List.Section title="Group">
         <List.Accordion
-          title={group.name}
+          title={groupName}
           left={props => <List.Icon {...props} icon="folder" />}>
-          {/*[...groupPlayers].sort((a, b) => a.name.localeCompare(b.name)).map(player => (*/}
-          {groupPlayers.sort((a, b) => a.name.localeCompare(b.name)).map(player => (
+          {selectedPlayers.sort((a, b) => a.name.localeCompare(b.name)).map(player => (
             <List.Item
               title={player.name}
               description="player description"
@@ -273,17 +283,17 @@ export default function GroupPlayerManager({
         */}
       </List.Section>
 
-      {groupPlayers.length > 0 && (
+      {selectedPlayers.length > 0 && (
         <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
           <Text variant="titleMedium" style={{
             fontWeight: '600',
             marginBottom: 12
           }}>
-            Selected Players ({groupPlayers.length})
+            Selected Players ({selectedPlayers.length})
           </Text>
           <FlatList
-            data={[...groupPlayers].sort((a, b) => a.name.localeCompare(b.name))}
-            renderItem={({ item }) => renderPlayerItem({ item })}
+            data={[...selectedPlayers].sort((a, b) => a.name.localeCompare(b.name))}
+            renderItem={({ item }) => renderPlayer({ item })}
             keyExtractor={(item) => `selected-${item.id}`}
             scrollEnabled={false}
           />
@@ -331,84 +341,7 @@ export default function GroupPlayerManager({
         ) : (
           <FlatList
             data={[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name))}
-            renderItem={({ item }) => renderPlayerItem({ item })}
-            keyExtractor={(item) => `available-${item.id}`}
-            scrollEnabled={false}
-          />
-        )}
-      </View>
-    </>
-  );
-  const SelectExistingViewOrig = () => (
-    <>
-      <TextInput
-        mode="outlined"
-        placeholder="Search players..."
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        left={<TextInput.Icon icon="magnify" />}
-        style={{ marginHorizontal: 16, marginBottom: 16 }}
-      />
-
-      {groupPlayers.length > 0 && (
-        <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
-          <Text variant="titleMedium" style={{
-            fontWeight: '600',
-            marginBottom: 12
-          }}>
-            Selected Players ({groupPlayers.length})
-          </Text>
-          <FlatList
-            data={[...groupPlayers].sort((a, b) => a.name.localeCompare(b.name))}
-            renderItem={({ item }) => renderPlayerItem({ item })}
-            keyExtractor={(item) => `selected-${item.id}`}
-            scrollEnabled={false}
-          />
-        </View>
-      )}
-
-      <View style={{ marginHorizontal: 16 }}>
-        <Text variant="titleMedium" style={{
-          fontWeight: '600',
-          marginBottom: 12
-        }}>
-          Available Players ({availablePlayers.length})
-        </Text>
-
-        {availablePlayers.length === 0 ? (
-          <Surface style={{
-            alignItems: 'center',
-            paddingVertical: 32,
-            borderRadius: 8
-          }}>
-            {searchQuery ? (
-              <Text variant="bodyLarge" style={{
-                color: theme.colors.onSurfaceVariant
-              }}>
-                No players match your search
-              </Text>
-            ) : (
-              <>
-                <Text variant="bodyLarge" style={{
-                  color: theme.colors.onSurfaceVariant,
-                  marginBottom: 16
-                }}>
-                  All players are already in this group
-                </Text>
-                <Button
-                  icon="plus"
-                  mode="outlined"
-                  onPress={() => setViewMode('add')}
-                >
-                  Add New Player
-                </Button>
-              </>
-            )}
-          </Surface>
-        ) : (
-          <FlatList
-            data={[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name))}
-            renderItem={({ item }) => renderPlayerItem({ item })}
+            renderItem={({ item }) => renderPlayer({ item })}
             keyExtractor={(item) => `available-${item.id}`}
             scrollEnabled={false}
           />
@@ -439,7 +372,7 @@ export default function GroupPlayerManager({
           textAlign: 'center',
           lineHeight: 20
         }}>
-          Add a new player and they'll be automatically added to "{group.name}"
+          Add a new player and they'll be automatically added to "{groupName}"
         </Text>
       </Surface>
 
@@ -453,7 +386,7 @@ export default function GroupPlayerManager({
         Add New Player
       </Button>
 
-      {groupPlayers.length > 0 && (
+      {selectedPlayers.length > 0 && (
         <Card>
           <Card.Content>
             <Text variant="titleMedium" style={{
@@ -463,7 +396,7 @@ export default function GroupPlayerManager({
               Current players in this group:
             </Text>
             <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={true}>
-              {groupPlayers.map(player => (
+              {selectedPlayers.map(player => (
                 <View
                   key={player.id}
                   style={{
@@ -496,8 +429,6 @@ export default function GroupPlayerManager({
     </View>
   );
 
-  const groupPlayerCount = group.playerIds.length;
-
   return (
     <Modal
       visible={visible}
@@ -506,11 +437,20 @@ export default function GroupPlayerManager({
     >
       <SafeAreaView style={{ flex: 1 }}>
         <Appbar.Header>
-          <Appbar.BackAction onPress={onClose} />
-          <Appbar.Content
-            title={group.name}
-            subtitle={`${groupPlayerCount} player${groupPlayerCount !== 1 ? 's' : ''}`}
-          />
+          <Appbar.BackAction onPress={onCancel} />
+          <Appbar.Content title={groupName} />
+          <Button
+            style={{ marginRight: 8 }}
+            icon="cancel"
+            mode="outlined"
+            onPress={onCancel}
+          >Cancel</Button>
+          <Button
+            style={{ marginRight: 8 }}
+            icon="content-save"
+            mode="contained"
+            onPress={handleSave}
+          >Save</Button>
         </Appbar.Header>
 
         <SegmentedButtons
@@ -551,7 +491,7 @@ export default function GroupPlayerManager({
           <QuickPlayerForm
             onSave={handleQuickAddPlayer}
             onCancel={() => setShowQuickAdd(false)}
-            groupName={group.name}
+            groupName={groupName}
           />
         </Modal>
       </SafeAreaView>

@@ -1,5 +1,5 @@
 // src/components/SessionPlayerManager.tsx
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,9 +9,15 @@ import {
   FlatList,
   TextInput,
   ScrollView,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppSelector } from '../store';
+} from "react-native";
+import {
+  List,
+  IconButton,
+  Searchbar,
+  useTheme
+} from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppSelector } from "../store";
 import {
   X,
   Check,
@@ -19,10 +25,13 @@ import {
   Users,
   User,
   Star,
-  UserPlus
-} from 'lucide-react-native';
-import { Player, Group } from '../types';
-import { colors } from '../theme';
+  UserPlus,
+} from "lucide-react-native";
+import { Alert } from "@/src/utils/alert";
+import { playerDetailsToString } from "@/src/utils/util";
+import PlayerCard from "./PlayerCard";
+import { Player, Group } from "../types";
+import { colors } from "../theme";
 
 interface SessionPlayerManagerProps {
   visible: boolean;
@@ -31,78 +40,101 @@ interface SessionPlayerManagerProps {
   onClose: () => void;
 }
 
-type ViewMode = 'players' | 'groups';
-
-
+type ViewMode = "combined" | "players" | "groups";
 
 // TODO delete this - use ? instead
-
+// no this has good features
 
 export default function SessionPlayerManager({
   visible,
   selectedPlayerIds,
   onSelectionChange,
-  onClose
+  onClose,
 }: SessionPlayerManagerProps) {
+
+  const theme = useTheme();
+
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
 
-  const [viewMode, setViewMode] = useState<ViewMode>('groups');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>("groups");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const isPlayerSelected = (playerId: string) => {
+  function isPlayerSelected(playerId: string) {
     return selectedPlayerIds.includes(playerId);
-  };
+  }
 
-  const togglePlayer = (playerId: string) => {
+  function togglePlayer(player: Player) {
+    const playerId = player.id;
     if (isPlayerSelected(playerId)) {
-      onSelectionChange(selectedPlayerIds.filter(id => id !== playerId));
+      onSelectionChange(selectedPlayerIds.filter((id) => id !== playerId));
     } else {
       onSelectionChange([...selectedPlayerIds, playerId]);
     }
-  };
+  }
 
-  const toggleGroup = (group: Group) => {
+  function toggleGroup(group: Group) {
     const groupPlayerIds = group.playerIds;
-    const allSelected = groupPlayerIds.every(id => isPlayerSelected(id));
+    const allSelected = groupPlayerIds.every((id) => isPlayerSelected(id));
 
     if (allSelected) {
       // Remove all group players
-      onSelectionChange(selectedPlayerIds.filter(id => !groupPlayerIds.includes(id)));
+      onSelectionChange(
+        selectedPlayerIds.filter((id) => !groupPlayerIds.includes(id)),
+      );
     } else {
       // Add all group players
-      const newIds = [...selectedPlayerIds];
-      groupPlayerIds.forEach(id => {
-        if (!newIds.includes(id)) {
-          newIds.push(id);
+      const newPlayerIds = [...selectedPlayerIds];
+      groupPlayerIds.forEach((id) => {
+        if (!newPlayerIds.includes(id)) {
+          newPlayerIds.push(id);
         }
       });
-      onSelectionChange(newIds);
+      onSelectionChange(newPlayerIds);
     }
-  };
+  }
 
-  const getGroupPlayers = (group: Group) => {
-    return players.filter(p => group.playerIds.includes(p.id));
-  };
+  function getGroupPlayers(group: Group) {
+    return players.filter((p) => group.playerIds.includes(p.id));
+  }
 
-  const filteredPlayers = players.filter(player =>
-    player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (player.email && player.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredPlayers = players.filter(
+    (player) =>
+      player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (player.email &&
+        player.email.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
-  const selectedPlayers = players.filter(p => isPlayerSelected(p.id));
+  const selectedPlayers = players.filter((p) => isPlayerSelected(p.id));
+  const unselectedPlayers = players.filter((p) => !isPlayerSelected(p.id));
 
-  const renderPlayer = ({ item }: { item: Player }) => {
+  function renderPlayer({ item }: { item: Player }) {
+    return (
+      <PlayerCard
+        player={item}
+        isSelected={selectedPlayerIds.includes(item.id)}
+        onToggle={togglePlayer}
+        showActions={true}
+      />
+    );
+  }
+
+  const renderPlayerOrig = ({ item }: { item: Player }) => {
     const isSelected = isPlayerSelected(item.id);
 
     return (
       <TouchableOpacity
         style={[styles.playerItem, isSelected && styles.playerItemSelected]}
-        onPress={() => togglePlayer(item.id)}
+        onPress={() => togglePlayer(item)}
       >
         <View style={styles.playerInfo}>
           <View style={styles.playerHeader}>
-            <Text style={[styles.playerName, isSelected && styles.playerNameSelected]}>
+            <Text
+              style={[
+                styles.playerName,
+                isSelected && styles.playerNameSelected,
+              ]}
+            >
               {item.name}
             </Text>
             {item.rating && (
@@ -115,12 +147,22 @@ export default function SessionPlayerManager({
           {(item.email || item.gender) && (
             <View style={styles.playerDetails}>
               {item.email && (
-                <Text style={[styles.detailText, isSelected && styles.detailTextSelected]}>
+                <Text
+                  style={[
+                    styles.detailText,
+                    isSelected && styles.detailTextSelected,
+                  ]}
+                >
                   {item.email}
                 </Text>
               )}
               {item.gender && (
-                <Text style={[styles.detailText, isSelected && styles.detailTextSelected]}>
+                <Text
+                  style={[
+                    styles.detailText,
+                    isSelected && styles.detailTextSelected,
+                  ]}
+                >
                   {item.gender}
                 </Text>
               )}
@@ -137,65 +179,82 @@ export default function SessionPlayerManager({
 
   const renderGroup = ({ item }: { item: Group }) => {
     const groupPlayers = getGroupPlayers(item);
-    const selectedCount = groupPlayers.filter(p => isPlayerSelected(p.id)).length;
-    const isFullySelected = selectedCount === groupPlayers.length && groupPlayers.length > 0;
-    const isPartiallySelected = selectedCount > 0 && selectedCount < groupPlayers.length;
+    const selectedCount = groupPlayers.filter((p) =>
+      isPlayerSelected(p.id),
+    ).length;
+    const isFullySelected =
+      selectedCount === groupPlayers.length && groupPlayers.length > 0;
+    const isPartiallySelected =
+      selectedCount > 0 && selectedCount < groupPlayers.length;
 
     return (
       <TouchableOpacity
         style={[
           styles.groupItem,
           isFullySelected && styles.groupItemSelected,
-          isPartiallySelected && styles.groupItemPartial
+          isPartiallySelected && styles.groupItemPartial,
         ]}
         onPress={() => toggleGroup(item)}
       >
         <View style={styles.groupInfo}>
           <View style={styles.groupHeader}>
-            <Text style={[
-              styles.groupName,
-              (isFullySelected || isPartiallySelected) && styles.groupNameSelected
-            ]}>
+            <Text
+              style={[
+                styles.groupName,
+                (isFullySelected || isPartiallySelected) &&
+                styles.groupNameSelected,
+              ]}
+            >
               {item.name}
             </Text>
             <View style={styles.groupStats}>
-              <Text style={[
-                styles.groupPlayerCount,
-                (isFullySelected || isPartiallySelected) && styles.groupPlayerCountSelected
-              ]}>
+              <Text
+                style={[
+                  styles.groupPlayerCount,
+                  (isFullySelected || isPartiallySelected) &&
+                  styles.groupPlayerCountSelected,
+                ]}
+              >
                 {selectedCount}/{groupPlayers.length}
               </Text>
             </View>
           </View>
 
           {item.description && (
-            <Text style={[
-              styles.groupDescription,
-              (isFullySelected || isPartiallySelected) && styles.groupDescriptionSelected
-            ]}>
+            <Text
+              style={[
+                styles.groupDescription,
+                (isFullySelected || isPartiallySelected) &&
+                styles.groupDescriptionSelected,
+              ]}
+            >
               {item.description}
             </Text>
           )}
 
           {groupPlayers.length > 0 && (
-            <Text style={[
-              styles.groupPlayersPreview,
-              (isFullySelected || isPartiallySelected) && styles.groupPlayersPreviewSelected
-            ]} numberOfLines={1}>
-              {groupPlayers.map(p => p.name).join(', ')}
+            <Text
+              style={[
+                styles.groupPlayersPreview,
+                (isFullySelected || isPartiallySelected) &&
+                styles.groupPlayersPreviewSelected,
+              ]}
+              numberOfLines={1}
+            >
+              {groupPlayers.map((p) => p.name).join(", ")}
             </Text>
           )}
         </View>
 
-        <View style={[
-          styles.checkbox,
-          isFullySelected && styles.checkboxSelected,
-          isPartiallySelected && styles.checkboxPartial
-        ]}>
+        <View
+          style={[
+            styles.checkbox,
+            isFullySelected && styles.checkboxSelected,
+            isPartiallySelected && styles.checkboxPartial,
+          ]}
+        >
           {isFullySelected && <Check size={16} color="white" />}
-          {isPartiallySelected && (
-            <View style={styles.partialIndicator} />
-          )}
+          {isPartiallySelected && <View style={styles.partialIndicator} />}
         </View>
       </TouchableOpacity>
     );
@@ -203,34 +262,183 @@ export default function SessionPlayerManager({
 
   const ViewModeSelector = () => (
     <View style={styles.viewModeSelector}>
+        {/*
       <TouchableOpacity
-        style={[styles.viewModeButton, viewMode === 'groups' && styles.viewModeButtonActive]}
-        onPress={() => setViewMode('groups')}
+        style={[
+          styles.viewModeButton,
+          viewMode === "combined" && styles.viewModeButtonActive,
+        ]}
+        onPress={() => setViewMode("combined")}
       >
-        <Users size={16} color={viewMode === 'groups' ? 'white' : colors.primary} />
-        <Text style={[
-          styles.viewModeButtonText,
-          viewMode === 'groups' && styles.viewModeButtonTextActive
-        ]}>
+        <Users
+          size={16}
+          color={viewMode === "combined" ? "white" : colors.primary}
+        />
+        <Text
+          style={[
+            styles.viewModeButtonText,
+            viewMode === "combined" && styles.viewModeButtonTextActive,
+          ]}
+        >
+          Combined
+        </Text>
+      </TouchableOpacity>
+        */}
+
+      <TouchableOpacity
+        style={[
+          styles.viewModeButton,
+          viewMode === "groups" && styles.viewModeButtonActive,
+        ]}
+        onPress={() => setViewMode("groups")}
+      >
+        <Users
+          size={16}
+          color={viewMode === "groups" ? "white" : colors.primary}
+        />
+        <Text
+          style={[
+            styles.viewModeButtonText,
+            viewMode === "groups" && styles.viewModeButtonTextActive,
+          ]}
+        >
           Groups ({groups.length})
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.viewModeButton, viewMode === 'players' && styles.viewModeButtonActive]}
-        onPress={() => setViewMode('players')}
+        style={[
+          styles.viewModeButton,
+          viewMode === "players" && styles.viewModeButtonActive,
+        ]}
+        onPress={() => setViewMode("players")}
       >
-        <User size={16} color={viewMode === 'players' ? 'white' : colors.primary} />
-        <Text style={[
-          styles.viewModeButtonText,
-          viewMode === 'players' && styles.viewModeButtonTextActive
-        ]}>
+        <User
+          size={16}
+          color={viewMode === "players" ? "white" : colors.primary}
+        />
+        <Text
+          style={[
+            styles.viewModeButtonText,
+            viewMode === "players" && styles.viewModeButtonTextActive,
+          ]}
+        >
           Individual ({players.length})
         </Text>
       </TouchableOpacity>
     </View>
   );
 
+  const CombinedView = () => (
+    <ScrollView>
+
+      <List.Section>
+      <View style={styles.searchContainer}>
+        <Searchbar
+          placeholder="Search players..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+        <List.Subheader>Selected Players</List.Subheader>
+        <List.Accordion
+          id="selected"
+          title="Selected Players"
+          left={(props) => <List.Icon {...props} icon="account-group" />}
+        >
+          {[...selectedPlayers]
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((player) => (
+              <List.Item
+                title={player.name}
+                description={playerDetailsToString(player)}
+                style={{ borderWidth: 1, borderColor: theme.colors.secondaryContainer }}
+              />
+            ))}
+        </List.Accordion>
+      </List.Section>
+
+      <List.Section>
+        <List.Subheader>Groups</List.Subheader>
+        {/*<List.AccordionGroup>*/}
+        {[...groups]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((group) => (
+            <List.Accordion
+              id={group.name}
+              title={group.name}
+              onLongPress={() => {
+                toggleGroup(group);
+              }}
+              left={(props) => (
+                <View style={{ flexDirection: "row" }}>
+                  <IconButton
+                    icon="check-circle"
+                    size={24}
+                    onPress={() => {
+                      toggleGroup(group);
+                    }}
+                  />
+                  <List.Icon {...props} icon="account-group" />
+                </View>
+              )}
+              right={(props) => (
+                <IconButton
+                  icon="check-circle"
+                  size={24}
+                  onPress={() => {
+                    toggleGroup(group);
+                  }}
+                />
+              )}
+            >
+              {/*.filter(player => !selectedPlayerIds.includes(player.id))*/}
+              {getGroupPlayers(group)
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((player) => (
+                  <List.Item
+                    title={player.name}
+                    description={playerDetailsToString(player)}
+                    onPress={() => togglePlayer(player)}
+                    style={{
+                      backgroundColor: isPlayerSelected(player.id) ? theme.colors.surface : theme.colors.surfaceVariant
+                    }}
+                  />
+                ))}
+            </List.Accordion>
+          ))}
+        {/*</List.AccordionGroup>*/}
+        <List.Subheader>Players</List.Subheader>
+        {/*<List.AccordionGroup>*/}
+        <List.Accordion
+          id="unselected"
+          title="Unselected Players"
+          left={(props) => <List.Icon {...props} icon="account-group" />}
+        >
+          {[...unselectedPlayers]
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((player) => (
+              <List.Item
+                title={player.name}
+                description={playerDetailsToString(player)}
+              />
+            ))}
+        </List.Accordion>
+        {/*</List.AccordionGroup>*/}
+
+        {/*
+        <List.Accordion
+          title="Controlled Accordion"
+          left={props => <List.Icon {...props} icon="folder" />}
+          expanded={expanded}
+          onPress={handlePress}>
+          <List.Item title="First item" />
+          <List.Item title="Second item" />
+        </List.Accordion>
+        */}
+      </List.Section>
+    </ScrollView>
+  );
   return (
     <Modal
       visible={visible}
@@ -243,9 +451,12 @@ export default function SessionPlayerManager({
             <X size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.title}>SessionPlayerManager: Select Players</Text>
+            <Text style={styles.title}>
+              SessionPlayerManager: Select Players
+            </Text>
             <Text style={styles.subtitle}>
-              {selectedPlayers.length} player{selectedPlayers.length !== 1 ? 's' : ''} selected
+              {selectedPlayers.length} player
+              {selectedPlayers.length !== 1 ? "s" : ""} selected
             </Text>
           </View>
           <View style={styles.placeholder} />
@@ -253,11 +464,11 @@ export default function SessionPlayerManager({
 
         <ViewModeSelector />
 
-        {viewMode === 'players' && (
+        {/*viewMode === "combined" && <CombinedView />*/}
+
+        {viewMode === "players" && (
           <View style={styles.searchContainer}>
-            <Search size={20} color={colors.gray} />
-            <TextInput
-              style={styles.searchInput}
+            <Searchbar
               placeholder="Search players..."
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -265,60 +476,77 @@ export default function SessionPlayerManager({
           </View>
         )}
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {selectedPlayers.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                Selected Players ({selectedPlayers.length})
-              </Text>
-              <FlatList
-                data={selectedPlayers}
-                renderItem={renderPlayer}
-                keyExtractor={(item) => `selected-${item.id}`}
-                scrollEnabled={false}
-              />
-            </View>
-          )}
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {viewMode === 'groups' ? 'Available Groups' : 'Available Players'}
-            </Text>
-
-            {viewMode === 'groups' ? (
-              groups.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Users size={32} color={colors.gray} />
-                  <Text style={styles.emptyText}>No groups available</Text>
-                  <Text style={styles.emptySubtext}>Create groups to quickly add players</Text>
-                </View>
-              ) : (
+        {viewMode !== "combined" && (
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
+            {selectedPlayers.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  Selected Players ({selectedPlayers.length})
+                </Text>
                 <FlatList
-                  data={groups}
-                  renderItem={renderGroup}
-                  keyExtractor={(item) => item.id}
+                  data={selectedPlayers.sort((a, b) =>
+                    a.name.localeCompare(b.name),
+                  )}
+                  renderItem={renderPlayer}
+                  keyExtractor={(item) => `selected-${item.id}`}
                   scrollEnabled={false}
                 />
-              )
-            ) : (
-              <FlatList
-                data={filteredPlayers}
-                renderItem={renderPlayer}
-                keyExtractor={(item) => item.id}
-                scrollEnabled={false}
-                ListEmptyComponent={
+              </View>
+            )}
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                {viewMode === "groups"
+                  ? "Available Groups"
+                  : "Available Players"}
+              </Text>
+
+              {viewMode === "groups" ? (
+                groups.length === 0 ? (
                   <View style={styles.emptyState}>
-                    <UserPlus size={32} color={colors.gray} />
-                    <Text style={styles.emptyText}>No players found</Text>
+                    <Users size={32} color={colors.gray} />
+                    <Text style={styles.emptyText}>No groups available</Text>
                     <Text style={styles.emptySubtext}>
-                      {searchQuery ? 'Try a different search term' : 'Add players first'}
+                      Create groups to quickly add players
                     </Text>
                   </View>
-                }
-              />
-            )}
-          </View>
-        </ScrollView>
+                ) : (
+                  <FlatList
+                    data={[...groups].sort((a, b) =>
+                      a.name.localeCompare(b.name),
+                    )}
+                    renderItem={renderGroup}
+                    keyExtractor={(item) => item.id}
+                    scrollEnabled={false}
+                  />
+                )
+              ) : (
+                <FlatList
+                  data={filteredPlayers.sort((a, b) =>
+                    a.name.localeCompare(b.name),
+                  )}
+                  renderItem={renderPlayer}
+                  keyExtractor={(item) => item.id}
+                  scrollEnabled={false}
+                  ListEmptyComponent={
+                    <View style={styles.emptyState}>
+                      <UserPlus size={32} color={colors.gray} />
+                      <Text style={styles.emptyText}>No players found</Text>
+                      <Text style={styles.emptySubtext}>
+                        {searchQuery
+                          ? "Try a different search term"
+                          : "Add players first"}
+                      </Text>
+                    </View>
+                  }
+                />
+              )}
+            </View>
+          </ScrollView>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -330,25 +558,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   closeButton: {
     padding: 8,
   },
   headerInfo: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text,
   },
   subtitle: {
@@ -360,7 +588,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   viewModeSelector: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: colors.grayLight,
     margin: 16,
     borderRadius: 8,
@@ -368,9 +596,9 @@ const styles = StyleSheet.create({
   },
   viewModeButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -381,16 +609,16 @@ const styles = StyleSheet.create({
   },
   viewModeButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     color: colors.primary,
   },
   viewModeButtonTextActive: {
-    color: 'white',
+    color: "white",
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     marginHorizontal: 16,
     marginBottom: 16,
     paddingHorizontal: 12,
@@ -414,18 +642,18 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text,
     marginBottom: 12,
   },
   playerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -439,23 +667,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   playerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 4,
   },
   playerName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text,
     flex: 1,
   },
   playerNameSelected: {
-    color: 'white',
+    color: "white",
   },
   ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.orangeLight,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -464,7 +692,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
     color: colors.orange,
   },
   playerDetails: {
@@ -478,13 +706,13 @@ const styles = StyleSheet.create({
     color: colors.grayLight,
   },
   groupItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -503,30 +731,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   groupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 4,
   },
   groupName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text,
     flex: 1,
   },
   groupNameSelected: {
-    color: 'white',
+    color: "white",
   },
   groupStats: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   groupPlayerCount: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     color: colors.primary,
   },
   groupPlayerCountSelected: {
-    color: 'white',
+    color: "white",
   },
   groupDescription: {
     fontSize: 12,
@@ -549,8 +777,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginLeft: 12,
   },
   checkboxSelected: {
@@ -567,14 +795,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 32,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 8,
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
     marginTop: 12,
   },
@@ -582,6 +810,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.gray,
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

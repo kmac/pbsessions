@@ -22,7 +22,7 @@ import { router } from 'expo-router';
 import { Plus, Edit2, Trash2, Users, UserPlus, ExternalLink } from 'lucide-react-native';
 import { useAppDispatch, useAppSelector } from '@/src/store';
 import { addGroup, updateGroup, removeGroup } from '@/src/store/slices/groupsSlice';
-import { Group } from '@/src/types';
+import { Group, Player } from '@/src/types';
 import GroupForm from '@/src/components/GroupForm';
 import GroupPlayerManager from '@/src/components/GroupPlayerManager';
 import { Alert } from '@/src/utils/alert'
@@ -67,7 +67,7 @@ export default function GroupsTab() {
     router.push('/players');
   };
 
-  const getGroupPlayers = (group: Group) => {
+  function getGroupPlayers(group: Group) : Player[] {
     return players.filter(player => group.playerIds.includes(player.id));
   };
 
@@ -130,12 +130,12 @@ export default function GroupsTab() {
                 color: theme.colors.onSurfaceVariant,
                 marginBottom: 4
               }}>
-                Players:
+                Players ({groupPlayers.length}):
               </Text>
               <Text variant="bodyMedium" numberOfLines={2} style={{
                 color: theme.colors.onSurfaceVariant
               }}>
-                {groupPlayers.map(p => p.name).join(', ')}
+                {groupPlayers.map(p => p.name).sort((a, b) => a.localeCompare(b)).join(', ')}
               </Text>
             </View>
           )}
@@ -212,6 +212,17 @@ export default function GroupsTab() {
     setGroupModalVisible(false);
   };
 
+  const handleSaveGroupPlayers = (group: Group, players: Player[]) => {
+    if (!players || !Array.isArray(players)) {
+      console.error('Players is not an array:', players);
+      return;
+    }
+    const newPlayerIds: string[] = players.map(player => player.id);
+    const newGroup: Group = { ...group, playerIds: newPlayerIds };
+    dispatch(updateGroup(newGroup));
+    setPlayerManagerVisible(false);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Surface style={{
@@ -279,7 +290,9 @@ export default function GroupsTab() {
       >
         <GroupForm
           group={editingGroup}
-          onSave={handleSaveGroup}
+          onSave={groupData => {
+            handleSaveGroup(groupData);
+          }}
           onCancel={() => {
             setGroupModalVisible(false);
             setEditingGroup(null);
@@ -290,8 +303,12 @@ export default function GroupsTab() {
       {selectedGroup && (
         <GroupPlayerManager
           visible={playerManagerVisible}
-          group={selectedGroup}
-          onClose={() => {
+          groupName={selectedGroup.name}
+          groupPlayers={getGroupPlayers(selectedGroup)}
+          onSave={players => {
+            handleSaveGroupPlayers(selectedGroup, players);
+          }}
+          onCancel={() => {
             setPlayerManagerVisible(false);
             setSelectedGroup(null);
           }}

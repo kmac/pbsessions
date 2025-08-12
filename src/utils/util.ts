@@ -1,6 +1,6 @@
-import { LiveSession, Player, Session, } from "@/src/types";
+import { LiveSession, Player, Group, Session, } from "@/src/types";
 
-export function getShortGender(gender: 'male' | 'female' | 'other' | undefined, parenthesize? : boolean) : string {
+export function getShortGender(gender: 'male' | 'female' | 'other' | undefined, parenthesize?: boolean): string {
   if (typeof parenthesize === 'undefined') {
     parenthesize = true;
   }
@@ -15,6 +15,24 @@ export function getShortGender(gender: 'male' | 'female' | 'other' | undefined, 
       return '';
   }
 }
+
+export function playerDetailsToString(item: Player): String {
+  let details = "";
+  let separator = "";
+  if (item.gender) {
+    details = `${item.gender}`;
+    separator = ", "
+  }
+  if (item.email) {
+    details = details + separator + `${item.email}`;
+    separator = ", "
+  }
+  if (item.phone) {
+    details = details + separator + `${item.phone}`;
+    separator = ", "
+  }
+  return details;
+};
 
 export function getEmptyLiveSession(): LiveSession {
   const emptyLiveSession = {

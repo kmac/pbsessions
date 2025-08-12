@@ -465,20 +465,20 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
         )}
       </ScrollView>
 
-      {/*<SessionPlayerManager
+      <SessionPlayerManager
         visible={showPlayerManager}
         selectedPlayerIds={formData.playerIds}
         onSelectionChange={updatePlayerIds}
         onClose={() => setShowPlayerManager(false)}
-      />*/}
+      />
 
-      <Session2PlayerManager
+      {/*<Session2PlayerManager
         visible={showPlayerManager}
         name={formData.name}
         selectedPlayerIds={formData.playerIds}
         onSelectionChange={updatePlayerIds}
         onClose={() => setShowPlayerManager(false)}
-      />
+      />*/}
 
       <CourtManager
         visible={showCourtManager}

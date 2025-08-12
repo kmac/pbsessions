@@ -108,24 +108,6 @@ export default function PlayersTab() {
       .join(', ');
   }
 
-  const getPlayerDetails = (item: Player) => {
-    let details = "";
-    let separator = "";
-    if (item.gender) {
-      details = `${item.gender}`;
-      separator = ", "
-    }
-    if (item.email) {
-      details = details + separator + `${item.email}`;
-      separator = ", "
-    }
-    if (item.phone) {
-      details = details + separator + `${item.phone}`;
-      separator = ", "
-    }
-    return details;
-  };
-
   function getPlayerName(name: string, gender: 'male' | 'female' | 'other' | undefined) {
     if (gender) {
       return `${name} ${getShortGender(gender)}`;
