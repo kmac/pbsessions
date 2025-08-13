@@ -20,7 +20,7 @@ export function playerDetailsToString(item: Player): String {
   let details = "";
   let separator = "";
   if (item.gender) {
-    details = `${item.gender}`;
+    details = getShortGender(item.gender, true)
     separator = ", "
   }
   if (item.email) {
