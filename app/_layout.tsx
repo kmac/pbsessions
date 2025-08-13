@@ -128,7 +128,7 @@ const RootLayoutNav = () => {
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
+          {/*<Stack.Screen
             name="live-session"
             options={{
               headerShown: false,
@@ -143,6 +143,7 @@ const RootLayoutNav = () => {
               // },
             }}
           />
+          */}
         </Stack>
 
       </PaperProvider>

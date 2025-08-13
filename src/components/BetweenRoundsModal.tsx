@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { View, Modal, ScrollView, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -50,21 +50,19 @@ export default function BetweenRoundsModal({
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [helpDialogVisible, setHelpDialogVisible] = useState(false);
 
-  const { currentLiveSession: currentSession } = useAppSelector((state) => state.liveSession);
+  const { liveSession } = useAppSelector((state) => state.liveSession);
   const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
 
-  const games = currentSession ? currentSession.activeGames : [];
-  const courts = currentSession ? currentSession.courts : [];
-  const playerStats = currentSession ? currentSession.playerStats : [];
-  const sessionPlayers: Player[] = currentSession ? getLiveSessionPlayers(currentSession, sessions, players) : [];
-  const roundNumber = currentSession ? currentSession.currentGameNumber : 0;
-
-  const roundAssigner = new SessionRoundManager(sessionPlayers, courts, playerStats);
+  const games = liveSession ? liveSession.activeGames : [];
+  const courts = liveSession ? liveSession.courts : [];
+  const playerStats = liveSession ? liveSession.playerStats : [];
+  const sessionPlayers: Player[] = liveSession ? getLiveSessionPlayers(liveSession, sessions, players) : [];
+  const roundNumber = liveSession ? liveSession.currentGameNumber : 0;
 
   // TODO use these:
-  const showRating = currentSession ? currentSession.showRatings : false;
-  const scoring = currentSession ? currentSession.scoring : false;
+  const showRating = liveSession ? liveSession.showRatings : false;
+  const scoring = liveSession ? liveSession.scoring : false;
 
   const getPlayer = (playerId: string) =>
     sessionPlayers.find((p) => p.id === playerId);
@@ -75,11 +73,12 @@ export default function BetweenRoundsModal({
       : [];
 
   function handleReshufflePlayers(excludeSitting: boolean) {
+    if (!liveSession) { return; }
     let sittingOut = undefined;
     if (excludeSitting) {
       sittingOut = sittingOutPlayers;
     }
-    const assignments = roundAssigner.generateGameAssignments(sittingOut);
+    const assignments = new SessionRoundManager(liveSession, sessionPlayers).generateGameAssignments(sittingOut);
 
     if (assignments.length === 0) {
       Alert.alert(

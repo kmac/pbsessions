@@ -45,7 +45,7 @@ export default function LiveSessionScreen() {
   const dispatch = useAppDispatch();
 
   // useAppSelector, useAppDispatch is redux
-  const { currentLiveSession: currentSession } = useAppSelector((state) => state.liveSession);
+  const { liveSession: currentSession } = useAppSelector((state) => state.liveSession);
   const liveSession: LiveSession = currentSession ? currentSession : getEmptyLiveSession();
   const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
@@ -94,10 +94,6 @@ export default function LiveSessionScreen() {
     );
   }
 
-  function getRoundAssigner() {
-    return new SessionRoundManager(liveSessionPlayers, liveSession.courts, liveSession.playerStats);
-  }
-
   const currentRoundGames = liveSession.activeGames;
   const isRoundInProgress = currentRoundGames.length > 0 && currentRoundGames.some(g => g.startedAt && !g.isCompleted);
   const isRoundCompleted = currentRoundGames.length > 0 && currentRoundGames.every(g => g.isCompleted);
@@ -109,7 +105,9 @@ export default function LiveSessionScreen() {
   const numSittingOut = hasActiveRound ? currentRoundGames[0]?.sittingOutIds.length || 0 : 0;
 
   const handleGenerateNewRound = () => {
-    const assignments = getRoundAssigner().generateGameAssignments();
+
+    const sessionRoundManager = new SessionRoundManager(liveSession, liveSessionPlayers);
+    const assignments = sessionRoundManager.generateGameAssignments();
 
     if (assignments.length === 0) {
       Alert.alert(
@@ -142,37 +140,16 @@ export default function LiveSessionScreen() {
     // }
   };
 
-  // const handleRoundNoScoring = () => {
-  //   const scores: Map<string, { serveScore: number; receiveScore: number } | undefined> = new Map()
-  //   currentRoundGames.forEach(game => {
-  //     const score = undefined;
-  //     scores.set(game.id, score);
-  //     roundAssigner.updatePlayerStatsForGame(game, score);
-  //   });
-  //   //score?: { serveScore: number; receiveScore: number }
-  //   dispatch(completeRound({ scores }));
-  //
-  //   currentRoundGames.forEach(game => {
-  //     const score = scores[game.id];
-  //     roundAssigner.updatePlayerStatsForGame(game, score || undefined);
-  //   });
-  //
-  //   const updatedStats = roundAssigner.getPlayerStats();
-  //   dispatch(updatePlayerStats(updatedStats));
-  //
-  //   setScoreModalVisible(false);
-  //   setRoundStartTime(null);
-  // };
-
   const handleRoundScoresSubmitted = (scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }) => {
     dispatch(completeRound({ scores }));
 
+    const sessionRoundManager = new SessionRoundManager(liveSession, liveSessionPlayers);
     currentRoundGames.forEach(game => {
       const score = scores[game.id];
-      getRoundAssigner().updatePlayerStatsForGame(game, score || undefined);
+      sessionRoundManager.updatePlayerStatsForGame(game, score || undefined);
     });
 
-    const updatedStats = getRoundAssigner().getPlayerStats();
+    const updatedStats = sessionRoundManager.getPlayerStats();
     dispatch(updatePlayerStats(updatedStats));
 
     setScoreModalVisible(false);

@@ -1,14 +1,14 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
-import { Group, LiveSession, Player, Session, Setting } from '@/src/types';
-import { Alert } from './alert';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
+import { Group, LiveSession, Player, Session, Setting } from "@/src/types";
+import { Alert } from "./alert";
 
 const STORAGE_KEYS = {
-  PLAYERS: '@pickleball_players',
-  GROUPS: '@pickleball_groups',
-  SESSIONS: '@pickleball_sessions',
-  LIVE_SESSION: '@pickleball_live_session',
-  APP_CONFIG: '@pickleball_config',
+  PLAYERS: "@pickleball_players",
+  GROUPS: "@pickleball_groups",
+  SESSIONS: "@pickleball_sessions",
+  LIVE_SESSION: "@pickleball_live_session",
+  APP_CONFIG: "@pickleball_config",
 } as const;
 
 export interface StoredData {
@@ -35,13 +35,16 @@ export class StorageManager {
     try {
       const jsonData = JSON.stringify(data);
 
-      if (Platform.OS === 'web') {
+      if (Platform.OS === "web") {
         // Use localStorage as fallback on web
         try {
           await AsyncStorage.setItem(key, jsonData);
         } catch (asyncError) {
-          console.warn('AsyncStorage failed on web, using localStorage:', asyncError);
-          if (typeof window !== 'undefined' && window.localStorage) {
+          console.warn(
+            "AsyncStorage failed on web, using localStorage:",
+            asyncError,
+          );
+          if (typeof window !== "undefined" && window.localStorage) {
             window.localStorage.setItem(key, jsonData);
           }
         }
@@ -55,15 +58,17 @@ export class StorageManager {
   }
 
   async loadData<T>(key: string): Promise<T | null> {
+    let jsonData: string | null = null;
     try {
-      let jsonData: string | null = null;
-
-      if (Platform.OS === 'web') {
+      if (Platform.OS === "web") {
         try {
           jsonData = await AsyncStorage.getItem(key);
         } catch (asyncError) {
-          console.warn('AsyncStorage failed on web, using localStorage:', asyncError);
-          if (typeof window !== 'undefined' && window.localStorage) {
+          console.warn(
+            "AsyncStorage failed on web, using localStorage:",
+            asyncError,
+          );
+          if (typeof window !== "undefined" && window.localStorage) {
             jsonData = window.localStorage.getItem(key);
           }
         }
@@ -71,12 +76,15 @@ export class StorageManager {
         jsonData = await AsyncStorage.getItem(key);
       }
 
-      if (jsonData) {
+      if (jsonData && jsonData !== undefined) {
         return JSON.parse(jsonData);
       }
       return null;
     } catch (error) {
-      console.error(`Error loading data for key ${key}:`, error);
+      console.error(
+        `Error loading data for key ${key}, jsonData: ${jsonData}`,
+        error,
+      );
       return null;
     }
   }
@@ -112,8 +120,10 @@ export class StorageManager {
     await this.saveData(STORAGE_KEYS.LIVE_SESSION, liveSession);
   }
 
-  async loadLiveSession(): Promise<LiveSession|null> {
-    const liveSession = await this.loadData<LiveSession>(STORAGE_KEYS.LIVE_SESSION)
+  async loadLiveSession(): Promise<LiveSession | null> {
+    const liveSession = await this.loadData<LiveSession>(
+      STORAGE_KEYS.LIVE_SESSION,
+    );
     return liveSession;
   }
 
@@ -123,17 +133,18 @@ export class StorageManager {
 
   async loadAppConfig(): Promise<Setting> {
     const setting = await this.loadData<Setting>(STORAGE_KEYS.APP_CONFIG);
-    return setting || { color: 'default', theme: 'light' }
+    return setting || { color: "default", theme: "light" };
   }
 
   async exportAllData(): Promise<StoredData> {
-    const [players, groups, sessions, liveSession, appConfig] = await Promise.all([
-      this.loadPlayers(),
-      this.loadGroups(),
-      this.loadSessions(),
-      this.loadLiveSession(),
-      this.loadAppConfig()
-    ]);
+    const [players, groups, sessions, liveSession, appConfig] =
+      await Promise.all([
+        this.loadPlayers(),
+        this.loadGroups(),
+        this.loadSessions(),
+        this.loadLiveSession(),
+        this.loadAppConfig(),
+      ]);
 
     return {
       players,
@@ -142,24 +153,27 @@ export class StorageManager {
       liveSession,
       appConfig,
       lastBackup: new Date().toISOString(),
-      version: '1.0.0',
+      version: "1.0.0",
     };
   }
 
   async clearAllData(): Promise<void> {
     const keys = Object.values(STORAGE_KEYS);
 
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       try {
-        await Promise.all(keys.map(key => AsyncStorage.removeItem(key)));
+        await Promise.all(keys.map((key) => AsyncStorage.removeItem(key)));
       } catch (asyncError) {
-        console.warn('AsyncStorage clear failed on web, using localStorage:', asyncError);
-        if (typeof window !== 'undefined' && window.localStorage) {
-          keys.forEach(key => window.localStorage.removeItem(key));
+        console.warn(
+          "AsyncStorage clear failed on web, using localStorage:",
+          asyncError,
+        );
+        if (typeof window !== "undefined" && window.localStorage) {
+          keys.forEach((key) => window.localStorage.removeItem(key));
         }
       }
     } else {
-      await Promise.all(keys.map(key => AsyncStorage.removeItem(key)));
+      await Promise.all(keys.map((key) => AsyncStorage.removeItem(key)));
     }
   }
 }

@@ -46,7 +46,7 @@ export default function Round({
   const [ratingInput, setRatingInput] = useState<string>("");
   const [ratingEnabled, setRatingEnabled] = useState<boolean>(false);
   const [courtDisabled, setCourtDisabled] = useState<boolean>(false);
-  const { currentLiveSession: currentSession } = useAppSelector((state) => state.liveSession);
+  const { liveSession: currentSession } = useAppSelector((state) => state.liveSession);
   const { appConfig } = useAppSelector((state) => state.appConfig);
 
   const { sessions } = useAppSelector((state) => state.sessions);
@@ -60,15 +60,15 @@ export default function Round({
 
   const chipMode = editing ? "outlined" : "flat";
 
-  function getPlayer(playerId: string) {
+  const getPlayer = (playerId: string) => {
     return sessionPlayers.find((p) => p.id === playerId);
   }
 
-  function getCourt(courtId: string): Court | undefined {
+  const getCourt = (courtId: string): Court | undefined => {
     return courts?.find((c) => c.id === courtId);
   }
 
-  function getCourtMinimumRating(courtId: string): string | undefined {
+  const getCourtMinimumRating = (courtId: string): string | undefined => {
     const court = getCourt(courtId);
     if (court && court.minimumRating) {
       return court.minimumRating.toFixed(2);
@@ -76,7 +76,7 @@ export default function Round({
     return undefined;
   }
 
-  function updateCourt(court: Court) {
+  const updateCourt = (court: Court) => {
     if (!courts) {
       return;
     }
@@ -89,7 +89,7 @@ export default function Round({
     dispatch(updateCourts(newCourts));
   }
 
-  function setCourtMinimumRating(courtId: string, rating: number | undefined) {
+  const setCourtMinimumRating = (courtId: string, rating: number | undefined) => {
     const court = getCourt(courtId);
     if (!court) {
       return;
@@ -111,10 +111,10 @@ export default function Round({
       ? (games[0].sittingOutIds.map(getPlayer).filter(Boolean) as Player[])
       : [];
 
-  function getSittingOutPlayers() {
+  const getSittingOutPlayers = () => {
   }
 
-  function playerSelectDisabled(player: Player | undefined) {
+  const playerSelectDisabled = (player: Player | undefined) => {
     if (!player) {
       return true;
     }
@@ -124,14 +124,14 @@ export default function Round({
     return selectedPlayers.size >= 2;
   }
 
-  function getPlayerSelected(player: Player | undefined): boolean {
+  const getPlayerSelected = (player: Player | undefined): boolean => {
     if (!player) {
       return false;
     }
     return selectedPlayers.has(player.id);
   }
 
-  function togglePlayerSelected(player: Player) {
+  const togglePlayerSelected = (player: Player) => {
     if (player) {
       if (selectedPlayers.has(player.id)) {
         selectedPlayers.delete(player.id);
@@ -144,14 +144,14 @@ export default function Round({
     }
   }
 
-  function getCourtSelected(courtId: string | undefined): boolean {
+  const getCourtSelected = (courtId: string | undefined): boolean => {
     if (!courtId) {
       return false;
     }
     return selectedCourts.has(courtId);
   }
 
-  function toggleCourtSelected(courtId: string) {
+  const toggleCourtSelected = (courtId: string) => {
     if (courtId) {
       if (selectedCourts.has(courtId)) {
         selectedCourts.delete(courtId);
@@ -164,7 +164,7 @@ export default function Round({
     }
   }
 
-  function courtSelectDisabled(courtId: string | undefined) {
+  const courtSelectDisabled = (courtId: string | undefined) => {
     if (!courtId) {
       return true;
     }
@@ -174,7 +174,7 @@ export default function Round({
     return selectedCourts.size >= 1;
   }
 
-  function handleSwapPlayers() {
+  const handleSwapPlayers = () => {
     if (selectedPlayers.size !== 2) {
       return;
     }
@@ -183,7 +183,7 @@ export default function Round({
     const [playerId1, playerId2] = playerIds;
 
     // Find positions of both players in the games
-    function findPlayerPosition(id: string) {
+    const findPlayerPosition = (id: string) => {
       for (let gameIndex = 0; gameIndex < games.length; gameIndex++) {
         const game = games[gameIndex];
 
@@ -217,7 +217,7 @@ export default function Round({
       const newGame = { ...game };
 
       // Helper function to set player at position
-      function setPlayerAtPosition(pos: string, playerId: string) {
+      const setPlayerAtPosition = (pos: string, playerId: string) => {
         if (pos === "serveTeam.player1Id") {
           newGame.serveTeam = { ...newGame.serveTeam, player1Id: playerId };
         } else if (pos === "serveTeam.player2Id") {
@@ -252,7 +252,7 @@ export default function Round({
   }
 
 
-  function handleSetCourtRating() {
+  const handleSetCourtRating = () => {
     selectedCourts.forEach((courtId) => {
       const court = getCourt(courtId);
       if (court?.minimumRating) {
@@ -273,7 +273,7 @@ export default function Round({
   //     }
   // }
 
-  function handleCourtSetting(courtId: string) {
+  const handleCourtSetting = (courtId: string) => {
     const court = getCourt(courtId);
     setCurrentCourtId(courtId);
     setRatingInput(court?.minimumRating?.toString() || "");
@@ -282,7 +282,7 @@ export default function Round({
     setCourtSettingDialogVisible(true);
   }
 
-  function handleSaveCourtRating() {
+  const handleSaveCourtRating = () => {
     const court = getCourt(currentCourtId);
     if (!court) return;
 
@@ -301,7 +301,7 @@ export default function Round({
     setCourtDisabled(false);
   }
 
-  function handleCancelCourtRating() {
+  const handleCancelCourtRating = () => {
     setCourtSettingDialogVisible(false);
     setCurrentCourtId("");
     setRatingInput("");
@@ -309,18 +309,14 @@ export default function Round({
     setCourtDisabled(false);
   }
 
-  function handleRatingEnabledChange(enabled: boolean) {
+  const handleRatingEnabledChange = (enabled: boolean) => {
     setRatingEnabled(enabled);
     if (!enabled) {
       setRatingInput("");
     }
   }
 
-  const renderCourtAssignmentItem = ({ item, }: { item: Game; }) => {
-    return renderCourtAssignment(item);
-  }
-
-  function renderCourtAssignment(game: Game) {
+  const renderCourtAssignment = ({ item: game }: { item: Game; }) => {
     const servePlayer1 = getPlayer(game.serveTeam.player1Id);
     const servePlayer2 = getPlayer(game.serveTeam.player2Id);
     const receivePlayer1 = getPlayer(game.receiveTeam.player1Id);
@@ -480,7 +476,7 @@ export default function Round({
         */}
         <FlatList
           data={games ? games : []}
-          renderItem={renderCourtAssignmentItem}
+          renderItem={renderCourtAssignment}
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
         />

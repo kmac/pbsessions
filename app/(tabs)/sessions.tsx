@@ -41,7 +41,7 @@ export default function SessionsTab() {
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
-  const { currentLiveSession: currentSession } = useAppSelector((state) => state.liveSession);
+  const { liveSession: currentSession } = useAppSelector((state) => state.liveSession);
 
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);

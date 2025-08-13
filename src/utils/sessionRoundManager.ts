@@ -1,4 +1,5 @@
-import { Player, Game, PlayerStats, Court } from '../types';
+import { Court, Player, Game, LiveSession, PlayerStats } from "../types";
+import { getLiveSessionPlayers } from "@/src/utils/util";
 
 export interface GameAssignment {
   court: Court;
@@ -14,38 +15,53 @@ export interface TeamBalance {
 }
 
 export class SessionRoundManager {
-  private players: Player[];
   private courts: Court[];
-  private playerStats: Map<string, PlayerStats>;
+  private players: Player[];
+  private playerStats: Map<string, PlayerStats> = new Map();
+  private onUpdate: () => void = () => {};
 
-  constructor(players: Player[], courts: Court[], existingStats?: PlayerStats[]) {
+  constructor(liveSession: LiveSession, players: Player[]) {
+    this.courts = liveSession.courts.filter((c) => c.isActive);
     this.players = players;
-    this.courts = courts.filter(c => c.isActive);
-    this.playerStats = new Map();
 
     // Initialize or load existing stats
-    players.forEach(player => {
-      const existing = existingStats?.find(s => s.playerId === player.id);
-      this.playerStats.set(player.id, existing || {
-        playerId: player.id,
-        gamesPlayed: 0,
-        gamesSatOut: 0,
-        partners: {},
-        totalScore: 0,
-      });
+    players.forEach((player) => {
+      const existingStats = liveSession.playerStats.find(
+        (s) => s.playerId === player.id,
+      );
+      this.playerStats.set(
+        player.id,
+        existingStats || {
+          playerId: player.id,
+          gamesPlayed: 0,
+          gamesSatOut: 0,
+          partners: {},
+          totalScore: 0,
+        },
+      );
     });
   }
 
-  generateGameAssignments(sittingOut?: Player[]): GameAssignment[] {
+  // Method to set the callback from the React component
+  public setOnUpdate(callback: () => void) {
+    this.onUpdate = callback;
+  }
+
+  public generateGameAssignments(sittingOut?: Player[]): GameAssignment[] {
     const assignments: GameAssignment[] = [];
     const availablePlayers = [...this.players];
     const playersPerGame = this.courts.length * 4;
 
     // Step 1: Determine who sits out (Equal playing time - Priority #2)
     if (!sittingOut) {
-      sittingOut = this.selectSittingOutPlayers(availablePlayers, playersPerGame);
+      sittingOut = this.selectSittingOutPlayers(
+        availablePlayers,
+        playersPerGame,
+      );
     }
-    const playingPlayers = availablePlayers.filter(p => !sittingOut.includes(p));
+    const playingPlayers = availablePlayers.filter(
+      (p) => !sittingOut.includes(p),
+    );
 
     // Step 2: Assign players to courts based on rating requirements (Priority #1)
     const courtAssignments = this.assignPlayersToCourts(playingPlayers);
@@ -68,7 +84,73 @@ export class SessionRoundManager {
     return assignments;
   }
 
-  private selectSittingOutPlayers(players: Player[], neededPlayers: number): Player[] {
+  public updatePlayerStatsForGame(
+    game: Game,
+    score?: { serveScore: number; receiveScore: number },
+  ): void {
+    const allGamePlayerIds = [
+      game.serveTeam.player1Id,
+      game.serveTeam.player2Id,
+      game.receiveTeam.player1Id,
+      game.receiveTeam.player2Id,
+    ];
+
+    // Update stats for playing players
+    allGamePlayerIds.forEach((playerId) => {
+      const stats = this.playerStats.get(playerId);
+
+      if (!stats) {
+        console.warn(`No stats found for player ${playerId}`);
+        return;
+      }
+
+      const mutableStats = {
+        ...stats,
+        partners: { ...stats.partners },
+      };
+      mutableStats.gamesPlayed++;
+
+      // Update partnership counts - only with actual teammate
+      const teammateId = this.getTeammateId(game, playerId);
+      if (teammateId) {
+        mutableStats.partners[teammateId] =
+          (mutableStats.partners[teammateId] || 0) + 1;
+      }
+
+      // Update score if provided
+      if (score) {
+        const playerScore = this.getPlayerScore(game, playerId, score);
+        mutableStats.totalScore += playerScore;
+      }
+      this.playerStats.set(playerId, mutableStats);
+    });
+
+    // Update sit-out stats
+    game.sittingOutIds.forEach((playerId) => {
+      const stats = this.playerStats.get(playerId);
+      if (stats) {
+        const mutableStats = { ...stats };
+        mutableStats.gamesSatOut++;
+        this.playerStats.set(playerId, mutableStats);
+      }
+    });
+
+    // Debug logging
+    console.info(
+      "Updated player stats:",
+      this.getPlayerStats().map((s) => ({
+        playerId: s.playerId,
+        gamesPlayed: s.gamesPlayed,
+        gamesSatOut: s.gamesSatOut,
+        partnerships: Object.keys(s.partners).length,
+      })),
+    );
+  }
+
+  private selectSittingOutPlayers(
+    players: Player[],
+    neededPlayers: number,
+  ): Player[] {
     if (players.length <= neededPlayers) return [];
 
     const sittingOutCount = players.length - neededPlayers;
@@ -108,7 +190,9 @@ export class SessionRoundManager {
   }
 
   private assignPlayersToCourts(playingPlayers: Player[]): Player[][] {
-    const courtAssignments: Player[][] = Array(this.courts.length).fill(null).map(() => []);
+    const courtAssignments: Player[][] = Array(this.courts.length)
+      .fill(null)
+      .map(() => []);
     const remainingPlayers = this.shuffleArray(playingPlayers);
 
     // TODO: it looks to me that we'll have to sort the courts by minimum
@@ -119,8 +203,8 @@ export class SessionRoundManager {
     this.courts.forEach((court, courtIndex) => {
       if (court.minimumRating && remainingPlayers.length >= 4) {
         // Get players who meet the rating requirement
-        const eligiblePlayers = remainingPlayers.filter(player =>
-          player.rating && player.rating >= court.minimumRating!
+        const eligiblePlayers = remainingPlayers.filter(
+          (player) => player.rating && player.rating >= court.minimumRating!,
         );
 
         if (eligiblePlayers.length >= 4) {
@@ -132,7 +216,7 @@ export class SessionRoundManager {
           courtAssignments[courtIndex] = courtPlayers;
 
           // Remove assigned players from remaining pool
-          courtPlayers.forEach(player => {
+          courtPlayers.forEach((player) => {
             const index = remainingPlayers.indexOf(player);
             if (index > -1) remainingPlayers.splice(index, 1);
           });
@@ -143,7 +227,10 @@ export class SessionRoundManager {
     // Step 2: Assign remaining players to unfilled courts
     let playerIndex = 0;
     this.courts.forEach((court, courtIndex) => {
-      while (courtAssignments[courtIndex].length < 4 && playerIndex < remainingPlayers.length) {
+      while (
+        courtAssignments[courtIndex].length < 4 &&
+        playerIndex < remainingPlayers.length
+      ) {
         courtAssignments[courtIndex].push(remainingPlayers[playerIndex]);
         playerIndex++;
       }
@@ -152,12 +239,15 @@ export class SessionRoundManager {
     return courtAssignments;
   }
 
-  private assignTeamsForCourt(players: Player[], court: Court): {
+  private assignTeamsForCourt(
+    players: Player[],
+    court: Court,
+  ): {
     serveTeam: [Player, Player];
     receiveTeam: [Player, Player];
   } {
     // If we have ratings for all players, try to balance teams
-    const allHaveRatings = players.every(p => p.rating !== undefined);
+    const allHaveRatings = players.every((p) => p.rating !== undefined);
 
     if (allHaveRatings && court.minimumRating) {
       return this.createBalancedTeams(players);
@@ -176,7 +266,7 @@ export class SessionRoundManager {
     let bestBalance = {
       difference: Infinity,
       diversityScore: -Infinity,
-      teams: null as any
+      teams: null as any,
     };
 
     combinations.forEach(({ team1, team2 }) => {
@@ -186,18 +276,21 @@ export class SessionRoundManager {
       const ratingDifference = Math.abs(team1Rating - team2Rating);
 
       // Calculate partner diversity score (higher is better)
-      const diversityScore = this.getPartnershipScore(team1[0], team1[1]) +
+      const diversityScore =
+        this.getPartnershipScore(team1[0], team1[1]) +
         this.getPartnershipScore(team2[0], team2[1]);
 
       // Prefer rating balance, but use diversity as tiebreaker
-      const isBetter = ratingDifference < bestBalance.difference ||
-        (ratingDifference === bestBalance.difference && diversityScore > bestBalance.diversityScore);
+      const isBetter =
+        ratingDifference < bestBalance.difference ||
+        (ratingDifference === bestBalance.difference &&
+          diversityScore > bestBalance.diversityScore);
 
       if (isBetter) {
         bestBalance = {
           difference: ratingDifference,
           diversityScore,
-          teams: { team1, team2 }
+          teams: { team1, team2 },
         };
       }
     });
@@ -243,13 +336,15 @@ export class SessionRoundManager {
     for (let i = 0; i < players.length - 1; i++) {
       for (let j = i + 1; j < players.length; j++) {
         const team1 = [players[i], players[j]];
-        const remaining = players.filter((_, index) => index !== i && index !== j);
+        const remaining = players.filter(
+          (_, index) => index !== i && index !== j,
+        );
 
         if (remaining.length >= 2) {
           const team2 = [remaining[0], remaining[1]];
           combinations.push({
             team1: team1 as [Player, Player],
-            team2: team2 as [Player, Player]
+            team2: team2 as [Player, Player],
           });
         }
       }
@@ -263,62 +358,6 @@ export class SessionRoundManager {
     const timesPartnered = stats1.partners[player2.id] || 0;
     // Return negative score so that fewer partnerships = higher score for diversity
     return -timesPartnered;
-  }
-
-  updatePlayerStatsForGame(game: Game, score?: { serveScore: number; receiveScore: number }): void {
-    const allGamePlayerIds = [
-      game.serveTeam.player1Id,
-      game.serveTeam.player2Id,
-      game.receiveTeam.player1Id,
-      game.receiveTeam.player2Id,
-    ];
-
-    // Update stats for playing players
-    allGamePlayerIds.forEach(playerId => {
-      const stats = this.playerStats.get(playerId);
-
-      if (!stats) {
-        console.warn(`No stats found for player ${playerId}`);
-        return;
-      }
-
-      const mutableStats = {
-        ...stats,
-        partners: { ...stats.partners }
-      };
-      mutableStats.gamesPlayed++;
-
-      // Update partnership counts - only with actual teammate
-      const teammateId = this.getTeammateId(game, playerId);
-      if (teammateId) {
-        mutableStats.partners[teammateId] = (mutableStats.partners[teammateId] || 0) + 1;
-      }
-
-      // Update score if provided
-      if (score) {
-        const playerScore = this.getPlayerScore(game, playerId, score);
-        mutableStats.totalScore += playerScore;
-      }
-      this.playerStats.set(playerId, mutableStats);
-    });
-
-    // Update sit-out stats
-    game.sittingOutIds.forEach(playerId => {
-      const stats = this.playerStats.get(playerId);
-      if (stats) {
-        const mutableStats = { ...stats };
-        mutableStats.gamesSatOut++;
-        this.playerStats.set(playerId, mutableStats);
-      }
-    });
-
-    // Debug logging
-    console.log('Updated player stats:', this.getPlayerStats().map(s => ({
-      playerId: s.playerId,
-      gamesPlayed: s.gamesPlayed,
-      gamesSatOut: s.gamesSatOut,
-      partnerships: Object.keys(s.partners).length
-    })));
   }
 
   private getTeammateId(game: Game, playerId: string): string | null {
@@ -335,124 +374,148 @@ export class SessionRoundManager {
     return null;
   }
 
-  private getPlayerScore(game: Game, playerId: string, score: { serveScore: number; receiveScore: number }): number {
-    const isOnServeTeam = game.serveTeam.player1Id === playerId || game.serveTeam.player2Id === playerId;
+  private getPlayerScore(
+    game: Game,
+    playerId: string,
+    score: { serveScore: number; receiveScore: number },
+  ): number {
+    const isOnServeTeam =
+      game.serveTeam.player1Id === playerId ||
+      game.serveTeam.player2Id === playerId;
     return isOnServeTeam ? score.serveScore : score.receiveScore;
   }
 
   // This is the key method - it returns the current stats
-  getPlayerStats(): PlayerStats[] {
+  public getPlayerStats(): PlayerStats[] {
     return Array.from(this.playerStats.values());
   }
 
   // Method to sync stats from external source (Redux store)
-  syncPlayerStats(externalStats: PlayerStats[]): void {
-    externalStats.forEach(stats => {
-      this.playerStats.set(stats.playerId, { ...stats });
-    });
-  }
+  // syncPlayerStats(externalStats: PlayerStats[]): void {
+  //   externalStats.forEach((stats) => {
+  //     this.playerStats.set(stats.playerId, { ...stats });
+  //   });
+  // }
 
-  getTeamBalance(team1: Player[], team2: Player[]): TeamBalance | null {
-    if (!team1.every(p => p.rating) || !team2.every(p => p.rating)) {
-      return null;
-    }
-
-    const team1Rating = team1.reduce((sum, p) => sum + p.rating!, 0) / team1.length;
-    const team2Rating = team2.reduce((sum, p) => sum + p.rating!, 0) / team2.length;
-
-    return {
-      team1Rating,
-      team2Rating,
-      difference: Math.abs(team1Rating - team2Rating),
-    };
-  }
+  // getTeamBalance(team1: Player[], team2: Player[]): TeamBalance | null {
+  //   if (!team1.every((p) => p.rating) || !team2.every((p) => p.rating)) {
+  //     return null;
+  //   }
+  //
+  //   const team1Rating =
+  //     team1.reduce((sum, p) => sum + p.rating!, 0) / team1.length;
+  //   const team2Rating =
+  //     team2.reduce((sum, p) => sum + p.rating!, 0) / team2.length;
+  //
+  //   return {
+  //     team1Rating,
+  //     team2Rating,
+  //     difference: Math.abs(team1Rating - team2Rating),
+  //   };
+  // }
 
   // Statistical methods for analysis
-  getSessionStats(): {
-    totalGames: number;
-    averageGamesPerPlayer: number;
-    averageSitOutsPerPlayer: number;
-    mostActivePlayer: string | null;
-    fairnessScore: number; // 0-1, where 1 is perfectly fair
-  } {
-    const stats = this.getPlayerStats();
-    const totalGames = Math.max(...stats.map(s => s.gamesPlayed + s.gamesSatOut), 0);
-    const averageGamesPerPlayer = stats.length > 0
-      ? stats.reduce((sum, s) => sum + s.gamesPlayed, 0) / stats.length
-      : 0;
-    const averageSitOutsPerPlayer = stats.length > 0
-      ? stats.reduce((sum, s) => sum + s.gamesSatOut, 0) / stats.length
-      : 0;
-
-    // Find most active player
-    const mostActive = stats.reduce((max, current) =>
-      current.gamesPlayed > max.gamesPlayed ? current : max,
-      stats[0] || { gamesPlayed: 0, playerId: null }
-    );
-
-    // Calculate fairness score based on standard deviation of games played
-    const gamesPlayedArray = stats.map(s => s.gamesPlayed);
-    const mean = averageGamesPerPlayer;
-    const variance = gamesPlayedArray.length > 0
-      ? gamesPlayedArray.reduce((sum, games) => sum + Math.pow(games - mean, 2), 0) / gamesPlayedArray.length
-      : 0;
-    const stdDev = Math.sqrt(variance);
-
-    // Fairness score: closer to 0 standard deviation = closer to 1 fairness
-    const fairnessScore = Math.max(0, 1 - (stdDev / (mean || 1)));
-
-    return {
-      totalGames,
-      averageGamesPerPlayer,
-      averageSitOutsPerPlayer,
-      mostActivePlayer: mostActive.playerId,
-      fairnessScore,
-    };
-  }
+  // getSessionStats(): {
+  //   totalGames: number;
+  //   averageGamesPerPlayer: number;
+  //   averageSitOutsPerPlayer: number;
+  //   mostActivePlayer: string | null;
+  //   fairnessScore: number; // 0-1, where 1 is perfectly fair
+  // } {
+  //   const stats = this.getPlayerStats();
+  //   const totalGames = Math.max(
+  //     ...stats.map((s) => s.gamesPlayed + s.gamesSatOut),
+  //     0,
+  //   );
+  //   const averageGamesPerPlayer =
+  //     stats.length > 0
+  //       ? stats.reduce((sum, s) => sum + s.gamesPlayed, 0) / stats.length
+  //       : 0;
+  //   const averageSitOutsPerPlayer =
+  //     stats.length > 0
+  //       ? stats.reduce((sum, s) => sum + s.gamesSatOut, 0) / stats.length
+  //       : 0;
+  //
+  //   // Find most active player
+  //   const mostActive = stats.reduce(
+  //     (max, current) => (current.gamesPlayed > max.gamesPlayed ? current : max),
+  //     stats[0] || { gamesPlayed: 0, playerId: null },
+  //   );
+  //
+  //   // Calculate fairness score based on standard deviation of games played
+  //   const gamesPlayedArray = stats.map((s) => s.gamesPlayed);
+  //   const mean = averageGamesPerPlayer;
+  //   const variance =
+  //     gamesPlayedArray.length > 0
+  //       ? gamesPlayedArray.reduce(
+  //           (sum, games) => sum + Math.pow(games - mean, 2),
+  //           0,
+  //         ) / gamesPlayedArray.length
+  //       : 0;
+  //   const stdDev = Math.sqrt(variance);
+  //
+  //   // Fairness score: closer to 0 standard deviation = closer to 1 fairness
+  //   const fairnessScore = Math.max(0, 1 - stdDev / (mean || 1));
+  //
+  //   return {
+  //     totalGames,
+  //     averageGamesPerPlayer,
+  //     averageSitOutsPerPlayer,
+  //     mostActivePlayer: mostActive.playerId,
+  //     fairnessScore,
+  //   };
+  // }
 
   // Debugging and validation methods
-  validateAssignments(assignments: GameAssignment[]): {
-    isValid: boolean;
-    errors: string[];
-  } {
-    const errors: string[] = [];
-    const allAssignedPlayerIds = new Set<string>();
-
-    assignments.forEach((assignment, index) => {
-      // Check that each court has exactly 4 players
-      const courtPlayerIds = [
-        ...Object.values(assignment.serveTeam),
-        ...Object.values(assignment.receiveTeam)
-      ].map(p => p.id);
-
-      if (courtPlayerIds.length !== 4) {
-        errors.push(`Court ${index + 1} has ${courtPlayerIds.length} players instead of 4`);
-      }
-
-      // Check for duplicate players across courts
-      courtPlayerIds.forEach(playerId => {
-        if (allAssignedPlayerIds.has(playerId)) {
-          errors.push(`Player ${playerId} is assigned to multiple courts`);
-        }
-        allAssignedPlayerIds.add(playerId);
-      });
-
-      // Check court rating requirements
-      if (assignment.court.minimumRating) {
-        const playersWithLowRating = [
-          ...Object.values(assignment.serveTeam),
-          ...Object.values(assignment.receiveTeam)
-        ].filter(player => !player.rating || player.rating < assignment.court.minimumRating!);
-
-        if (playersWithLowRating.length > 0) {
-          errors.push(`Court ${index + 1} has players below minimum rating requirement`);
-        }
-      }
-    });
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
-  }
+  // validateAssignments(assignments: GameAssignment[]): {
+  //   isValid: boolean;
+  //   errors: string[];
+  // } {
+  //   const errors: string[] = [];
+  //   const allAssignedPlayerIds = new Set<string>();
+  //
+  //   assignments.forEach((assignment, index) => {
+  //     // Check that each court has exactly 4 players
+  //     const courtPlayerIds = [
+  //       ...Object.values(assignment.serveTeam),
+  //       ...Object.values(assignment.receiveTeam),
+  //     ].map((p) => p.id);
+  //
+  //     if (courtPlayerIds.length !== 4) {
+  //       errors.push(
+  //         `Court ${index + 1} has ${courtPlayerIds.length} players instead of 4`,
+  //       );
+  //     }
+  //
+  //     // Check for duplicate players across courts
+  //     courtPlayerIds.forEach((playerId) => {
+  //       if (allAssignedPlayerIds.has(playerId)) {
+  //         errors.push(`Player ${playerId} is assigned to multiple courts`);
+  //       }
+  //       allAssignedPlayerIds.add(playerId);
+  //     });
+  //
+  //     // Check court rating requirements
+  //     if (assignment.court.minimumRating) {
+  //       const playersWithLowRating = [
+  //         ...Object.values(assignment.serveTeam),
+  //         ...Object.values(assignment.receiveTeam),
+  //       ].filter(
+  //         (player) =>
+  //           !player.rating || player.rating < assignment.court.minimumRating!,
+  //       );
+  //
+  //       if (playersWithLowRating.length > 0) {
+  //         errors.push(
+  //           `Court ${index + 1} has players below minimum rating requirement`,
+  //         );
+  //       }
+  //     }
+  //   });
+  //
+  //   return {
+  //     isValid: errors.length === 0,
+  //     errors,
+  //   };
+  // }
 }

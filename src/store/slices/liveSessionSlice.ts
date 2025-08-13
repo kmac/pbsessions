@@ -3,13 +3,13 @@ import { LiveSession, Court, Game, PlayerStats, GameAssignment } from '@/src/typ
 // import { Alert } from '@/src/utils/alert';
 
 interface LiveSessionState {
-  currentLiveSession: LiveSession | null;
+  liveSession: LiveSession | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: LiveSessionState = {
-  currentLiveSession: null,
+  liveSession: null,
   loading: false,
   error: null,
 };
@@ -35,6 +35,32 @@ function convertAssignmentsToGames(liveSession: LiveSession, assignments: GameAs
   return newGames;
 }
 
+
+const playerStatsToString = (stats: PlayerStats[]): string => {
+  if (!stats || stats.length === 0) {
+    return "No player statistics available.";
+  }
+  const lines: string[] = ["=== Player Statistics ==="];
+  stats.forEach((pstat, index) => {
+    lines.push(`Player ${index + 1}: ${pstat.playerId}`);
+    lines.push(`  Games Played: ${pstat.gamesPlayed}`);
+    lines.push(`  Games Sat Out: ${pstat.gamesSatOut}`);
+    lines.push(`  Total Score: ${pstat.totalScore}`);
+
+    // Show partners and game counts
+    const partnerEntries = Object.entries(pstat.partners);
+    if (partnerEntries.length > 0) {
+      lines.push(`  Partners:`);
+      partnerEntries.forEach(([partnerId, gameCount]) => {
+        lines.push(`    ${partnerId}: ${gameCount} games`);
+      });
+    } else {
+      lines.push(`  Partners: None`);
+    }
+  });
+  return lines.join("\n");
+}
+
 // Note on createSlice:
 // A function that accepts an initial state, an object full of reducer
 // functions, and a "slice name", and automatically generates action creators
@@ -49,49 +75,49 @@ const liveSessionSlice = createSlice({
   initialState,
   reducers: {
     setLiveSession: (state, action: PayloadAction<LiveSession>) => {
-      state.currentLiveSession = action.payload;
+      state.liveSession = action.payload;
     },
     updateCourts: (state, action: PayloadAction<Court[]>) => {
-      if (!state.currentLiveSession) {
+      if (!state.liveSession) {
         return;
       }
-      state.currentLiveSession.courts = action.payload;
+      state.liveSession.courts = action.payload;
     },
     updateGames: (state, action: PayloadAction<Game[]>) => {
-      if (!state.currentLiveSession) {
+      if (!state.liveSession) {
         return;
       }
       // replace the activeGames array with the new games
-      state.currentLiveSession.activeGames = action.payload;
+      state.liveSession.activeGames = action.payload;
     },
     generateNextRound: (state, action: PayloadAction<{ assignments: GameAssignment[] }>) => {
-      if (!state.currentLiveSession) {
+      if (!state.liveSession) {
         return;
       }
-      const newGames: Game[] = convertAssignmentsToGames(state.currentLiveSession, action.payload.assignments);
-      state.currentLiveSession.activeGames = newGames;
+      const newGames: Game[] = convertAssignmentsToGames(state.liveSession, action.payload.assignments);
+      state.liveSession.activeGames = newGames;
     },
     startRound: (state) => {
-      if (!state.currentLiveSession) {
+      if (!state.liveSession) {
         return;
       }
       const now = new Date().toISOString();
 
       // Mark all games in the round as started
-      state.currentLiveSession.activeGames.forEach(game => {
+      state.liveSession.activeGames.forEach(game => {
         game.startedAt = now;
       });
     },
     completeRound: (state, action: PayloadAction<{
       scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }
     }>) => {
-      if (!state.currentLiveSession) {
+      if (!state.liveSession) {
         return;
       }
       const now = new Date().toISOString();
 
       // Mark all games as completed and apply scores
-      state.currentLiveSession.activeGames.forEach(game => {
+      state.liveSession.activeGames.forEach(game => {
         game.isCompleted = true;
         game.completedAt = now;
 
@@ -102,23 +128,25 @@ const liveSessionSlice = createSlice({
       });
 
       // Increment the round number for the next round
-      state.currentLiveSession.currentGameNumber += 1;
+      state.liveSession.currentGameNumber += 1;
     },
     updatePlayerStats: (state, action: PayloadAction<PlayerStats[]>) => {
-      if (!state.currentLiveSession) return;
+      if (!state.liveSession) {
+        return;
+      }
       console.log(`updatePlayerStats: ${action.payload}`);
-      state.currentLiveSession.playerStats = action.payload;
+      state.liveSession.playerStats = action.payload;
     },
     endLiveSession: (state) => {
-      state.currentLiveSession = null;
+      state.liveSession = null;
     },
     updateGameScore: (state, action: PayloadAction<{
       gameId: string;
       score: { serveScore: number; receiveScore: number }
     }>) => {
-      if (!state.currentLiveSession) return;
+      if (!state.liveSession) { return };
 
-      const game = state.currentLiveSession.activeGames.find(g => g.id === action.payload.gameId);
+      const game = state.liveSession.activeGames.find(g => g.id === action.payload.gameId);
       if (game) {
         game.score = action.payload.score;
       }
