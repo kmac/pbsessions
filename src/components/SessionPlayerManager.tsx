@@ -14,6 +14,7 @@ import {
   Divider,
   IconButton,
   Searchbar,
+  SegmentedButtons,
   Surface,
   useTheme,
 } from "react-native-paper";
@@ -348,7 +349,7 @@ export default function SessionPlayerManager({
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
 
-  // TODO change this component to use SegmentedButtons as in GroupPlayerManager 
+  // TODO change this component to use SegmentedButtons as in GroupPlayerManager
   const [viewMode, setViewMode] = useState<ViewMode>("groups");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -545,57 +546,28 @@ export default function SessionPlayerManager({
       <SafeAreaView style={styles.container}>
         <Appbar.Header>
           <Appbar.BackAction onPress={onClose} />
-          <Appbar.Content title="Select Players for Session" >
-        {/*
-            <View style={styles.headerInfo}>
-              <Text style={styles.title}>
-                Select Players for Session
-              </Text>
-              <Text style={styles.subtitle}>
-                {selectedPlayers.length} player
-                {selectedPlayers.length !== 1 ? "s" : ""} selected
-              </Text>
-            </View>
-        */}
+          <Appbar.Content title="Select Players for Session">
           </Appbar.Content>
-        {/*
-          <Button
-            style={{ marginRight: 8 }}
-            icon="cancel"
-            mode="outlined"
-            onPress={onCancel}
-          >Cancel</Button>
-          <Button
-            style={{ marginRight: 8 }}
-            icon="content-save"
-            mode="contained"
-            onPress={handleSave}
-          >Save</Button>
-        */}
         </Appbar.Header>
 
-        {/*
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X
-              size={24}
-              //color={colors.text}
-            />
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={styles.title}>
-              Select Players for Session
-            </Text>
-            <Text style={styles.subtitle}>
-              {selectedPlayers.length} player
-              {selectedPlayers.length !== 1 ? "s" : ""} selected
-            </Text>
-          </View>
-          <View style={styles.placeholder} />
-        </View>
-        */}
+        <SegmentedButtons
+          value={viewMode}
+          onValueChange={(value) => setViewMode(value as ViewMode)}
+          buttons={[
+            {
+              value: 'groups',
+              label: `Groups (${groups.length})`,
+              icon: 'account-multiple-outline'
+            },
+            {
+              value: 'players',
+              label: `Individual (${players.length})`,
+              icon: 'account-outline'
+            }
+          ]}
+          style={{ margin: 16 }}
+        />
 
-        <ViewModeSelector />
 
         {viewMode === "players" && (
           <View style={styles.searchContainer}>
