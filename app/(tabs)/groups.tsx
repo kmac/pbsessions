@@ -144,23 +144,23 @@ export default function GroupsTab() {
         <Card.Actions style={{ justifyContent: 'space-between' }}>
           <Button
             icon="account-multiple-plus-outline"
-            mode="outlined"
+                mode="contained-tonal"
             onPress={() => handleManagePlayers(item)}
           >
             {groupPlayers.length === 0 ? 'Add Players' : 'Manage Players'}
           </Button>
 
           <View style={{ flexDirection: 'row', gap: 4 }}>
-            <IconButton
+            <Button
               icon="pencil"
-              size={20}
+              mode="elevated"
               onPress={() => handleEditGroup(item)}
-            />
-            <IconButton
+            >Edit</Button>
+            <Button
               icon="delete"
-              size={20}
+              mode="elevated"
               onPress={() => handleDeleteGroup(item)}
-            />
+            >Delete</Button>
           </View>
         </Card.Actions>
       </Card>
