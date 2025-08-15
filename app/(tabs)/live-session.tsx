@@ -286,7 +286,7 @@ export default function LiveSessionScreen() {
 
       {/* TODO remove this?  it must be in the uppper level */}
       <Appbar.Header>
-        <Appbar.BackAction onPress={() => router.back()} />
+        {/*<Appbar.BackAction onPress={() => router.back()} />*/}
         <Appbar.Content
           title={`Live Session: ${session.name}`}
         />

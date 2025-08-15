@@ -1,12 +1,7 @@
-import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  Modal,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import React, { useState } from "react";
+import { View, StyleSheet, FlatList, Modal } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import {
   Button,
   Card,
@@ -17,23 +12,23 @@ import {
   Surface,
   Text,
   useTheme,
-} from 'react-native-paper';
-import { useAppDispatch, useAppSelector } from '@/src/store';
+} from "react-native-paper";
+import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
   addSession,
   archiveSession,
   updateSession,
   removeSession,
-  startLiveSession
-} from '@/src/store/slices/sessionsSlice';
+  startLiveSession,
+} from "@/src/store/slices/sessionsSlice";
 import {
   setLiveSession,
   updateCourts,
-} from '@/src/store/slices/liveSessionSlice';
-import { Session, SessionState } from '@/src/types';
-import ArchivedSessions from '@/src/components/ArchivedSessions';
-import SessionFormModal from '@/src/components/SessionFormModal';
-import { Alert } from '@/src/utils/alert'
+} from "@/src/store/slices/liveSessionSlice";
+import { Session, SessionState } from "@/src/types";
+import ArchivedSessions from "@/src/components/ArchivedSessions";
+import SessionFormModal from "@/src/components/SessionFormModal";
+import { Alert } from "@/src/utils/alert";
 
 export default function SessionsTab() {
   const theme = useTheme();
@@ -41,36 +36,39 @@ export default function SessionsTab() {
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
-  const { liveSession: currentSession } = useAppSelector((state) => state.liveSession);
+  const { liveSession: currentSession } = useAppSelector(
+    (state) => state.liveSession,
+  );
 
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
 
   // TODO rationalize with SessionState
-  const isSessionLive = (sessionId: string) => currentSession ? sessionId === currentSession.sessionId : false;
+  const isSessionLive = (sessionId: string) =>
+    currentSession ? sessionId === currentSession.sessionId : false;
 
   const handleDeleteSession = (session: Session) => {
     if (isSessionLive(session.id)) {
       Alert.alert(
-        'Cannot Delete',
-        'Cannot delete a live session. End the session first.',
-        [{ text: 'OK' }]
+        "Cannot Delete",
+        "Cannot delete a live session. End the session first.",
+        [{ text: "OK" }],
       );
       return;
     }
 
     Alert.alert(
-      'Delete Session',
+      "Delete Session",
       `Are you sure you want to delete "${session.name}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: () => dispatch(removeSession(session.id)),
         },
-      ]
+      ],
     );
   };
 
@@ -95,9 +93,9 @@ export default function SessionsTab() {
     // }
     if (editingSession) {
       Alert.alert(
-        'Cannot Edit',
-        'Cannot edit a live session. End the session first.',
-        [{ text: 'OK' }]
+        "Cannot Edit",
+        "Cannot edit a live session. End the session first.",
+        [{ text: "OK" }],
       );
       return;
     }
@@ -107,27 +105,27 @@ export default function SessionsTab() {
   const handleStartLiveSession = (session: Session) => {
     if (session.playerIds.length < 4) {
       Alert.alert(
-        'Not Enough Players',
-        'Need at least 4 players to start a live session.',
-        [{ text: 'OK' }]
+        "Not Enough Players",
+        "Need at least 4 players to start a live session.",
+        [{ text: "OK" }],
       );
       return;
     }
 
-    const activeCourts = session.courts.filter(c => c.isActive);
+    const activeCourts = session.courts.filter((c) => c.isActive);
     const minPlayersNeeded = activeCourts.length * 4;
 
     if (session.playerIds.length < minPlayersNeeded) {
       Alert.alert(
-        'Not Enough Players',
+        "Not Enough Players",
         `Need at least ${minPlayersNeeded} players for ${activeCourts.length} active courts.`,
         [
           {
-            text: 'Adjust Courts',
+            text: "Adjust Courts",
             onPress: () => handleEditSession(session),
           },
-          { text: 'Cancel', style: 'cancel' },
-        ]
+          { text: "Cancel", style: "cancel" },
+        ],
       );
       return;
     }
@@ -137,26 +135,28 @@ export default function SessionsTab() {
 
     // Instantiate a new LiveSession:
     //
-    dispatch(setLiveSession({
-      sessionId: session.id,
-      currentGameNumber: 1,
-      courts: [...session.courts],
-      activeGames: [],
-      playerStats: [],
-      isActive: true,
-      scoring: true,
-      showRatings: true
-    }));
+    dispatch(
+      setLiveSession({
+        sessionId: session.id,
+        currentGameNumber: 1,
+        courts: [...session.courts],
+        activeGames: [],
+        playerStats: [],
+        isActive: true,
+        scoring: true,
+        showRatings: true,
+      }),
+    );
 
-    router.push('/live-session');
+    router.push("/live-session");
   };
 
   const handleArchiveSession = (session: Session) => {
     if (isSessionLive(session.id)) {
       Alert.alert(
-        'Cannot Archive',
-        'Cannot archive a live session. End the session first.',
-        [{ text: 'OK' }]
+        "Cannot Archive",
+        "Cannot archive a live session. End the session first.",
+        [{ text: "OK" }],
       );
       return;
     }
@@ -164,36 +164,40 @@ export default function SessionsTab() {
   };
 
   const navigateToGroups = () => {
-    router.push('/groups');
+    router.push("/groups");
   };
 
   const navigateToPlayers = () => {
-    router.push('/');
+    router.push("/");
   };
 
   const getSessionPlayers = (session: Session) => {
-    return players.filter(player => session.playerIds.includes(player.id));
+    return players.filter((player) => session.playerIds.includes(player.id));
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
     });
   };
 
-  function handleSaveSession(sessionData: Session | Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>) {
+  function handleSaveSession(
+    sessionData:
+      | Session
+      | Omit<Session, "id" | "state" | "createdAt" | "updatedAt">,
+  ) {
     if (editingSession) {
       const data = sessionData as Session;
       dispatch(updateSession(data));
@@ -201,30 +205,37 @@ export default function SessionsTab() {
         dispatch(updateCourts(data.courts));
       }
     } else {
-      dispatch(addSession(sessionData as Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>));
+      dispatch(
+        addSession(
+          sessionData as Omit<
+            Session,
+            "id" | "state" | "createdAt" | "updatedAt"
+          >,
+        ),
+      );
     }
     closeEditSessionModal();
-  };
+  }
 
   function isUnstarted(session: Session) {
     return session.state === SessionState.Unstarted;
-  };
+  }
 
   function isLive(session: Session) {
     return session.state === SessionState.Live;
-  };
+  }
 
   function isComplete(session: Session) {
     return session.state === SessionState.Complete;
-  };
+  }
 
   function isArchived(session: Session) {
     return session.state === SessionState.Archived;
-  };
+  }
 
   const renderSession = ({ item }: { item: Session }) => {
     const sessionPlayers = getSessionPlayers(item);
-    const activeCourts = item.courts.filter(c => c.isActive);
+    const activeCourts = item.courts.filter((c) => c.isActive);
     const isCurrentLive = isSessionLive(item.id);
 
     return (
@@ -234,7 +245,7 @@ export default function SessionsTab() {
           isCurrentLive && {
             borderLeftWidth: 4,
             borderLeftColor: theme.colors.tertiary,
-          }
+          },
         ]}
       >
         <Card.Content>
@@ -242,11 +253,11 @@ export default function SessionsTab() {
             <Chip
               icon="record"
               style={{
-                alignSelf: 'flex-start',
+                alignSelf: "flex-start",
                 marginBottom: 12,
-                backgroundColor: theme.colors.tertiary
+                backgroundColor: theme.colors.inversePrimary,
               }}
-              textStyle={{ color: theme.colors.onTertiary, fontWeight: 'bold' }}
+              textStyle={{ color: theme.colors.primary, fontWeight: "bold" }}
               compact={true}
             >
               LIVE
@@ -254,33 +265,46 @@ export default function SessionsTab() {
           )}
 
           <View style={{ marginBottom: 12 }}>
-            <Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 8 }}>
+            <Text
+              variant="titleMedium"
+              style={{ fontWeight: "600", marginBottom: 8 }}
+            >
               {isComplete(item) ? `${item.name} (Complete)` : item.name}
             </Text>
-            <View style={{ flexDirection: 'row', gap: 16 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <View style={{ flexDirection: "row", gap: 16 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              >
                 <Icon source="calendar" size={14} />
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
                   {formatDate(item.dateTime)}
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              >
                 <Icon source="clock-outline" size={14} />
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
                   {formatTime(item.dateTime)}
                 </Text>
               </View>
             </View>
           </View>
 
-          <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
+          <View style={{ flexDirection: "row", marginBottom: 12, gap: 8 }}>
             <Chip icon="account-group" compact={true}>
               {sessionPlayers.length} players
             </Chip>
             <Chip icon="map-marker-outline" compact={true}>
               {activeCourts.length} courts
             </Chip>
-            {activeCourts.some(c => c.minimumRating) && (
+            {activeCourts.some((c) => c.minimumRating) && (
               <Chip icon="cog-outline" compact={true}>
                 Rated
               </Chip>
@@ -293,7 +317,7 @@ export default function SessionsTab() {
                 variant="labelMedium"
                 style={{
                   color: theme.colors.onSurfaceVariant,
-                  marginBottom: 4
+                  marginBottom: 4,
                 }}
               >
                 Players:
@@ -303,20 +327,21 @@ export default function SessionsTab() {
                 numberOfLines={2}
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
-                {sessionPlayers.sort((a, b) => a.name.localeCompare(b.name))
-                  .map(p => p.name)
-                  .join(', ')}
+                {sessionPlayers
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((p) => p.name)
+                  .join(", ")}
               </Text>
             </View>
           )}
         </Card.Content>
 
-        <Card.Actions style={{ justifyContent: 'space-between' }}>
+        <Card.Actions style={{ justifyContent: "space-between" }}>
           {isLive(item) && (
             <Button
               icon="play"
               mode="contained"
-              onPress={() => router.push('/live-session')}
+              onPress={() => router.push("/live-session")}
             >
               Continue Live Session
             </Button>
@@ -330,30 +355,40 @@ export default function SessionsTab() {
               Start Session
             </Button>
           )}
-          <View style={{ flexDirection: 'row', gap: 2 }}>
+          <View style={{ flexDirection: "row", gap: 2 }}>
             {!isLive(item) && !isArchived(item) && (
               <Button
                 icon="archive"
                 mode="text"
                 disabled={true}
-                onPress={() => { }}
-              >View</Button>
+                onPress={() => {}}
+              >
+                View
+              </Button>
             )}
-            {/*!isComplete(item) &&*/ <Button
-              icon="pencil"
-              mode="text"
-              onPress={() => handleEditSession(item)}
-            >Edit</Button>}
+            {
+              /*!isComplete(item) &&*/ <Button
+                icon="pencil"
+                mode="text"
+                onPress={() => handleEditSession(item)}
+              >
+                Edit
+              </Button>
+            }
             <Button
               icon="archive"
               mode="text"
               onPress={() => handleArchiveSession(item)}
-            >Archive</Button>
+            >
+              Archive
+            </Button>
             <Button
               icon="delete"
               mode="text"
               onPress={() => handleDeleteSession(item)}
-            >Delete</Button>
+            >
+              Delete
+            </Button>
           </View>
         </Card.Actions>
       </Card>
@@ -361,38 +396,42 @@ export default function SessionsTab() {
   };
 
   const EmptyState = () => (
-    <View style={{
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 64,
-    }}>
+    <View
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 64,
+      }}
+    >
       <Icon source="calendar" size={48} />
-      <Text variant="titleMedium" style={{
-        fontWeight: '600',
-        marginTop: 16,
-        color: theme.colors.onSurfaceVariant
-      }}>
+      <Text
+        variant="titleMedium"
+        style={{
+          fontWeight: "600",
+          marginTop: 16,
+          color: theme.colors.onSurfaceVariant,
+        }}
+      >
         No sessions yet
       </Text>
-      <Text variant="bodyMedium" style={{
-        color: theme.colors.onSurfaceVariant,
-        marginTop: 4,
-        textAlign: 'center',
-        marginBottom: 24
-      }}>
+      <Text
+        variant="bodyMedium"
+        style={{
+          color: theme.colors.onSurfaceVariant,
+          marginTop: 4,
+          textAlign: "center",
+          marginBottom: 24,
+        }}
+      >
         Create a session to start organizing games
       </Text>
 
       {players.length === 0 ? (
-        <Button
-          icon="open-in-new"
-          mode="outlined"
-          onPress={navigateToPlayers}
-        >
+        <Button icon="open-in-new" mode="outlined" onPress={navigateToPlayers}>
           Add Players First
         </Button>
       ) : (
-        <View style={{ alignItems: 'center', gap: 12 }}>
+        <View style={{ alignItems: "center", gap: 12 }}>
           <Button
             icon="plus"
             mode="contained"
@@ -417,22 +456,28 @@ export default function SessionsTab() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <Surface style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-      }} elevation={1}>
+      <Surface
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+        }}
+        elevation={1}
+      >
         <View style={{ flex: 1 }}>
-          <Text variant="headlineMedium" style={{ fontWeight: 'bold' }}>
+          <Text variant="headlineMedium" style={{ fontWeight: "bold" }}>
             Sessions ({sessions.length})
           </Text>
           {currentSession?.isActive && (
-            <Text variant="bodyMedium" style={{
-              marginTop: 2,
-              fontWeight: '500'
-            }}>
+            <Text
+              variant="bodyMedium"
+              style={{
+                marginTop: 2,
+                fontWeight: "500",
+              }}
+            >
               Live session in progress
             </Text>
           )}
@@ -448,7 +493,7 @@ export default function SessionsTab() {
               Add Players
             </Button>
           ) : (
-            <View style={{ flexDirection: 'row', gap: 8, }}>
+            <View style={{ flexDirection: "row", gap: 8 }}>
               <Button
                 icon="plus"
                 mode="contained"
@@ -469,7 +514,11 @@ export default function SessionsTab() {
       </Surface>
 
       <FlatList
-        data={sessions.filter((session) => session.state != SessionState.Archived)}
+        data={sessions
+          .filter((session) => session.state != SessionState.Archived)
+          .sort((a, b) => {
+            return a.createdAt.localeCompare(b.createdAt)}
+          )}
         renderItem={renderSession}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16 }}
@@ -497,7 +546,9 @@ export default function SessionsTab() {
         presentationStyle="pageSheet"
       >
         <ArchivedSessions
-          onCancel={() => { setArchiveModalVisible(false); }}
+          onCancel={() => {
+            setArchiveModalVisible(false);
+          }}
         />
       </Modal>
 
