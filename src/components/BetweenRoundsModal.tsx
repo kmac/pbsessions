@@ -3,84 +3,89 @@ import { View, Modal, ScrollView, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
-  Badge,
   Button,
   Card,
-  Checkbox,
-  Chip,
   Dialog,
-  FAB,
-  HelperText,
-  Icon,
-  IconButton,
   List,
-  Surface,
-  Switch,
-  Text,
-  TextInput,
-  Tooltip,
   useTheme,
 } from "react-native-paper";
-import {
-  updateGames,
-  updateCourts,
-} from "@/src/store/slices/liveSessionSlice";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import { Court, Game, Player, PlayerStats } from "../types";
+import {
+  RoundAssignment,
+  Session,
+  SessionState,
+  Player,
+  Round,
+} from "@/src/types";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
-import Round from "@/src/components/Round";
-import { SessionRoundManager } from "@/src/utils/sessionRoundManager";
-import { getLiveSessionPlayers } from "@/src/utils/util";
+import RoundComponent from "@/src/components/RoundComponent";
+import { SessionCoordinator } from "@/src/services/sessionCoordinator";
+import { getSessionPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
+import { updateCurrentRoundThunk } from "@/src/store/actions/sessionActions";
 
 interface BetweenRoundsModalProps {
   visible: boolean;
+  session: Session;
   onStartRound: () => void;
   onClose: () => void;
 }
 
 export default function BetweenRoundsModal({
   visible,
+  session,
   onStartRound,
   onClose,
 }: BetweenRoundsModalProps) {
   const theme = useTheme();
-  const dispatch = useAppDispatch();
-  const [selectedPlayers, setSelectedPlayers] = useState(new Map<string, Player>());
+  const [selectedPlayers, setSelectedPlayers] = useState(
+    new Map<string, Player>(),
+  );
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [helpDialogVisible, setHelpDialogVisible] = useState(false);
 
-  const { liveSession } = useAppSelector((state) => state.liveSession);
-  const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
 
-  const games = liveSession ? liveSession.activeGames : [];
-  const courts = liveSession ? liveSession.courts : [];
-  const playerStats = liveSession ? liveSession.playerStats : [];
-  const sessionPlayers: Player[] = liveSession ? getLiveSessionPlayers(liveSession, sessions, players) : [];
-  const roundNumber = liveSession ? liveSession.currentGameNumber : 0;
+  const liveData = session.liveData
+    ? session.liveData
+    : { rounds: [], playerStats: [] };
+  const roundNumber = liveData.rounds.length;
+  const currentRound: Round =
+    roundNumber > 0
+      ? liveData.rounds[roundNumber]
+      : { games: [], sittingOutIds: [] };
+  const games = currentRound.games;
+  const playerStats = liveData.playerStats;
+  const sessionPlayers: Player[] = session
+    ? getSessionPlayers(session, players)
+    : [];
 
   // TODO use these:
-  const showRating = liveSession ? liveSession.showRatings : false;
-  const scoring = liveSession ? liveSession.scoring : false;
+  const showRating = session ? session.showRatings : false;
+  const scoring = session ? session.scoring : false;
 
   const getPlayer = (playerId: string) =>
     sessionPlayers.find((p) => p.id === playerId);
 
-  const sittingOutPlayers =
-    games.length > 0
-      ? (games[0].sittingOutIds.map(getPlayer).filter(Boolean) as Player[])
-      : [];
+  const sittingOutPlayers: Player[] = currentRound.sittingOutIds
+    .map((id) => getPlayer(id))
+    .filter((p) => p != undefined);
+
+  const isLive = () => {
+    return session.state === SessionState.Live;
+  };
 
   function handleReshufflePlayers(excludeSitting: boolean) {
-    if (!liveSession) { return; }
+    if (!isLive()) {
+      return;
+    }
     let sittingOut = undefined;
     if (excludeSitting) {
       sittingOut = sittingOutPlayers;
     }
-    const assignments = new SessionRoundManager(liveSession, sessionPlayers).generateGameAssignments(sittingOut);
-
-    if (assignments.length === 0) {
+    const sessionCoordinator = new SessionCoordinator(session, sessionPlayers);
+    const roundAssignment = sessionCoordinator.generateRoundAssignment();
+    if (roundAssignment.gameAssignments.length === 0) {
       Alert.alert(
         "Cannot Generate Round",
         "Unable to create game assignments. Check player and court availability.",
@@ -88,30 +93,14 @@ export default function BetweenRoundsModal({
       );
       return;
     }
-
-    const newGames: Game[] = assignments.map((assignment, index) => ({
-      id: games[index].id,
-      sessionId: games[index].sessionId,
-      gameNumber: roundNumber,
-      courtId: assignment.court.id,
-      serveTeam: {
-        player1Id: assignment.serveTeam[0].id,
-        player2Id: assignment.serveTeam[1].id,
-      },
-      receiveTeam: {
-        player1Id: assignment.receiveTeam[0].id,
-        player2Id: assignment.receiveTeam[1].id,
-      },
-      sittingOutIds: assignment.sittingOut.map((p) => p.id),
-      isCompleted: false,
-    }));
-
-    dispatch(updateGames(newGames));
+    updateCurrentRoundThunk({
+      sessionId: session.id,
+      assignment: roundAssignment,
+    });
 
     // Clear selected players after reshuffling since assignments have changed
     setSelectedPlayers(new Map());
   }
-
 
   return (
     <Modal
@@ -122,19 +111,26 @@ export default function BetweenRoundsModal({
       <Appbar.Header>
         <Appbar.BackAction onPress={onClose} />
         <Appbar.Content title={`New Games: Round ${roundNumber}`} />
-        <Appbar.Action icon="account-group" onPress={() => { setHelpDialogVisible(true) }} />
-        <Appbar.Action icon="help-circle" onPress={() => { setHelpDialogVisible(true) }} />
+        <Appbar.Action
+          icon="account-group"
+          onPress={() => {
+            setHelpDialogVisible(true);
+          }}
+        />
+        <Appbar.Action
+          icon="help-circle"
+          onPress={() => {
+            setHelpDialogVisible(true);
+          }}
+        />
       </Appbar.Header>
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
           style={{ flex: 1, padding: 16 }}
           showsVerticalScrollIndicator={false}
         >
-          <Round
-            editing={true}
-            roundNumber={roundNumber}
-          />
-          <View  // Action buttons
+          <RoundComponent editing={true} liveSession={session} />
+          <View // Action buttons
             style={{
               flexDirection: "row",
               alignContent: "space-between",
@@ -171,19 +167,22 @@ export default function BetweenRoundsModal({
             </Button>
           </View>
         </ScrollView>
-
       </SafeAreaView>
 
       <Dialog
         visible={helpDialogVisible}
-        style={{ alignSelf: 'center', width: '80%', maxWidth: 400 }}
-        onDismiss={() => { setHelpDialogVisible(false) }}
+        style={{ alignSelf: "center", width: "80%", maxWidth: 400 }}
+        onDismiss={() => {
+          setHelpDialogVisible(false);
+        }}
       >
         <Dialog.Title>Help: New Round</Dialog.Title>
         <Dialog.Content>
-          <View style={{
-            marginTop: 20,
-          }}>
+          <View
+            style={{
+              marginTop: 20,
+            }}
+          >
             <Card>
               <List.Item
                 title="Swap"

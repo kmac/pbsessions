@@ -2,6 +2,10 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { LiveSession, Court, Game, PlayerStats, GameAssignment } from '@/src/types';
 // import { Alert } from '@/src/utils/alert';
 
+
+// TODO move all of this into SessionNew, and move SessionNew into Session
+
+
 interface LiveSessionState {
   liveSession: LiveSession | null;
   loading: boolean;

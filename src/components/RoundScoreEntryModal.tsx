@@ -19,14 +19,14 @@ import {
   TextInput,
   useTheme,
 } from 'react-native-paper';
-import { Game, Player } from '../types';
+import { Game, Player, Results } from '../types';
 import { COURT_COLORS } from '../theme';
 
 interface RoundScoreEntryModalProps {
   visible: boolean;
   games: Game[];
   players: Player[];
-  onSave: (scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }) => void;
+  onSave: (results: Results) => void;
   onClose: () => void;
 }
 
@@ -122,20 +122,20 @@ export default function RoundScoreEntryModal({
   };
 
   const handleSave = () => {
-    const scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null } = {};
+    const results: Results = {scores: {} };
 
     courtScores.forEach(court => {
       if (court.hasScore && (court.serveScore > 0 || court.receiveScore > 0)) {
-        scores[court.gameId] = {
+        results.scores[court.gameId] = {
           serveScore: court.serveScore,
           receiveScore: court.receiveScore,
         };
       } else {
-        scores[court.gameId] = null;
+        results.scores[court.gameId] = null;
       }
     });
 
-    onSave(scores);
+    onSave(results);
   };
 
   const getWinner = (court: CourtScore) => {

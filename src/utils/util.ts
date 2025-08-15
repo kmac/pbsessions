@@ -34,34 +34,15 @@ export function playerDetailsToString(item: Player): String {
   return details;
 };
 
-export function getEmptyLiveSession(): LiveSession {
-  const emptyLiveSession = {
-    sessionId: '0',
-    currentGameNumber: 0,
-    courts: [],
-    activeGames: [],
-    playerStats: [],
-    scoring: false,
-    showRatings: false,
-    isActive: false,
-  } as LiveSession;
-  return emptyLiveSession;
-}
-
-// note: this should be up to date when new players are added to a session
-export function getLiveSessionPlayers(
-  liveSession: LiveSession,
-  sessions: Session[],
-  players: Player[],
+export function getSessionPlayers(
+  session: Session,
+  allPlayers: Player[],
 ): Player[] {
-  if (!liveSession || !sessions || !players) {
+  if (!session || !allPlayers) {
     return [];
   }
-  return players.filter(
-    (p) =>
-      liveSession?.sessionId &&
-      sessions
-        .find((s) => s.id === liveSession.sessionId)
-        ?.playerIds.includes(p.id),
-  );
+  return session.playerIds.flatMap(pid => {
+    const player = allPlayers.find((p) => p.id === pid);
+    return player ? [player] : [];
+  });
 }

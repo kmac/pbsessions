@@ -19,34 +19,63 @@ import {
   archiveSession,
   updateSession,
   removeSession,
-  startLiveSession,
+  // startLiveSession,
 } from "@/src/store/slices/sessionsSlice";
-import {
-  setLiveSession,
-  updateCourts,
-} from "@/src/store/slices/liveSessionSlice";
+// import {
+//   setLiveSession,
+//   updateCourts,
+// } from "@/src/store/slices/liveSessionSlice";
 import { Session, SessionState } from "@/src/types";
 import ArchivedSessions from "@/src/components/ArchivedSessions";
 import SessionFormModal from "@/src/components/SessionFormModal";
 import { Alert } from "@/src/utils/alert";
+import { startLiveSessionThunk, updateCourtInSessionThunk } from "@/src/store/actions/sessionActions";
 
 export default function SessionsTab() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
+
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
-  const { liveSession: currentSession } = useAppSelector(
-    (state) => state.liveSession,
-  );
+  //const { liveSession } = useAppSelector((state) => state.liveSession);
 
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
 
-  // TODO rationalize with SessionState
-  const isSessionLive = (sessionId: string) =>
-    currentSession ? sessionId === currentSession.sessionId : false;
+  const allLiveSessionIds : string[] = sessions.map(session => session.id);
+
+  const isSessionLive = (sessionId: string) => {
+    return allLiveSessionIds.some(id => id === sessionId);
+  }
+
+  const isUnstarted = (session: Session) => {
+    return session.state === SessionState.Unstarted;
+  }
+
+  const isLive = (session: Session) => {
+    return session.state === SessionState.Live;
+  }
+
+  const isComplete = (session: Session) => {
+    return session.state === SessionState.Complete;
+  }
+
+  const isArchived = (session: Session) => {
+    return session.state === SessionState.Archived;
+  }
+
+  // const isSessionLive = (sessionId: string) => {
+  //   if (!liveSession) {
+  //     return false;
+  //   }
+  //   if (sessionId === liveSession.sessionId) {
+  //     return true;
+  //   }
+  //   Alert.alert('found it');
+  //   return sessions.filter(session => session.id === sessionId && session.state === SessionState.Live).length > 0;
+  // }
 
   const handleDeleteSession = (session: Session) => {
     if (isSessionLive(session.id)) {
@@ -130,24 +159,7 @@ export default function SessionsTab() {
       return;
     }
 
-    // updates session state to 'live'
-    dispatch(startLiveSession(session.id));
-
-    // Instantiate a new LiveSession:
-    //
-    dispatch(
-      setLiveSession({
-        sessionId: session.id,
-        currentGameNumber: 1,
-        courts: [...session.courts],
-        activeGames: [],
-        playerStats: [],
-        isActive: true,
-        scoring: true,
-        showRatings: true,
-      }),
-    );
-
+    startLiveSessionThunk({sessionId: session.id});
     router.push("/live-session");
   };
 
@@ -201,9 +213,10 @@ export default function SessionsTab() {
     if (editingSession) {
       const data = sessionData as Session;
       dispatch(updateSession(data));
-      if (data.state === SessionState.Live) {
-        dispatch(updateCourts(data.courts));
-      }
+      // if (data.state === SessionState.Live) {
+      //   updateCourtInSessionThunk({sessionId: data.id, court: data.courts});
+      //   dispatch(updateCourts(data.courts));
+      // }
     } else {
       dispatch(
         addSession(
@@ -217,39 +230,22 @@ export default function SessionsTab() {
     closeEditSessionModal();
   }
 
-  function isUnstarted(session: Session) {
-    return session.state === SessionState.Unstarted;
-  }
-
-  function isLive(session: Session) {
-    return session.state === SessionState.Live;
-  }
-
-  function isComplete(session: Session) {
-    return session.state === SessionState.Complete;
-  }
-
-  function isArchived(session: Session) {
-    return session.state === SessionState.Archived;
-  }
-
-  const renderSession = ({ item }: { item: Session }) => {
-    const sessionPlayers = getSessionPlayers(item);
-    const activeCourts = item.courts.filter((c) => c.isActive);
-    const isCurrentLive = isSessionLive(item.id);
+  const renderSession = ({ item: session }: { item: Session }) => {
+    const sessionPlayers = getSessionPlayers(session);
+    const activeCourts = session.courts.filter((c) => c.isActive);
 
     return (
       <Card
         style={[
           { marginBottom: 12 },
-          isCurrentLive && {
+          isSessionLive(session.id) && {
             borderLeftWidth: 4,
             borderLeftColor: theme.colors.tertiary,
           },
         ]}
       >
         <Card.Content>
-          {isCurrentLive && (
+          {isSessionLive(session.id) && (
             <Chip
               icon="record"
               style={{
@@ -269,7 +265,7 @@ export default function SessionsTab() {
               variant="titleMedium"
               style={{ fontWeight: "600", marginBottom: 8 }}
             >
-              {isComplete(item) ? `${item.name} (Complete)` : item.name}
+              {isComplete(session) ? `${session.name} ${session.state.toString()} (Complete)` : `${session.name} ${session.state.toString()}`}
             </Text>
             <View style={{ flexDirection: "row", gap: 16 }}>
               <View
@@ -280,7 +276,7 @@ export default function SessionsTab() {
                   variant="bodySmall"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  {formatDate(item.dateTime)}
+                  {formatDate(session.dateTime)}
                 </Text>
               </View>
               <View
@@ -291,7 +287,7 @@ export default function SessionsTab() {
                   variant="bodySmall"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  {formatTime(item.dateTime)}
+                  {formatTime(session.dateTime)}
                 </Text>
               </View>
             </View>
@@ -337,7 +333,7 @@ export default function SessionsTab() {
         </Card.Content>
 
         <Card.Actions style={{ justifyContent: "space-between" }}>
-          {isLive(item) && (
+          {isLive(session) && (
             <Button
               icon="play"
               mode="contained"
@@ -346,17 +342,17 @@ export default function SessionsTab() {
               Continue Live Session
             </Button>
           )}
-          {isUnstarted(item) && (
+          {isUnstarted(session) && (
             <Button
               icon="play"
               mode="contained"
-              onPress={() => handleStartLiveSession(item)}
+              onPress={() => handleStartLiveSession(session)}
             >
               Start Session
             </Button>
           )}
           <View style={{ flexDirection: "row", gap: 2 }}>
-            {!isLive(item) && !isArchived(item) && (
+            {!isLive(session) && !isArchived(session) && (
               <Button
                 icon="archive"
                 mode="text"
@@ -367,10 +363,10 @@ export default function SessionsTab() {
               </Button>
             )}
             {
-              /*!isComplete(item) &&*/ <Button
+              /*!isComplete(session) &&*/ <Button
                 icon="pencil"
                 mode="text"
-                onPress={() => handleEditSession(item)}
+                onPress={() => handleEditSession(session)}
               >
                 Edit
               </Button>
@@ -378,14 +374,14 @@ export default function SessionsTab() {
             <Button
               icon="archive"
               mode="text"
-              onPress={() => handleArchiveSession(item)}
+              onPress={() => handleArchiveSession(session)}
             >
               Archive
             </Button>
             <Button
               icon="delete"
               mode="text"
-              onPress={() => handleDeleteSession(item)}
+              onPress={() => handleDeleteSession(session)}
             >
               Delete
             </Button>
@@ -470,7 +466,7 @@ export default function SessionsTab() {
           <Text variant="headlineMedium" style={{ fontWeight: "bold" }}>
             Sessions ({sessions.length})
           </Text>
-          {currentSession?.isActive && (
+          {allLiveSessionIds.length > 0 && (
             <Text
               variant="bodyMedium"
               style={{

@@ -1,30 +1,36 @@
-import { Court, Player, Game, LiveSession, PlayerStats } from "../types";
+import {
+  Court,
+  Player,
+  Game,
+  GameAssignment,
+  Session,
+  PlayerStats,
+  Results,
+  Round,
+  RoundAssignment,
+  Score,
+  Team,
+} from "@/src/types";
 
-export interface GameAssignment {
-  court: Court;
-  serveTeam: [Player, Player];
-  receiveTeam: [Player, Player];
-  sittingOut: Player[];
-}
-
-export interface TeamBalance {
-  team1Rating: number;
-  team2Rating: number;
-  difference: number;
-}
-
-export class SessionRoundManager {
+export class SessionCoordinator {
   private courts: Court[];
   private players: Player[];
   private playerStats: Map<string, PlayerStats> = new Map();
+  private liveData: NonNullable<Session["liveData"]>;
 
-  constructor(liveSession: LiveSession, players: Player[]) {
-    this.courts = liveSession.courts.filter((c) => c.isActive);
+  constructor(session: Session, players: Player[]) {
+    if (!session.liveData) {
+      throw new Error(
+        `Invalid session: missing required live data. session: ${session}`,
+      );
+    }
+    this.liveData = session.liveData;
+    this.courts = session.courts.filter((c) => c.isActive);
     this.players = players;
 
     // Initialize or load existing stats
     players.forEach((player) => {
-      const existingStats = liveSession.playerStats.find(
+      const existingStats = this.liveData.playerStats.find(
         (s) => s.playerId === player.id,
       );
       this.playerStats.set(
@@ -40,24 +46,34 @@ export class SessionRoundManager {
     });
   }
 
-  public generateGameAssignments(sittingOut?: Player[]): GameAssignment[] {
-    const assignments: GameAssignment[] = [];
+  public getCurrentRoundNumber(): number {
+    return this.liveData.rounds.length;
+  }
+
+  public getCurrentRound(): Round {
+    return this.liveData.rounds[this.getCurrentRoundNumber() - 1];
+  }
+
+  public generateRoundAssignment(sittingOut?: Player[]): RoundAssignment {
+    const roundNumber = this.getCurrentRoundNumber();
+    const gameAssignments: GameAssignment[] = [];
     const availablePlayers = [...this.players];
-    const playersPerGame = this.courts.length * 4;
+    const playersPerRound = this.courts.length * 4;
 
     // Step 1: Determine who sits out (Equal playing time - Priority #2)
     if (!sittingOut) {
       sittingOut = this.selectSittingOutPlayers(
         availablePlayers,
-        playersPerGame,
+        playersPerRound,
       );
     }
     const playingPlayers = availablePlayers.filter(
-      (p) => !sittingOut.includes(p),
+      (p) => !sittingOut?.includes(p),
     );
 
     // Step 2: Assign players to courts based on rating requirements (Priority #1)
-    const courtAssignments = this.assignPlayersToCourts(playingPlayers);
+    const courtAssignments: Player[][] =
+      this.assignPlayersToCourts(playingPlayers);
 
     // Step 3: Create team assignments for each court (Partner diversity - Priority #3)
     courtAssignments.forEach((courtPlayers, courtIndex) => {
@@ -65,22 +81,30 @@ export class SessionRoundManager {
         const court = this.courts[courtIndex];
         const teams = this.assignTeamsForCourt(courtPlayers, court);
 
-        assignments.push({
-          court,
+        gameAssignments.push({
+          courtId: court.id,
           serveTeam: teams.serveTeam,
           receiveTeam: teams.receiveTeam,
-          sittingOut: courtIndex === 0 ? sittingOut : [], // Only include sitting out once
         });
       }
     });
-
-    return assignments;
+    return {
+      roundNumber: roundNumber,
+      gameAssignments: gameAssignments,
+      sittingOutIds: sittingOut.map((player) => player.id),
+    };
   }
 
-  public updatePlayerStatsForGame(
-    game: Game,
-    score?: { serveScore: number; receiveScore: number },
-  ): void {
+  public updateStatsForRound(games: Game[], results: Results): PlayerStats[] {
+    games.forEach((game) => {
+      const score = results.scores[game.id];
+      this.updatePlayerStatsForGame(game, score || undefined);
+    });
+    this.updateSittingOutStats(this.getCurrentRound().sittingOutIds);
+    return this.getPlayerStats();
+  }
+
+  private updatePlayerStatsForGame(game: Game, score?: Score): void {
     const allGamePlayerIds = [
       game.serveTeam.player1Id,
       game.serveTeam.player2Id,
@@ -118,16 +142,6 @@ export class SessionRoundManager {
       this.playerStats.set(playerId, mutableStats);
     });
 
-    // Update sit-out stats
-    game.sittingOutIds.forEach((playerId) => {
-      const stats = this.playerStats.get(playerId);
-      if (stats) {
-        const mutableStats = { ...stats };
-        mutableStats.gamesSatOut++;
-        this.playerStats.set(playerId, mutableStats);
-      }
-    });
-
     // Debug logging
     console.info(
       "Updated player stats:",
@@ -138,6 +152,17 @@ export class SessionRoundManager {
         partnerships: Object.keys(s.partners).length,
       })),
     );
+  }
+
+  private updateSittingOutStats(sittingOutIds: string[]) {
+    sittingOutIds.forEach((playerId) => {
+      const stats = this.playerStats.get(playerId);
+      if (stats) {
+        const mutableStats = { ...stats };
+        mutableStats.gamesSatOut++;
+        this.playerStats.set(playerId, mutableStats);
+      }
+    });
   }
 
   private selectSittingOutPlayers(
@@ -236,8 +261,8 @@ export class SessionRoundManager {
     players: Player[],
     court: Court,
   ): {
-    serveTeam: [Player, Player];
-    receiveTeam: [Player, Player];
+    serveTeam: Team;
+    receiveTeam: Team;
   } {
     // If we have ratings for all players, try to balance teams
     const allHaveRatings = players.every((p) => p.rating !== undefined);
@@ -251,8 +276,8 @@ export class SessionRoundManager {
   }
 
   private createBalancedTeams(players: Player[]): {
-    serveTeam: [Player, Player];
-    receiveTeam: [Player, Player];
+    serveTeam: Team;
+    receiveTeam: Team;
   } {
     // Generate all possible team combinations
     const combinations = this.getAllTeamCombinations(players);
@@ -289,14 +314,20 @@ export class SessionRoundManager {
     });
 
     return {
-      serveTeam: [bestBalance.teams.team1[0], bestBalance.teams.team1[1]],
-      receiveTeam: [bestBalance.teams.team2[0], bestBalance.teams.team2[1]],
+      serveTeam: {
+        player1Id: bestBalance.teams.team1[0].id,
+        player2Id: bestBalance.teams.team1[1].id,
+      },
+      receiveTeam: {
+        player1Id: bestBalance.teams.team2[0].id,
+        player2Id: bestBalance.teams.team2[1].id,
+      },
     };
   }
 
   private createDiversePartnerTeams(players: Player[]): {
-    serveTeam: [Player, Player];
-    receiveTeam: [Player, Player];
+    serveTeam: Team;
+    receiveTeam: Team;
   } {
     // Find the combination with the highest diversity score
     const combinations = this.getAllTeamCombinations(players);
@@ -314,14 +345,20 @@ export class SessionRoundManager {
     });
 
     return {
-      serveTeam: [bestDiversity.teams.team1[0], bestDiversity.teams.team1[1]],
-      receiveTeam: [bestDiversity.teams.team2[0], bestDiversity.teams.team2[1]],
+      serveTeam: {
+        player1Id: bestDiversity.teams.team1[0].id,
+        player2Id: bestDiversity.teams.team1[1].id,
+      },
+      receiveTeam: {
+        player1Id: bestDiversity.teams.team2[0].id,
+        player2Id: bestDiversity.teams.team2[1].id,
+      },
     };
   }
 
   private getAllTeamCombinations(players: Player[]): Array<{
-    team1: [Player, Player];
-    team2: [Player, Player];
+    team1: Player[];
+    team2: Player[];
   }> {
     const combinations = [];
 
@@ -332,17 +369,15 @@ export class SessionRoundManager {
         const remaining = players.filter(
           (_, index) => index !== i && index !== j,
         );
-
         if (remaining.length >= 2) {
           const team2 = [remaining[0], remaining[1]];
           combinations.push({
-            team1: team1 as [Player, Player],
-            team2: team2 as [Player, Player],
+            team1: team1,
+            team2: team2,
           });
         }
       }
     }
-
     return combinations;
   }
 
@@ -367,11 +402,7 @@ export class SessionRoundManager {
     return null;
   }
 
-  private getPlayerScore(
-    game: Game,
-    playerId: string,
-    score: { serveScore: number; receiveScore: number },
-  ): number {
+  private getPlayerScore(game: Game, playerId: string, score: Score): number {
     const isOnServeTeam =
       game.serveTeam.player1Id === playerId ||
       game.serveTeam.player2Id === playerId;

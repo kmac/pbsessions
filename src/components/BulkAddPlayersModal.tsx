@@ -11,7 +11,6 @@ import {
   Button,
   Card,
   IconButton,
-  Menu,
   Surface,
   Text,
   TextInput,
@@ -22,7 +21,7 @@ import { addMultiplePlayers } from '../store/slices/playersSlice';
 import { Player } from '../types';
 import { Alert } from '../utils/alert'
 
-interface BulkAddModalProps {
+interface BulkAddPlayersModalProps {
   visible: boolean;
   onClose: () => void;
 }
@@ -36,7 +35,7 @@ interface PlayerInput {
   rating: string;
 }
 
-export default function BulkAddModal({ visible, onClose }: BulkAddModalProps) {
+export default function BulkAddPlayersModal({ visible, onClose }: BulkAddPlayersModalProps) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const [players, setPlayers] = useState<PlayerInput[]>([

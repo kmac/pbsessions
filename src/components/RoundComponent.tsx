@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Modal, ScrollView, StyleSheet, FlatList } from "react-native";
+import { View, StyleSheet, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
@@ -10,63 +10,71 @@ import {
   Chip,
   Dialog,
   FAB,
-  Icon,
-  IconButton,
   Surface,
-  Switch,
   Text,
   TextInput,
   useTheme,
 } from "react-native-paper";
 import {
-  updateGames,
-  updateCourts,
-} from "@/src/store/slices/liveSessionSlice";
-import { useAppDispatch, useAppSelector } from "@/src/store";
-import { Court, Game, LiveSession, Player, PlayerStats } from "@/src/types";
-import { getEmptyLiveSession, getLiveSessionPlayers } from "@/src/utils/util";
+  //useAppDispatch,
+  useAppSelector,
+} from "@/src/store";
+import { Court, Game, Session, Player } from "@/src/types";
+import {
+  getCurrentRound,
+  getCurrentRoundNumber,
+} from "@/src/services/sessionService";
+import {
+  updateCourtInSessionThunk,
+  updateCurrentRoundThunk,
+} from "@/src/store/actions/sessionActions";
+import { getSessionPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 const theme = useTheme();
 
-interface RoundProps {
+interface RoundComponentProps {
   editing: boolean;
-  roundNumber: number;
+  liveSession: Session;
 }
 
-export default function Round({
+export default function RoundComponent({
   editing,
-  roundNumber,
-}: RoundProps) {
-  const dispatch = useAppDispatch();
-  const [selectedPlayers, setSelectedPlayers] = useState(new Map<string, Player>());
+  liveSession,
+}: RoundComponentProps) {
+  //const dispatch = useAppDispatch();
+  const [selectedPlayers, setSelectedPlayers] = useState(
+    new Map<string, Player>(),
+  );
   const [selectedCourts, setSelectedCourts] = useState(new Set<string>());
   const [statsModalVisible, setStatsModalVisible] = useState(false);
-  const [courtSettingDialogVisible, setCourtSettingDialogVisible] = useState(false);
+  const [courtSettingDialogVisible, setCourtSettingDialogVisible] =
+    useState(false);
   const [currentCourtId, setCurrentCourtId] = useState<string>("");
   const [ratingInput, setRatingInput] = useState<string>("");
   const [ratingEnabled, setRatingEnabled] = useState<boolean>(false);
   const [courtDisabled, setCourtDisabled] = useState<boolean>(false);
-  const { liveSession: currentSession } = useAppSelector((state) => state.liveSession);
-  const { appConfig } = useAppSelector((state) => state.appConfig);
+  // const { appConfig } = useAppSelector((state) => state.appConfig);
 
-  const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
-  const games = currentSession ? currentSession.activeGames : [];
-  const courts = currentSession ? currentSession.courts : [];
-  const sessionPlayers: Player[] = currentSession ? getLiveSessionPlayers(currentSession, sessions, players) : [];
 
-  const showRating = currentSession ? currentSession.showRatings : false;
-  const scoring = currentSession ? currentSession.scoring : false;
+  const courts = liveSession ? liveSession.courts : [];
+  const sessionPlayers: Player[] = liveSession
+    ? getSessionPlayers(liveSession, players)
+    : [];
+  const currentRound = getCurrentRound(liveSession, false);
+
+  const showRating = liveSession ? liveSession.showRatings : false;
+  const scoring = liveSession ? liveSession.scoring : false;
 
   const chipMode = editing ? "outlined" : "flat";
 
   const getPlayer = (playerId: string) => {
     return sessionPlayers.find((p) => p.id === playerId);
-  }
+  };
 
   const getCourt = (courtId: string): Court | undefined => {
     return courts?.find((c) => c.id === courtId);
-  }
+  };
 
   const getCourtMinimumRating = (courtId: string): string | undefined => {
     const court = getCourt(courtId);
@@ -74,45 +82,27 @@ export default function Round({
       return court.minimumRating.toFixed(2);
     }
     return undefined;
-  }
+  };
 
-  const updateCourt = (court: Court) => {
-    if (!courts) {
-      return;
-    }
-    const newCourts = [...courts];
-    for (let index = 0; index < courts.length; index++) {
-      if (court.id === newCourts[index].id) {
-        newCourts[index] = court;
-      }
-    }
-    dispatch(updateCourts(newCourts));
-  }
-
-  const setCourtMinimumRating = (courtId: string, rating: number | undefined) => {
+  const setCourtMinimumRating = (
+    courtId: string,
+    rating: number | undefined,
+  ) => {
     const court = getCourt(courtId);
     if (!court) {
       return;
     }
     const updatedCourt = { ...court, minimumRating: rating };
-    updateCourt(updatedCourt);
-  }
-
-  // const playingPlayers = games.flatMap(game => [
-  //   game.serveTeam.player1Id,
-  //   game.serveTeam.player2Id,
-  //   game.receiveTeam.player1Id,
-  //   game.receiveTeam.player2Id,
-  // ]).map(getPlayer).filter(Boolean) as Player[];
-  //
+    updateCourtInSessionThunk({
+      sessionId: liveSession.id,
+      court: updatedCourt,
+    });
+  };
 
   const sittingOutPlayers =
-    games.length > 0
-      ? (games[0].sittingOutIds.map(getPlayer).filter(Boolean) as Player[])
+    currentRound.games.length > 0
+      ? (currentRound.sittingOutIds.map(getPlayer).filter(Boolean) as Player[])
       : [];
-
-  const getSittingOutPlayers = () => {
-  }
 
   const playerSelectDisabled = (player: Player | undefined) => {
     if (!player) {
@@ -122,14 +112,14 @@ export default function Round({
       return false;
     }
     return selectedPlayers.size >= 2;
-  }
+  };
 
   const getPlayerSelected = (player: Player | undefined): boolean => {
     if (!player) {
       return false;
     }
     return selectedPlayers.has(player.id);
-  }
+  };
 
   const togglePlayerSelected = (player: Player) => {
     if (player) {
@@ -142,14 +132,14 @@ export default function Round({
         }
       }
     }
-  }
+  };
 
   const getCourtSelected = (courtId: string | undefined): boolean => {
     if (!courtId) {
       return false;
     }
     return selectedCourts.has(courtId);
-  }
+  };
 
   const toggleCourtSelected = (courtId: string) => {
     if (courtId) {
@@ -162,7 +152,7 @@ export default function Round({
         }
       }
     }
-  }
+  };
 
   const courtSelectDisabled = (courtId: string | undefined) => {
     if (!courtId) {
@@ -172,7 +162,7 @@ export default function Round({
       return false;
     }
     return selectedCourts.size >= 1;
-  }
+  };
 
   const handleSwapPlayers = () => {
     if (selectedPlayers.size !== 2) {
@@ -181,9 +171,12 @@ export default function Round({
 
     const playerIds = Array.from(selectedPlayers.keys());
     const [playerId1, playerId2] = playerIds;
+    const games = currentRound.games;
 
     // Find positions of both players in the games
-    const findPlayerPosition = (id: string) => {
+    const findPlayerPosition = (
+      id: string,
+    ): { gameIndex: number; position: string } | null => {
       for (let gameIndex = 0; gameIndex < games.length; gameIndex++) {
         const game = games[gameIndex];
 
@@ -197,9 +190,13 @@ export default function Round({
           return { gameIndex, position: "receiveTeam.player2Id" };
 
         // Check sitting out players
-        const sittingIndex = game.sittingOutIds.indexOf(id);
-        if (sittingIndex !== -1)
-          return { gameIndex, position: `sittingOut.${sittingIndex}` };
+        const sittingOutPlayer = sittingOutPlayers.find(
+          (player) => player.id === id,
+        );
+        if (sittingOutPlayer) {
+          const sittingOutIndex = sittingOutPlayers.indexOf(sittingOutPlayer);
+          return { gameIndex, position: `sittingOut.${sittingOutIndex}` };
+        }
       }
       return null;
     };
@@ -212,7 +209,42 @@ export default function Round({
       return;
     }
 
-    // Create new games array with swapped players
+    // // Create new games array with swapped players
+    // const {newGames, newSittingOuts} = (sittingOutIds : string[]) => games.map((game, gameIndex) => {
+    //   const newGame = { ...game };
+    //   const newSittingOutIds = [...sittingOutIds];
+    //
+    //   // Helper function to set player at position
+    //   const setPlayerAtPosition = (pos: string, playerId: string) => {
+    //     if (pos === "serveTeam.player1Id") {
+    //       newGame.serveTeam = { ...newGame.serveTeam, player1Id: playerId };
+    //     } else if (pos === "serveTeam.player2Id") {
+    //       newGame.serveTeam = { ...newGame.serveTeam, player2Id: playerId };
+    //     } else if (pos === "receiveTeam.player1Id") {
+    //       newGame.receiveTeam = { ...newGame.receiveTeam, player1Id: playerId };
+    //     } else if (pos === "receiveTeam.player2Id") {
+    //       newGame.receiveTeam = { ...newGame.receiveTeam, player2Id: playerId };
+    //     } else if (pos.startsWith("sittingOut.")) {
+    //       const index = parseInt(pos.split(".")[1]);
+    //       newSittingOutIds[index] = playerId;
+    //     }
+    //   };
+    //
+    //   // Perform the swap
+    //   if (gameIndex === position1.gameIndex) {
+    //     setPlayerAtPosition(position1.position, playerId2);
+    //   }
+    //   if (gameIndex === position2.gameIndex) {
+    //     setPlayerAtPosition(position2.position, playerId1);
+    //   }
+    //
+    //   return {newGame,newSittingOutIds}
+    // });
+    //
+    // // Update the store with new games
+    // dispatch(updateGames(newGames(games[0].sittingOutIds)));
+
+    const newSittingOutIds = [...currentRound.sittingOutIds];
     const newGames = games.map((game, gameIndex) => {
       const newGame = { ...game };
 
@@ -228,8 +260,7 @@ export default function Round({
           newGame.receiveTeam = { ...newGame.receiveTeam, player2Id: playerId };
         } else if (pos.startsWith("sittingOut.")) {
           const index = parseInt(pos.split(".")[1]);
-          newGame.sittingOutIds = [...newGame.sittingOutIds];
-          newGame.sittingOutIds[index] = playerId;
+          newSittingOutIds[index] = playerId;
         }
       };
 
@@ -244,13 +275,24 @@ export default function Round({
       return newGame;
     });
 
-    // Update the store with new games
-    dispatch(updateGames(newGames));
+    updateCurrentRoundThunk({
+      sessionId: liveSession.id,
+      assignment: {
+        roundNumber: getCurrentRoundNumber(liveSession),
+        gameAssignments: newGames.map((game) => {
+          return {
+            courtId: game.courtId,
+            serveTeam: game.serveTeam,
+            receiveTeam: game.receiveTeam,
+          };
+        }),
+        sittingOutIds: newSittingOutIds,
+      },
+    });
 
     // Clear selected players
     setSelectedPlayers(new Map());
-  }
-
+  };
 
   const handleSetCourtRating = () => {
     selectedCourts.forEach((courtId) => {
@@ -262,7 +304,7 @@ export default function Round({
       }
     });
     setSelectedCourts(new Set());
-  }
+  };
 
   // function handleCourtSetting(courtId: string) {
   //     const court = getCourt(courtId);
@@ -280,26 +322,34 @@ export default function Round({
     setRatingEnabled(!!court?.minimumRating);
     //setCourtDisabled(!!court?.disabled);
     setCourtSettingDialogVisible(true);
-  }
+  };
 
   const handleSaveCourtRating = () => {
     const court = getCourt(currentCourtId);
-    if (!court) return;
+    if (!court) {
+      return;
+    }
 
-    const rating = ratingEnabled && ratingInput.trim() !== "" ? parseFloat(ratingInput) : undefined;
+    const rating =
+      ratingEnabled && ratingInput.trim() !== ""
+        ? parseFloat(ratingInput)
+        : undefined;
     const updatedCourt = {
       ...court,
       minimumRating: rating,
-      //disabled: courtDisabled
     };
 
-    updateCourt(updatedCourt);
+    updateCourtInSessionThunk({
+      sessionId: liveSession.id,
+      court: updatedCourt,
+    });
+
     setCourtSettingDialogVisible(false);
     setCurrentCourtId("");
     setRatingInput("");
     setRatingEnabled(false);
     setCourtDisabled(false);
-  }
+  };
 
   const handleCancelCourtRating = () => {
     setCourtSettingDialogVisible(false);
@@ -307,16 +357,16 @@ export default function Round({
     setRatingInput("");
     setRatingEnabled(false);
     setCourtDisabled(false);
-  }
+  };
 
   const handleRatingEnabledChange = (enabled: boolean) => {
     setRatingEnabled(enabled);
     if (!enabled) {
       setRatingInput("");
     }
-  }
+  };
 
-  const renderCourtAssignment = ({ item: game }: { item: Game; }) => {
+  const renderCourtAssignment = ({ item: game }: { item: Game }) => {
     const servePlayer1 = getPlayer(game.serveTeam.player1Id);
     const servePlayer2 = getPlayer(game.serveTeam.player2Id);
     const receivePlayer1 = getPlayer(game.receiveTeam.player1Id);
@@ -346,10 +396,14 @@ export default function Round({
               }}
             >
               <Text variant="titleMedium" style={{ fontWeight: "600" }}>
-                {getCourt(game.courtId)?.name ? getCourt(game.courtId)?.name : "Court"}
+                {getCourt(game.courtId)?.name
+                  ? getCourt(game.courtId)?.name
+                  : "Court"}
                 {/*getCourtMinimumRating(item.courtId) && ` (${getCourtMinimumRating(item.courtId)})`*/}
               </Text>
-              {getCourtMinimumRating(game.courtId) && (<Badge size={22}>{getCourtMinimumRating(game.courtId)}</Badge>)}
+              {getCourtMinimumRating(game.courtId) && (
+                <Badge size={22}>{getCourtMinimumRating(game.courtId)}</Badge>
+              )}
             </Chip>
             {/*
             <Button icon="tune-variant" mode="outlined"
@@ -364,31 +418,44 @@ export default function Round({
           <View
             style={{ flexDirection: "row", alignItems: "center", columnGap: 6 }}
           >
-            <Surface  // Serve side
+            <Surface // Serve side
               style={styles.courtSurface}
             >
-              <Text variant="labelMedium" style={{
-                fontWeight: "600",
-                marginBottom: 4,
-                color: theme.colors.onPrimaryContainer,
-              }}
-              >
-                <Text variant="labelLarge" style={{
-                  fontWeight: "bold",
+              <Text
+                variant="labelMedium"
+                style={{
+                  fontWeight: "600",
                   marginBottom: 4,
                   color: theme.colors.onPrimaryContainer,
-                }}>
-                  {game.score ? ` : ${game.score?.serveScore}` : 'Serve'}
+                }}
+              >
+                <Text
+                  variant="labelLarge"
+                  style={{
+                    fontWeight: "bold",
+                    marginBottom: 4,
+                    color: theme.colors.onPrimaryContainer,
+                  }}
+                >
+                  {game.score ? ` : ${game.score?.serveScore}` : "Serve"}
                 </Text>
               </Text>
-              <View style={{ flexDirection: "column", alignItems: "stretch", gap: 5 }}>
+              <View
+                style={{
+                  flexDirection: "column",
+                  alignItems: "stretch",
+                  gap: 5,
+                }}
+              >
                 <Chip
                   mode={chipMode}
                   //disabled={!editing || playerSelectDisabled(servePlayer1)}
                   disabled={playerSelectDisabled(servePlayer1)}
                   selected={getPlayerSelected(servePlayer1)}
                   onPress={() => {
-                    editing && servePlayer1 && togglePlayerSelected(servePlayer1);
+                    editing &&
+                      servePlayer1 &&
+                      togglePlayerSelected(servePlayer1);
                   }}
                 >
                   {servePlayer1?.name}
@@ -401,7 +468,9 @@ export default function Round({
                   disabled={playerSelectDisabled(servePlayer2)}
                   selected={getPlayerSelected(servePlayer2)}
                   onPress={() => {
-                    editing && servePlayer2 && togglePlayerSelected(servePlayer2);
+                    editing &&
+                      servePlayer2 &&
+                      togglePlayerSelected(servePlayer2);
                   }}
                 >
                   {servePlayer2?.name}
@@ -411,7 +480,7 @@ export default function Round({
                 </Chip>
               </View>
             </Surface>
-            <Surface  // Receive side
+            <Surface // Receive side
               style={styles.courtSurface}
             >
               <Text
@@ -422,12 +491,15 @@ export default function Round({
                   color: theme.colors.onSecondaryContainer,
                 }}
               >
-                <Text variant="labelLarge" style={{
-                  fontWeight: "bold",
-                  marginBottom: 4,
-                  color: theme.colors.onPrimaryContainer,
-                }}>
-                  {game.score ? ` : ${game.score?.receiveScore}` : 'Receive'}
+                <Text
+                  variant="labelLarge"
+                  style={{
+                    fontWeight: "bold",
+                    marginBottom: 4,
+                    color: theme.colors.onPrimaryContainer,
+                  }}
+                >
+                  {game.score ? ` : ${game.score?.receiveScore}` : "Receive"}
                 </Text>
               </Text>
               <View style={{ flexDirection: "column", gap: 5 }}>
@@ -436,22 +508,30 @@ export default function Round({
                   disabled={playerSelectDisabled(receivePlayer1)}
                   selected={getPlayerSelected(receivePlayer1)}
                   onPress={() => {
-                    editing && receivePlayer1 && togglePlayerSelected(receivePlayer1);
+                    editing &&
+                      receivePlayer1 &&
+                      togglePlayerSelected(receivePlayer1);
                   }}
                 >
                   {receivePlayer1?.name}
-                  {showRating && receivePlayer1?.rating && ` (${receivePlayer1?.rating.toFixed(2)})`}
+                  {showRating &&
+                    receivePlayer1?.rating &&
+                    ` (${receivePlayer1?.rating.toFixed(2)})`}
                 </Chip>
                 <Chip
                   mode={chipMode}
                   disabled={playerSelectDisabled(receivePlayer2)}
                   selected={getPlayerSelected(receivePlayer2)}
                   onPress={() => {
-                    editing && receivePlayer2 && togglePlayerSelected(receivePlayer2);
+                    editing &&
+                      receivePlayer2 &&
+                      togglePlayerSelected(receivePlayer2);
                   }}
                 >
                   {receivePlayer2?.name}
-                  {showRating && receivePlayer2?.rating && ` (${receivePlayer2?.rating.toFixed(2)})`}
+                  {showRating &&
+                    receivePlayer2?.rating &&
+                    ` (${receivePlayer2?.rating.toFixed(2)})`}
                 </Chip>
               </View>
             </Surface>
@@ -475,7 +555,7 @@ export default function Round({
         </Text>
         */}
         <FlatList
-          data={games ? games : []}
+          data={currentRound.games ? currentRound.games : []}
           renderItem={renderCourtAssignment}
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
@@ -502,7 +582,6 @@ export default function Round({
             onPress={handleSwapPlayers}
           />
         )}
-
       </View>
 
       {sittingOutPlayers.length > 0 && (
@@ -533,7 +612,6 @@ export default function Round({
               </Chip>
             ))}
           </View>
-
         </View>
       )}
 
@@ -558,7 +636,7 @@ export default function Round({
       <Dialog
         visible={courtSettingDialogVisible}
         onDismiss={handleCancelCourtRating}
-        style={{ alignSelf: 'center', width: '80%', maxWidth: 400 }}
+        style={{ alignSelf: "center", width: "80%", maxWidth: 400 }}
       >
         <Dialog.Title>Court Settings</Dialog.Title>
         <Dialog.Content>
@@ -578,7 +656,13 @@ export default function Round({
               </View>
               */}
 
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 16,
+            }}
+          >
             <Checkbox
               status={ratingEnabled ? "checked" : "unchecked"}
               onPress={() => handleRatingEnabledChange(!ratingEnabled)}
@@ -598,7 +682,7 @@ export default function Round({
             disabled={!ratingEnabled}
             style={{
               opacity: ratingEnabled ? 1 : 0.5,
-              width: 150
+              width: 150,
             }}
           />
         </Dialog.Content>

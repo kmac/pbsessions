@@ -23,7 +23,6 @@ import { Group, Player } from '@/src/types';
 import PlayerCard from './PlayerCard';
 import QuickPlayerForm from './QuickPlayerForm';
 import { Alert } from '@/src/utils/alert'
-import { APP_CONFIG } from '@/src/constants';
 
 interface GroupPlayerManagerProps {
   visible: boolean;

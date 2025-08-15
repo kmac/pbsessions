@@ -16,37 +16,35 @@ import {
   Text,
   useTheme,
 } from 'react-native-paper';
-import { useAppSelector, useAppDispatch } from '@/src/store';
 import {
-  completeRound,
-  endLiveSession,
-  generateNextRound,
-  startRound,
-  updateGames,
-  updatePlayerStats,
-  updateCourts
-} from '@/src/store/slices/liveSessionSlice';
-import {
-  endSession as endSession,
-} from '@/src/store/slices/sessionsSlice';
-import { SessionRoundManager } from '@/src/utils/sessionRoundManager';
-//import RoundGameCard from '@/src/components/RoundGameCard';
-import Round from "@/src/components/Round";
+  //useAppDispatch
+  useAppSelector,
+} from '@/src/store';
+import { SessionCoordinator } from '@/src/services/sessionCoordinator';
+import RoundComponent from "@/src/components/RoundComponent";
 import RoundScoreEntryModal from '@/src/components/RoundScoreEntryModal';
 import PlayerStatsModal from '@/src/components/PlayerStatsModal';
 import BetweenRoundsModal from '@/src/components/BetweenRoundsModal';
 import RoundTimer from '@/src/components/RoundTimer';
-import { getEmptyLiveSession, getLiveSessionPlayers } from '@/src/utils/util';
+import { getSessionPlayers } from '@/src/utils/util';
 import { Alert } from '@/src/utils/alert';
-import { Court, Game, LiveSession, Player, SessionState } from '@/src/types';
+import { Player, Results, Round } from '@/src/types';
+
+import {
+  applyNextRoundThunk,
+  completeRoundThunk,
+  startRoundThunk,
+  endSessionThunk,
+} from '@/src/store/actions/sessionActions';
+import { getCurrentRound, getCurrentRoundNumber, } from '@/src/services/sessionService';
 
 export default function LiveSessionScreen() {
   const theme = useTheme();
-  const dispatch = useAppDispatch();
+  // const dispatch = useAppDispatch();
 
   // useAppSelector, useAppDispatch is redux
-  const { liveSession: currentSession } = useAppSelector((state) => state.liveSession);
-  const liveSession: LiveSession = currentSession ? currentSession : getEmptyLiveSession();
+  // const { liveSession: currentSession } = useAppSelector((state) => state.liveSession);
+  // const liveSession: Session = currentSession.liveData ? currentSession : getEmptyLiveSession();
   const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
 
@@ -56,16 +54,10 @@ export default function LiveSessionScreen() {
   const [betweenRoundsVisible, setBetweenRoundsVisible] = useState(false);
   const [roundStartTime, setRoundStartTime] = useState<Date | null>(null);
 
-  const liveSessionPlayers: Player[] = getLiveSessionPlayers(liveSession, sessions, players);
+  const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
+  const liveSession = sessions.find(s => s.id === liveSessionId);
 
-  const session = sessions.find(s => s.id === liveSession.sessionId);
-  if (currentSession && !currentSession.courts) {
-    dispatch(updateCourts(session ? [...session.courts] : []));
-  }
-  const showRatings = liveSession.showRatings;
-  const scoring = liveSession.scoring;
-
-  if (!currentSession || !session) {
+  if (!liveSession || !liveSession.liveData) {
     return (
       <SafeAreaView style={{ flex: 1 }}>
         <Surface style={{
@@ -94,22 +86,39 @@ export default function LiveSessionScreen() {
     );
   }
 
-  const currentRoundGames = liveSession.activeGames;
-  const isRoundInProgress = currentRoundGames.length > 0 && currentRoundGames.some(g => g.startedAt && !g.isCompleted);
-  const isRoundCompleted = currentRoundGames.length > 0 && currentRoundGames.every(g => g.isCompleted);
-  const hasActiveRound = currentRoundGames.length > 0;
-  const completedRounds = liveSession.currentGameNumber - 1;
-  const currentGameNumber = isRoundCompleted ? completedRounds : liveSession.currentGameNumber;
+  // if (!liveSession.courts) {
+  //   dispatch(updateCourts(liveSession ? [...liveSession.courts] : []));
+  // }
+
+  const currentRoundNumber = getCurrentRoundNumber(liveSession);
+  const currentRound = getCurrentRound(liveSession);
+
+  const hasActiveRound = currentRoundNumber > 0;
+
+  const isRoundInProgress =
+    currentRound.games.length > 0 &&
+    currentRound.games.some((g) => g.startedAt && !g.isCompleted);
+
+  const isRoundCompleted =
+    currentRound.games.length > 0 &&
+    currentRound.games.every((g) => g.isCompleted);
+
+  const numCompletedRounds = isRoundCompleted ? currentRoundNumber : currentRoundNumber - 1;
 
   const activeCourts = liveSession.courts ? liveSession.courts.filter(c => c.isActive) : [];
-  const numSittingOut = hasActiveRound ? currentRoundGames[0]?.sittingOutIds.length || 0 : 0;
+  const numSittingOut = hasActiveRound ? currentRound.sittingOutIds.length || 0 : 0;
+
+  const liveSessionPlayers: Player[] = liveSession ? getSessionPlayers(liveSession, players) : [];
+
+  const liveData = liveSession.liveData;
+
+  const showRatings = liveSession.showRatings;
+  const scoring = liveSession.scoring;
 
   const handleGenerateNewRound = () => {
-
-    const sessionRoundManager = new SessionRoundManager(liveSession, liveSessionPlayers);
-    const assignments = sessionRoundManager.generateGameAssignments();
-
-    if (assignments.length === 0) {
+    const sessionCoordinator = new SessionCoordinator(liveSession, liveSessionPlayers);
+    const roundAssignment = sessionCoordinator.generateRoundAssignment();
+    if (roundAssignment.gameAssignments.length === 0) {
       Alert.alert(
         'Cannot Generate Round',
         'Unable to create game assignments. Check player and court availability.',
@@ -117,13 +126,12 @@ export default function LiveSessionScreen() {
       );
       return;
     }
-
-    dispatch(generateNextRound({ assignments }));
+    applyNextRoundThunk({sessionId: liveSession.id, assignment: roundAssignment});
     setBetweenRoundsVisible(true);
   };
 
   const handleStartRound = () => {
-    dispatch(startRound());
+    startRoundThunk({sessionId: liveSession.id});
     setRoundStartTime(new Date());
     setBetweenRoundsVisible(false);
   };
@@ -140,23 +148,20 @@ export default function LiveSessionScreen() {
     // }
   };
 
-  const handleRoundScoresSubmitted = (scores: { [gameId: string]: { serveScore: number; receiveScore: number } | null }) => {
-    dispatch(completeRound({ scores }));
-
-    const sessionRoundManager = new SessionRoundManager(liveSession, liveSessionPlayers);
-    currentRoundGames.forEach(game => {
-      const score = scores[game.id];
-      sessionRoundManager.updatePlayerStatsForGame(game, score || undefined);
-    });
-
-    const updatedStats = sessionRoundManager.getPlayerStats();
-    dispatch(updatePlayerStats(updatedStats));
-
+  const handleRoundScoresSubmitted = (results: Results) => {
+    const sessionCoordinator = new SessionCoordinator(liveSession, liveSessionPlayers);
+    const updatedPlayerStats = sessionCoordinator.updateStatsForRound(currentRound.games, results);
+    completeRoundThunk({sessionId: liveSession.id, results: results, updatedPlayerStats: updatedPlayerStats });
     setScoreModalVisible(false);
     setRoundStartTime(null);
   };
 
   const handleEndSession = () => {
+    const endSession = () => {
+      endSessionThunk({ sessionId: liveSession.id })
+      setLiveSessionId(null);
+      router.back();
+    }
     if (isRoundInProgress) {
       Alert.alert(
         'Round in Progress',
@@ -166,11 +171,7 @@ export default function LiveSessionScreen() {
           {
             text: 'End Session',
             style: 'destructive',
-            onPress: () => {
-              dispatch(endSession(liveSession.sessionId));
-              dispatch(endLiveSession());
-              router.back();
-            },
+            onPress: () => endSession,
           },
         ]
       );
@@ -182,11 +183,7 @@ export default function LiveSessionScreen() {
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'End Session',
-            onPress: () => {
-              dispatch(endSession(liveSession.sessionId));
-              dispatch(endLiveSession());
-              router.back();
-            },
+            onPress: () => endSession,
           },
         ]
       );
@@ -194,6 +191,9 @@ export default function LiveSessionScreen() {
   };
 
   const getRoundActionButton = () => {
+    //
+    // Returns one element, depending on current state
+    //
     if (!hasActiveRound) {
       return (
         <Button
@@ -203,7 +203,7 @@ export default function LiveSessionScreen() {
           contentStyle={{ paddingVertical: 8 }}
           style={{ marginBottom: 12 }}
         >
-          {completedRounds === 0 ? 'Generate First Round' : 'Generate Next Round'}
+          {numCompletedRounds === 0 ? 'Generate First Round' : 'Generate Next Round'}
         </Button>
       );
     }
@@ -223,7 +223,7 @@ export default function LiveSessionScreen() {
               fontWeight: '600'
             }}
           >
-            Round {liveSession.currentGameNumber - 1} Completed
+            Round {currentRoundNumber} Completed
           </Chip>
           <Button
             icon="play"
@@ -265,7 +265,7 @@ export default function LiveSessionScreen() {
           contentStyle={{ paddingVertical: 8 }}
           style={{ marginBottom: 12 }}
         >
-          Edit Round {liveSession.currentGameNumber}
+          Edit Round {currentRoundNumber}
         </Button>
         <Button
           icon="play"
@@ -275,7 +275,7 @@ export default function LiveSessionScreen() {
           contentStyle={{ paddingVertical: 8 }}
           style={{ marginBottom: 12 }}
         >
-          Start Round {liveSession.currentGameNumber}
+          Start Round {currentRoundNumber}
         </Button>
       </View>
     );
@@ -288,7 +288,7 @@ export default function LiveSessionScreen() {
       <Appbar.Header>
         {/*<Appbar.BackAction onPress={() => router.back()} />*/}
         <Appbar.Content
-          title={`Live Session: ${session.name}`}
+          title={`Live Session: ${liveSession.name}`}
         />
         <Button
           mode="contained-tonal"
@@ -370,7 +370,7 @@ export default function LiveSessionScreen() {
               color: theme.colors.primary,
               marginBottom: 4
             }}>
-              {completedRounds}
+              {numCompletedRounds}
             </Text>
             <Text variant="labelMedium" style={{
               color: theme.colors.onSurfaceVariant,
@@ -423,18 +423,18 @@ export default function LiveSessionScreen() {
               fontWeight: '600',
               marginBottom: 12
             }}>
-              Round {isRoundCompleted ? `${liveSession.currentGameNumber - 1} (Complete)` : `${liveSession.currentGameNumber} Games`}
+              Round {isRoundCompleted ? `${currentRoundNumber - 1} (Complete)` : `${currentRoundNumber} Games`}
             </Text>
 
-            <Round
+            <RoundComponent
               editing={false}
-              roundNumber={currentGameNumber}
+              liveSession={liveSession}
             />
           </View>
         )}
 
         {/* Previous Rounds Summary */}
-        {completedRounds > 0 && (
+        {numCompletedRounds > 0 && (
           <Card style={{ marginBottom: 24, marginTop: 12 }}>
             <Card.Content>
               <Text variant="titleLarge" style={{
@@ -456,7 +456,7 @@ export default function LiveSessionScreen() {
                     Rounds Completed:
                   </Text>
                   <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
-                    {completedRounds}
+                    {numCompletedRounds}
                   </Text>
                 </View>
                 <View style={{
@@ -470,7 +470,7 @@ export default function LiveSessionScreen() {
                     Total Games:
                   </Text>
                   <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
-                    {completedRounds * activeCourts.length}
+                    {numCompletedRounds * activeCourts.length}
                   </Text>
                 </View>
                 <Button
@@ -488,7 +488,7 @@ export default function LiveSessionScreen() {
 
       <RoundScoreEntryModal
         visible={scoreModalVisible}
-        games={currentRoundGames}
+        games={currentRound.games}
         players={liveSessionPlayers}
         onSave={handleRoundScoresSubmitted}
         onClose={() => setScoreModalVisible(false)}
@@ -496,6 +496,7 @@ export default function LiveSessionScreen() {
 
       <BetweenRoundsModal
         visible={betweenRoundsVisible}
+        session={liveSession}
         onStartRound={handleStartRound}
         onClose={() => setBetweenRoundsVisible(false)}
       />
@@ -503,7 +504,7 @@ export default function LiveSessionScreen() {
       <PlayerStatsModal
         visible={statsModalVisible}
         players={liveSessionPlayers}
-        stats={liveSession.playerStats}
+        stats={liveData.playerStats}
         onClose={() => setStatsModalVisible(false)}
       />
     </SafeAreaView>

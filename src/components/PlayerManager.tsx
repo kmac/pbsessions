@@ -13,7 +13,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import { useAppSelector, useAppDispatch } from '@/src/store';
-import { X, Check, Plus } from 'lucide-react-native';
 import { RootState } from '../store';
 import { addPlayerToGroup, removePlayerFromGroup } from '../store/slices/groupsSlice';
 import { getShortGender } from '@/src/utils/util';

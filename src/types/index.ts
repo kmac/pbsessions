@@ -47,6 +47,10 @@ export interface Session {
   showRatings: boolean;
   createdAt: string;
   updatedAt: string;
+  liveData?: {
+    rounds: Round[];
+    playerStats: PlayerStats[];
+  };
 }
 
 export interface LiveSession {
@@ -60,28 +64,44 @@ export interface LiveSession {
   isActive: boolean;
 }
 
+// ## Suggested Improvements
+//
+// **Option 1: Merge Types**
+// ```typescript
+// export interface Session {
+//   // ... existing Session fields
+//   liveData?: {
+//     currentGameNumber: number;
+//     activeGames: Game[];
+//     playerStats: PlayerStats[];
+//     isActive: boolean;
+//   };
+// }
+// ```
+//
+// **Option 2: Use Computed Property**
+// ```typescript
+// // Remove isLive from Session, derive it from LiveSession existence
+// const isSessionLive = (sessionId: string, liveSessions: LiveSession[]) =>
+//   liveSessions.some(ls => ls.sessionId === sessionId && ls.isActive);
+// ```
+
+export interface Score { serveScore: number; receiveScore: number; }
+
+export interface Team {
+    player1Id: string;
+    player2Id: string;
+  };
+
 export interface Game {
   id: string;
   sessionId: string;
   gameNumber: number;
   courtId: string;
-  serveTeam: {
-    player1Id: string;
-    player2Id: string;
-  };
-  receiveTeam: {
-    player1Id: string;
-    player2Id: string;
-  };
-
-  // TODO: I hate this:
-  sittingOutIds: string[];
-
-  score?: {
-    serveScore: number;
-    receiveScore: number;
-  };
+  serveTeam: Team;
+  receiveTeam: Team;
   isCompleted: boolean;
+  score?: Score;
   startedAt?: string;
   completedAt?: string;
 }
@@ -95,13 +115,24 @@ export interface PlayerStats {
   averageRating?: number;
 }
 
-export interface GameAssignment {
-  court: Court;
-  serveTeam: [Player, Player];
-  receiveTeam: [Player, Player];
-  sittingOut: Player[];
+export interface Results {
+    scores: { [gameId: string]: Score | null };
 }
 
+export interface Round {
+  games: Game[];
+  sittingOutIds: string[];
+}
+
+export type GameAssignment = Pick<Game, "courtId" | "serveTeam" | "receiveTeam">;
+
+export interface RoundAssignment {
+  roundNumber: number;
+  gameAssignments: GameAssignment[];
+  sittingOutIds: string[];
+}
+
+// TODO this should go away with full theme support?:
 export type Color = keyof typeof Colors.light
 
 export interface Setting {

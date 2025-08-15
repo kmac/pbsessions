@@ -18,14 +18,14 @@ import {
   Text,
 } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
-import { Plus, Edit2, Trash2, Users } from 'lucide-react-native';
+import { Users } from 'lucide-react-native';
 import { RootState } from '@/src/store';
 import { addPlayer, updatePlayer, removePlayer } from '@/src/store/slices/playersSlice';
 import { getShortGender } from '@/src/utils/util';
 import { Group, Player } from '@/src/types';
 import PlayerForm from '@/src/components/PlayerForm';
 import PlayerManager from '@/src/components/PlayerManager';
-import BulkAddModal from '@/src/components/BulkAddModal';
+import BulkAddPlayersModal from '@/src/components/BulkAddPlayersModal';
 import { Alert } from '@/src/utils/alert'
 import { APP_CONFIG } from '@/src/constants';
 
@@ -498,7 +498,7 @@ const handleImportPlayers = async () => {
         />
       </Modal>
 
-      <BulkAddModal
+      <BulkAddPlayersModal
         visible={bulkModalVisible}
         onClose={() => setBulkModalVisible(false)}
       />

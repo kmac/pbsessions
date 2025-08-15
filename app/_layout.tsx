@@ -18,7 +18,6 @@ import { StorageManager } from '@/src/utils/storage';
 import { setPlayers } from '@/src/store/slices/playersSlice';
 import { setGroups } from '@/src/store/slices/groupsSlice';
 import { setSessions } from '@/src/store/slices/sessionsSlice';
-import { setLiveSession } from '@/src/store/slices/liveSessionSlice';
 import { setAppConfig } from '@/src/store/slices/appConfigSlice';
 import { Colors, Themes } from '@/src/ui/styles';
 import { StackHeader } from '@/src/components/StackHeader';
@@ -48,20 +47,16 @@ function StorageLoader() {
       const storage = StorageManager.getInstance();
 
       try {
-        const [players, groups, sessions, liveSession, appConfig] = await Promise.all([
+        const [players, groups, sessions, appConfig] = await Promise.all([
           storage.loadPlayers(),
           storage.loadGroups(),
           storage.loadSessions(),
-          storage.loadLiveSession(),
           storage.loadAppConfig(),
         ]);
 
         dispatch(setPlayers(players));
         dispatch(setGroups(groups));
         dispatch(setSessions(sessions));
-        if (liveSession) {
-          dispatch(setLiveSession(liveSession));
-        }
         dispatch(setAppConfig(appConfig));
 
       } catch (error) {
@@ -127,7 +122,7 @@ const RootLayoutNav = () => {
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          {/*<Stack.Screen
+          <Stack.Screen
             name="live-session"
             options={{
               headerShown: false,
@@ -142,7 +137,6 @@ const RootLayoutNav = () => {
               // },
             }}
           />
-          */}
         </Stack>
 
       </PaperProvider>

@@ -18,7 +18,6 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { Court } from '../types';
-import { COURT_COLORS } from '../theme';
 import { APP_CONFIG } from '../constants';
 import { Alert } from '../utils/alert'
 
