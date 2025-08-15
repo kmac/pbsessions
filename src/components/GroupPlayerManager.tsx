@@ -10,10 +10,7 @@ import {
   Appbar,
   Button,
   Card,
-  Chip,
   Icon,
-  IconButton,
-  List,
   SegmentedButtons,
   Surface,
   Text,
@@ -32,11 +29,11 @@ interface GroupPlayerManagerProps {
   visible: boolean;
   groupName: string;
   groupPlayers: Player[];
-  onSave: (players: Player[]) => void;
+  onSave: (groupPlayers: Player[]) => void;
   onCancel: () => void;
 }
 
-type ViewMode = 'group' | 'select' | 'add';
+type ViewMode = 'select' | 'add';
 
 export default function GroupPlayerManager({
   visible,
@@ -105,75 +102,6 @@ export default function GroupPlayerManager({
     );
   };
 
-  // const GroupView = () => (
-  //   <>
-  //     {groupPlayers.length > 0 && (
-  //       <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
-  //         <Text variant="titleMedium" style={{
-  //           fontWeight: '600',
-  //           marginBottom: 12
-  //         }}>
-  //           Selected Groups ({selectedGroups.length})
-  //         </Text>
-  //         <FlatList
-  //           data={[...groups].sort((a, b) => a.name.localeCompare(b.name))}
-  //           renderItem={({ item }) => renderGroup({ item })}
-  //           keyExtractor={(item) => `selected-${item.id}`}
-  //           scrollEnabled={false}
-  //         />
-  //       </View>
-  //     )}
-  //
-  //     <View style={{ marginHorizontal: 16 }}>
-  //       <Text variant="titleMedium" style={{
-  //         fontWeight: '600',
-  //         marginBottom: 12
-  //       }}>
-  //         Available Groups ({groups.length})
-  //       </Text>
-  //
-  //       {groups.length === 0 ? (
-  //         <Surface style={{
-  //           alignItems: 'center',
-  //           paddingVertical: 32,
-  //           borderRadius: 8
-  //         }}>
-  //           {searchQuery ? (
-  //             <Text variant="bodyLarge" style={{
-  //               color: theme.colors.onSurfaceVariant
-  //             }}>
-  //               No players match your search
-  //             </Text>
-  //           ) : (
-  //             <>
-  //               <Text variant="bodyLarge" style={{
-  //                 color: theme.colors.onSurfaceVariant,
-  //                 marginBottom: 16
-  //               }}>
-  //                 All players are already in this group
-  //               </Text>
-  //               <Button
-  //                 icon="plus"
-  //                 mode="outlined"
-  //                 onPress={() => setViewMode('add')}
-  //               >
-  //                 Add New Player
-  //               </Button>
-  //             </>
-  //           )}
-  //         </Surface>
-  //       ) : (
-  //         <FlatList
-  //           data={[...groups].sort((a, b) => a.name.localeCompare(b.name))}
-  //           renderItem={({ item }) => renderGroup({ item })}
-  //           keyExtractor={(item) => `available-${item.id}`}
-  //           scrollEnabled={false}
-  //         />
-  //       )}
-  //     </View>
-  //   </>
-  // );
-
   const SelectExistingView = () => (
     <>
       <TextInput
@@ -185,6 +113,7 @@ export default function GroupPlayerManager({
         style={{ marginHorizontal: 16, marginBottom: 16 }}
       />
 
+      {/*
       <List.Section title="Group">
         <List.Accordion
           title={groupName}
@@ -197,18 +126,8 @@ export default function GroupPlayerManager({
             />
           ))}
         </List.Accordion>
-
-        {/*
-        <List.Accordion
-          title="Controlled Accordion"
-          left={props => <List.Icon {...props} icon="folder" />}
-          expanded={expanded}
-          onPress={handlePress}>
-          <List.Item title="First item" />
-          <List.Item title="Second item" />
-        </List.Accordion>
-        */}
       </List.Section>
+      */}
 
       {selectedPlayers.length > 0 && (
         <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
@@ -384,11 +303,6 @@ export default function GroupPlayerManager({
           value={viewMode}
           onValueChange={(value) => setViewMode(value as ViewMode)}
           buttons={[
-            // {
-            //   value: 'group',
-            //   label: 'Select Group',
-            //   icon: 'account-group'
-            // },
             {
               value: 'select',
               label: 'Select Existing',

@@ -31,7 +31,7 @@ export default function GroupsTab() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { groups, loading } = useAppSelector((state) => state.groups);
-  const { players } = useAppSelector((state) => state.players);
+  const { players : allPlayers } = useAppSelector((state) => state.players);
 
   const [groupModalVisible, setGroupModalVisible] = useState(false);
   const [playerManagerVisible, setPlayerManagerVisible] = useState(false);
@@ -67,8 +67,8 @@ export default function GroupsTab() {
     router.push('/players');
   };
 
-  function getGroupPlayers(group: Group) : Player[] {
-    return players.filter(player => group.playerIds.includes(player.id));
+  const getGroupPlayers = (group: Group) : Player[] => {
+    return allPlayers.filter(player => group.playerIds.includes(player.id));
   };
 
   const renderGroup = ({ item }: { item: Group }) => {
@@ -190,7 +190,7 @@ export default function GroupsTab() {
         Create groups to organize players for sessions
       </Text>
 
-      {players.length === 0 && (
+      {allPlayers.length === 0 && (
         <Button
           icon="open-in-new"
           mode="outlined"
@@ -238,12 +238,12 @@ export default function GroupsTab() {
           <Text variant="headlineMedium" style={{ fontWeight: 'bold' }}>
             Groups ({groups.length})
           </Text>
-          {players.length > 0 && (
+          {allPlayers.length > 0 && (
             <Text variant="bodyMedium" style={{
               color: theme.colors.onSurfaceVariant,
               marginTop: 2
             }}>
-              {players.length} players available
+              {allPlayers.length} players available
             </Text>
           )}
         </View>
@@ -282,7 +282,6 @@ export default function GroupsTab() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={<EmptyState />}
       />
-
       <Modal
         visible={groupModalVisible}
         animationType="slide"
@@ -305,8 +304,8 @@ export default function GroupsTab() {
           visible={playerManagerVisible}
           groupName={selectedGroup.name}
           groupPlayers={getGroupPlayers(selectedGroup)}
-          onSave={players => {
-            handleSaveGroupPlayers(selectedGroup, players);
+          onSave={groupPlayers => {
+            handleSaveGroupPlayers(selectedGroup, groupPlayers);
           }}
           onCancel={() => {
             setPlayerManagerVisible(false);

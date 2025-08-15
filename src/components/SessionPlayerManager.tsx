@@ -349,7 +349,6 @@ export default function SessionPlayerManager({
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
 
-  // TODO change this component to use SegmentedButtons as in GroupPlayerManager
   const [viewMode, setViewMode] = useState<ViewMode>("groups");
   const [searchQuery, setSearchQuery] = useState("");
 

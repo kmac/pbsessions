@@ -1,5 +1,4 @@
 import { Court, Player, Game, LiveSession, PlayerStats } from "../types";
-import { getLiveSessionPlayers } from "@/src/utils/util";
 
 export interface GameAssignment {
   court: Court;
@@ -18,7 +17,6 @@ export class SessionRoundManager {
   private courts: Court[];
   private players: Player[];
   private playerStats: Map<string, PlayerStats> = new Map();
-  private onUpdate: () => void = () => {};
 
   constructor(liveSession: LiveSession, players: Player[]) {
     this.courts = liveSession.courts.filter((c) => c.isActive);
@@ -40,11 +38,6 @@ export class SessionRoundManager {
         },
       );
     });
-  }
-
-  // Method to set the callback from the React component
-  public setOnUpdate(callback: () => void) {
-    this.onUpdate = callback;
   }
 
   public generateGameAssignments(sittingOut?: Player[]): GameAssignment[] {
