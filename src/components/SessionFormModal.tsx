@@ -60,7 +60,8 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
   const [showPlayerManager, setShowPlayerManager] = useState(false);
   const [showCourtManager, setShowCourtManager] = useState(false);
 
-  useEffect(() => {
+  useEffect(
+    () => { /* Effect function: contains side effect code */
     if (session) {
       setFormData({
         name: session.name,
@@ -75,7 +76,9 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
       now.setHours(now.getHours() + 1, 0, 0, 0);
       setFormData(prev => ({ ...prev, dateTime: now.toISOString() }));
     }
-  }, [session]);
+  },
+    [session]  /* Dependency array: effect function runs whenever any dependency changes */
+  );
 
   const handleSave = () => {
     // Saves formData which is then persisted by calling the 'onSave' callback

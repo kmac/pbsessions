@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   Modal,
@@ -29,6 +28,10 @@ import PlayerManager from '@/src/components/PlayerManager';
 import BulkAddModal from '@/src/components/BulkAddModal';
 import { Alert } from '@/src/utils/alert'
 import { APP_CONFIG } from '@/src/constants';
+
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 
 import { useTheme } from 'react-native-paper'
 
@@ -94,10 +97,6 @@ export default function PlayersTab() {
     setModalVisible(true);
   };
 
-  const getPlayerGroupCount = (playerId: string) => {
-    return groups.filter(group => group.playerIds.includes(playerId)).length;
-  };
-
   function getPlayerGroups(playerId: string): Group[] {
     return groups.filter(group => group.playerIds.includes(playerId));
   }
@@ -108,28 +107,213 @@ export default function PlayersTab() {
       .join(', ');
   }
 
-  function getPlayerName(name: string, gender: 'male' | 'female' | 'other' | undefined) {
-    if (gender) {
-      return `${name} ${getShortGender(gender)}`;
+const handleExportPlayers = async () => {
+  try {
+    if (players.length === 0) {
+      Alert.alert('No Data', 'No players to export.');
+      return;
     }
-    return name;
-  }
 
-  function getAvatar(gender: 'male' | 'female' | 'other' | undefined, props: any) {
-    let iconName = "account";
-    if (gender === 'male') {
-      // iconName = "human-male";
-      iconName = "face-man"
+    // CSV headers for user-editable fields only
+    const headers = ['name', 'email', 'phone', 'gender', 'rating', 'notes'];
+
+    // Convert players to CSV rows
+    const csvRows = players.map(player => [
+      `"${(player.name || '').replace(/"/g, '""')}"`,
+      `"${(player.email || '').replace(/"/g, '""')}"`,
+      `"${(player.phone || '').replace(/"/g, '""')}"`,
+      `"${(player.gender || '').replace(/"/g, '""')}"`,
+      player.rating !== undefined ? player.rating.toString() : '',
+      `"${(player.notes || '').replace(/"/g, '""')}"`
+    ]);
+
+    // Combine headers and data
+    const csvContent = [headers.join(','), ...csvRows.map(row => row.join(','))].join('\n');
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const fileName = `players_export_${timestamp}.csv`;
+    const filePath = `${FileSystem.documentDirectory}${fileName}`;
+
+    // Write file
+    await FileSystem.writeAsStringAsync(filePath, csvContent, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+
+    // Share the file
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(filePath, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Export Players',
+      });
+    } else {
+      Alert.alert('Export Complete', `File saved as ${fileName}`);
     }
-    if (gender === 'female') {
-      iconName = "face-woman"
-      // iconName = "human-female";
+  } catch (error) {
+    console.error('Export error:', error);
+    Alert.alert('Export Failed', 'Failed to export players data.');
+  }
+};
+
+const handleImportPlayers = async () => {
+  try {
+    // Pick CSV file
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'text/csv',
+      copyToCacheDirectory: true,
+    });
+
+    if (result.canceled || !result.assets || result.assets.length === 0) {
+      return;
     }
-    return (
-      <Avatar.Icon icon={iconName} size={40} />
+
+    const fileUri = result.assets[0].uri;
+
+    // Read file content
+    const csvContent = await FileSystem.readAsStringAsync(fileUri, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+
+    // Parse CSV
+    const lines = csvContent.trim().split('\n');
+    if (lines.length < 2) {
+      Alert.alert('Invalid File', 'CSV file must contain headers and at least one data row.');
+      return;
+    }
+
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
+    const expectedHeaders = ['name', 'email', 'phone', 'gender', 'rating', 'notes'];
+
+    // Validate that name header exists (required field)
+    if (!headers.includes('name')) {
+      Alert.alert('Invalid Format', 'CSV must contain a "name" column.');
+      return;
+    }
+
+    // Parse data rows
+    const importedPlayers: Omit<Player, 'id' | 'createdAt' | 'updatedAt'>[] = [];
+    const errors: string[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      try {
+        // Parse CSV row with proper quote handling
+        const values : string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let j = 0; j < lines[i].length; j++) {
+          const char = lines[i][j];
+          if (char === '"') {
+            if (inQuotes && lines[i][j + 1] === '"') {
+              current += '"';
+              j++; // Skip next quote
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim()); // Add last value
+
+        const rowData: any = {};
+        headers.forEach((header, index) => {
+          rowData[header] = values[index] || '';
+        });
+
+        // Validate required fields
+        if (!rowData.name || rowData.name.trim() === '') {
+          errors.push(`Row ${i + 1}: Name is required`);
+          continue;
+        }
+
+        // Check for duplicate names (case-insensitive)
+        const existingPlayer = players.find(p =>
+          p.name.toLowerCase().trim() === rowData.name.toLowerCase().trim()
+        );
+        if (existingPlayer) {
+          errors.push(`Row ${i + 1}: Player "${rowData.name}" already exists`);
+          continue;
+        }
+
+        // Validate and convert rating
+        let rating: number | undefined = undefined;
+        if (rowData.rating && rowData.rating.trim() !== '') {
+          const ratingNum = parseFloat(rowData.rating);
+          if (isNaN(ratingNum) || ratingNum < 0 || ratingNum > 10) {
+            errors.push(`Row ${i + 1}: Invalid rating "${rowData.rating}" (must be 0-10)`);
+            continue;
+          }
+          rating = ratingNum;
+        }
+
+        // Validate gender
+        const validGenders = ['male', 'female', 'other'];
+        let gender: 'male' | 'female' | 'other' | undefined = undefined;
+        if (rowData.gender && rowData.gender.trim() !== '') {
+          const genderLower = rowData.gender.toLowerCase().trim();
+          if (!validGenders.includes(genderLower)) {
+            errors.push(`Row ${i + 1}: Invalid gender "${rowData.gender}" (must be: male, female, other)`);
+            continue;
+          }
+          gender = genderLower as 'male' | 'female' | 'other';
+        }
+
+        // Create player object
+        const playerData: Omit<Player, 'id' | 'createdAt' | 'updatedAt'> = {
+          name: rowData.name.trim(),
+          email: rowData.email?.trim() || undefined,
+          phone: rowData.phone?.trim() || undefined,
+          gender: gender,
+          rating: rating,
+          notes: rowData.notes?.trim() || undefined,
+        };
+
+        importedPlayers.push(playerData);
+      } catch (error) {
+        errors.push(`Row ${i + 1}: Parse error - ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    // Show errors if any
+    if (errors.length > 0) {
+      Alert.alert(
+        'Import Warnings',
+        `${errors.length} error(s) occurred:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`,
+        [{ text: 'OK' }]
+      );
+    }
+
+    if (importedPlayers.length === 0) {
+      Alert.alert('Import Failed', 'No valid players found to import.');
+      return;
+    }
+
+    // Confirm import
+    Alert.alert(
+      'Confirm Import',
+      `Import ${importedPlayers.length} player(s)?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import',
+          onPress: () => {
+            importedPlayers.forEach(playerData => {
+              dispatch(addPlayer(playerData));
+            });
+            Alert.alert('Success', `Imported ${importedPlayers.length} player(s).`);
+          },
+        },
+      ]
     );
+  } catch (error) {
+    console.error('Import error:', error);
+    Alert.alert('Import Failed', 'Failed to import players data.');
   }
-
+};
   function getAvatarName(name: string, props: any) {
     let initials: string = "";
     if (name.length > 1) {
@@ -204,7 +388,6 @@ export default function PlayersTab() {
             </View>
           </View>
         )}
-        //left={(props) => getAvatar(item.gender, props)}
         left={(props) => getAvatarName(item.name, props)}
         right={(props) => (
           <View {...props} style={{
@@ -248,7 +431,8 @@ export default function PlayersTab() {
         </Text>
         <View style={{ flexDirection: 'row', gap: 8, }}>
           <Button icon="account-multiple-plus-outline" mode="elevated" onPress={() => setBulkModalVisible(true)}>Bulk Add</Button>
-          <Button icon="import" mode="elevated" disabled={true} onPress={() => { }}>Import</Button>
+          <Button icon="export" mode="elevated" onPress={handleExportPlayers}>Export</Button>
+          <Button icon="import" mode="elevated" onPress={handleImportPlayers}>Import</Button>
           <Button icon="account-plus-outline" mode="contained-tonal" onPress={() => setModalVisible(true)}><Text style={{ fontWeight: '600' }}>Add Player</Text></Button>
         </View>
       </View>
@@ -321,12 +505,3 @@ export default function PlayersTab() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  playerDetails: {
-    fontSize: 14,
-    marginBottom: 8,
-    marginRight: 4,
-  },
-});
-

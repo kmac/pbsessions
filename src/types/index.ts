@@ -7,6 +7,7 @@ export interface Player {
   phone?: string;
   gender?: 'male' | 'female' | 'other';
   rating?: number; // DUPR-style rating
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,10 +30,10 @@ export interface Court {
 }
 
 export enum SessionState {
-  Unstarted,
-  Live,
-  Complete,
-  Archived
+  Unstarted = "Unstarted",
+  Live = "Live",
+  Complete = "Complete",
+  Archived = "Archived",
 }
 
 export interface Session {

@@ -9,7 +9,6 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/src/store';
 import { Provider as StoreProvider, useDispatch } from 'react-redux';
-import { useColorScheme } from 'react-native';
 import { SplashScreen, Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { adaptNavigationTheme, Appbar, PaperProvider } from 'react-native-paper'
@@ -120,9 +119,9 @@ const RootLayoutNav = () => {
             header: (props) => (
               <Appbar.Header>
                 <Appbar.BackAction onPress={() => { router.push('/sessions');}} />
-                <Appbar.Content title="Title" />
+                {/*<Appbar.Content title="Title" />
                 <Appbar.Action icon="calendar" onPress={() => { }} />
-                <Appbar.Action icon="magnify" onPress={() => { }} />
+                <Appbar.Action icon="magnify" onPress={() => { }} />*/}
               </Appbar.Header>
             ),
           }}
