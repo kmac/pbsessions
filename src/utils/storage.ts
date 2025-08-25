@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
   PLAYERS: "@pickleball_players",
   GROUPS: "@pickleball_groups",
   SESSIONS: "@pickleball_sessions",
-  LIVE_SESSION: "@pickleball_live_session",
+  //LIVE_SESSION: "@pickleball_live_session",
   APP_CONFIG: "@pickleball_config",
 } as const;
 
@@ -15,7 +15,7 @@ export interface StoredData {
   players: Player[];
   groups: Group[];
   sessions: Session[];
-  liveSession: LiveSession | null;
+  // liveSession: LiveSession | null;
   appConfig: Setting;
   lastBackup?: string;
   version: string;
@@ -116,16 +116,16 @@ export class StorageManager {
     return sessions || [];
   }
 
-  async saveLiveSession(liveSession: LiveSession): Promise<void> {
-    await this.saveData(STORAGE_KEYS.LIVE_SESSION, liveSession);
-  }
+  // async saveLiveSession(liveSession: LiveSession): Promise<void> {
+  //   await this.saveData(STORAGE_KEYS.LIVE_SESSION, liveSession);
+  // }
 
-  async loadLiveSession(): Promise<LiveSession | null> {
-    const liveSession = await this.loadData<LiveSession>(
-      STORAGE_KEYS.LIVE_SESSION,
-    );
-    return liveSession;
-  }
+  // async loadLiveSession(): Promise<LiveSession | null> {
+  //   const liveSession = await this.loadData<LiveSession>(
+  //     STORAGE_KEYS.LIVE_SESSION,
+  //   );
+  //   return liveSession;
+  // }
 
   async saveAppConfig(appConfig: Setting): Promise<void> {
     await this.saveData(STORAGE_KEYS.APP_CONFIG, appConfig);
@@ -133,24 +133,30 @@ export class StorageManager {
 
   async loadAppConfig(): Promise<Setting> {
     const setting = await this.loadData<Setting>(STORAGE_KEYS.APP_CONFIG);
-    return setting || { color: "default", theme: "light" };
+    return (
+      setting || {
+        color: "default",
+        theme: "light",
+        defaultUseScoring: false,
+        defaultUseRatings: false,
+      }
+    );
   }
 
   async exportAllData(): Promise<StoredData> {
-    const [players, groups, sessions, liveSession, appConfig] =
-      await Promise.all([
-        this.loadPlayers(),
-        this.loadGroups(),
-        this.loadSessions(),
-        this.loadLiveSession(),
-        this.loadAppConfig(),
-      ]);
+    const [players, groups, sessions, appConfig] = await Promise.all([
+      this.loadPlayers(),
+      this.loadGroups(),
+      this.loadSessions(),
+      // this.loadLiveSession(),
+      this.loadAppConfig(),
+    ]);
 
     return {
       players,
       groups,
       sessions,
-      liveSession,
+      // liveSession,
       appConfig,
       lastBackup: new Date().toISOString(),
       version: "1.0.0",

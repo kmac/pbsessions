@@ -21,10 +21,6 @@ import {
   removeSession,
   // startLiveSession,
 } from "@/src/store/slices/sessionsSlice";
-// import {
-//   setLiveSession,
-//   updateCourts,
-// } from "@/src/store/slices/liveSessionSlice";
 import { Session, SessionState } from "@/src/types";
 import ArchivedSessions from "@/src/components/ArchivedSessions";
 import SessionFormModal from "@/src/components/SessionFormModal";
