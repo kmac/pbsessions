@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
-import { Group, LiveSession, Player, Session, Setting } from "@/src/types";
-import { Alert } from "./alert";
+import { Group, Player, Session, Setting } from "@/src/types";
+import { Alert } from "@/src/utils/alert";
 
 const STORAGE_KEYS = {
   PLAYERS: "@pickleball_players",
@@ -15,7 +15,6 @@ export interface StoredData {
   players: Player[];
   groups: Group[];
   sessions: Session[];
-  // liveSession: LiveSession | null;
   appConfig: Setting;
   lastBackup?: string;
   version: string;

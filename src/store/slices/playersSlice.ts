@@ -60,6 +60,10 @@ const playersSlice = createSlice({
       state.error = action.payload;
     },
   },
+  selectors: {
+    selectAllPlayers: (playersState) => playersState.players,
+    selectAllPlayerIds: (playersState) => playersState.players.map(player => player.id),
+  },
 });
 
 export const {
@@ -71,5 +75,10 @@ export const {
   setLoading,
   setError,
 } = playersSlice.actions;
+
+export const {
+  selectAllPlayers,
+  selectAllPlayerIds,
+} = playersSlice.selectors;
 
 export default playersSlice.reducer;

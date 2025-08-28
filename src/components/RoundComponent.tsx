@@ -16,7 +16,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import {
-  //useAppDispatch,
+  useAppDispatch,
   useAppSelector,
 } from "@/src/store";
 import { Court, Game, Session, Player } from "@/src/types";
@@ -41,7 +41,7 @@ export default function RoundComponent({
   editing,
   liveSession,
 }: RoundComponentProps) {
-  //const dispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const [selectedPlayers, setSelectedPlayers] = useState(
     new Map<string, Player>(),
   );
@@ -93,10 +93,10 @@ export default function RoundComponent({
       return;
     }
     const updatedCourt = { ...court, minimumRating: rating };
-    updateCourtInSessionThunk({
+    dispatch(updateCourtInSessionThunk({
       sessionId: liveSession.id,
       court: updatedCourt,
-    });
+    }));
   };
 
   const sittingOutPlayers =
@@ -275,7 +275,7 @@ export default function RoundComponent({
       return newGame;
     });
 
-    updateCurrentRoundThunk({
+    dispatch(updateCurrentRoundThunk({
       sessionId: liveSession.id,
       assignment: {
         roundNumber: getCurrentRoundNumber(liveSession),
@@ -288,7 +288,7 @@ export default function RoundComponent({
         }),
         sittingOutIds: newSittingOutIds,
       },
-    });
+    }));
 
     // Clear selected players
     setSelectedPlayers(new Map());
@@ -339,10 +339,10 @@ export default function RoundComponent({
       minimumRating: rating,
     };
 
-    updateCourtInSessionThunk({
+    dispatch(updateCourtInSessionThunk({
       sessionId: liveSession.id,
       court: updatedCourt,
-    });
+    }));
 
     setCourtSettingDialogVisible(false);
     setCurrentCourtId("");

@@ -40,10 +40,17 @@ export default function SessionsTab() {
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
 
-  const allLiveSessionIds : string[] = sessions.map(session => session.id);
+  const allLiveSessions = sessions.filter(session => session.state === SessionState.Live);
+  const allLiveSessionIds : string[] = allLiveSessions.map(session => session.id);
+  const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
+
+  const getSession = (sessionId: string) => {
+    return sessions.find(session => session.id === sessionId);
+  }
 
   const isSessionLive = (sessionId: string) => {
-    return allLiveSessionIds.some(id => id === sessionId);
+    const session = getSession(sessionId);
+    return session ? isLive(session) : false;
   }
 
   const isUnstarted = (session: Session) => {
@@ -61,17 +68,6 @@ export default function SessionsTab() {
   const isArchived = (session: Session) => {
     return session.state === SessionState.Archived;
   }
-
-  // const isSessionLive = (sessionId: string) => {
-  //   if (!liveSession) {
-  //     return false;
-  //   }
-  //   if (sessionId === liveSession.sessionId) {
-  //     return true;
-  //   }
-  //   Alert.alert('found it');
-  //   return sessions.filter(session => session.id === sessionId && session.state === SessionState.Live).length > 0;
-  // }
 
   const handleDeleteSession = (session: Session) => {
     if (isSessionLive(session.id)) {
@@ -155,7 +151,11 @@ export default function SessionsTab() {
       return;
     }
 
-    startLiveSessionThunk({sessionId: session.id});
+    dispatch(startLiveSessionThunk({sessionId: session.id}));
+    setTimeout(() => {
+      setLiveSessionId(session.id);
+    }, 100);
+
     router.push("/live-session");
   };
 

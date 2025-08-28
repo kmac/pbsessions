@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useDispatch, useSelector } from 'react-redux';
 import { Settings, Download, Upload, Trash2 } from 'lucide-react-native';
 import { RootState } from '@/src/store';
-import { StorageManager, StoredData } from '@/src/utils/storage';
+import { StorageManager, StoredData } from '@/src/store/storage';
 import { colors } from '@/src/theme';
 import { Alert } from '@/src/utils/alert'
 

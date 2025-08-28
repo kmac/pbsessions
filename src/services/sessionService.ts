@@ -33,9 +33,13 @@ export const getCurrentRound = (session: Session, live: boolean = true): Round =
   if (live) {
     validateLive(session);
   } else if (!session || !session.liveData) {
-    return { games: [], sittingOutIds: [] }
+    return { games: [], sittingOutIds: [] };
   }
-  return session.liveData!.rounds[session.liveData!.rounds.length - 1];
+  const roundNumber = session.liveData!.rounds.length - 1;
+  if (session.liveData!.rounds[roundNumber]) {
+    return session.liveData!.rounds[roundNumber];
+  }
+  return { games: [], sittingOutIds: [] };
 };
 
 const convertAssignmentToRound = (session: Session, roundAssignment: RoundAssignment): Round => {

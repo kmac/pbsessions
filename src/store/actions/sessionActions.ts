@@ -1,14 +1,63 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { RootState } from "@/src/store";
+import { AppDispatch, RootState } from "@/src/store";
 import { SessionService } from "@/src/services/sessionService";
 import { updateSession } from "../slices/sessionsSlice";
-import { Court, Session, PlayerStats, Results, RoundAssignment } from "@/src/types";
+import { logSession } from "@/src/utils/util";
+import {
+  Court,
+  Session,
+  PlayerStats,
+  Results,
+  RoundAssignment,
+} from "@/src/types";
 
 // In your components:
 // import { applyNextRoundThunk, updateGameScoreThunk } from '@/src/store/actions/sessionActions';
 
 // Helper function to wrap createAsyncThunk for a Session
 const createAsyncThunkForSession = <
+  TArgs extends { sessionId: string },
+  TResult = Session,
+>(
+  actionType: string,
+  sessionOperation: ( session: Session, args: Omit<TArgs, "sessionId">,) => Session,) => {
+  return createAsyncThunk<TResult, TArgs>(
+    actionType,
+    async (args, { dispatch, getState, rejectWithValue }) => {
+      try {
+        const state = getState() as RootState;
+        const session = state.sessions.sessions.find(
+          (s) => s.id === args.sessionId,
+        );
+        if (!session) {
+          return rejectWithValue(`Session ${args.sessionId} not found`);
+        }
+        const { sessionId, ...operationArgs } = args;
+
+        // invoke the passed-in operation
+        const updatedSession = sessionOperation(
+          session,
+          operationArgs as Omit<TArgs, "sessionId">,
+        );
+
+        logSession(session, `Dispatching session update, sessionId=${sessionId}, name=${updatedSession.name}`);
+        dispatch(updateSession(updatedSession));
+
+        return updatedSession as TResult;
+      } catch (error: unknown) {
+        let message: string = "unknown";
+        if (typeof error === "string") {
+          message = error;
+        } else if (error instanceof Error) {
+          message = error.message;
+        }
+        return rejectWithValue(message);
+      }
+    },
+  );
+};
+
+const createFullAsyncThunkForSession = <
   TArgs extends { sessionId: string },
   TResult = Session,
 >(
@@ -52,6 +101,7 @@ const createAsyncThunkForSession = <
         // Execute before update side effects
         sideEffects?.beforeUpdate?.(session, updatedSession, dispatch);
 
+        logSession(session, "Dispatching session update");
         dispatch(updateSession(updatedSession));
 
         // Execute after update side effects
@@ -103,69 +153,92 @@ const createAsyncThunkForSession = <
 export const applyNextRoundThunk = createAsyncThunkForSession<{
   sessionId: string;
   assignment: RoundAssignment;
-}>("sessions/applyNextRound", (session, { assignment }) =>
-  SessionService.applyNextRound(session, assignment),
-);
+}>(
+  "sessions/applyNextRound", (session, { assignment }) => {
+  return SessionService.applyNextRound(session, assignment);
+});
 
 export const updateCurrentRoundThunk = createAsyncThunkForSession<{
   sessionId: string;
   assignment: RoundAssignment;
-}>("sessions/updateCurrentRound", (session, { assignment }) =>
-  SessionService.updateCurrentRound(session, assignment),
-);
+}>(
+  "sessions/updateCurrentRound", (session, { assignment }) => {
+  return SessionService.updateCurrentRound(session, assignment);
+});
 
 export const startLiveSessionThunk = createAsyncThunkForSession<{
-  sessionId: string }>(
+  sessionId: string;
+}>(
   "sessions/startLiveSession",
-  (session ) => SessionService.startLiveSession(session),
-);
+  (session) => {
+  return SessionService.startLiveSession(session);
+});
 
 export const endSessionThunk = createAsyncThunkForSession<{
-  sessionId: string }>(
+  sessionId: string;
+}>(
   "sessions/endSession",
-  (session ) => SessionService.endSession(session),
-);
+  (session) => {
+  return SessionService.endSession(session);
+});
 
 export const startRoundThunk = createAsyncThunkForSession<{
-  sessionId: string; }>(
+  sessionId: string;
+}>(
   "sessions/startRound",
-  (session) => SessionService.startRound(session),
-);
+  (session) => {
+  return SessionService.startRound(session);
+});
 
 export const completeRoundThunk = createAsyncThunkForSession<{
   sessionId: string;
   results: Results;
-  updatedPlayerStats: PlayerStats[]}>(
+  updatedPlayerStats: PlayerStats[];
+}>(
   "sessions/completeRound",
-  (session, { results, updatedPlayerStats }) => SessionService.completeRound(session, results, updatedPlayerStats),
-);
+  (session, { results, updatedPlayerStats }) => {
+  return SessionService.completeRound(session, results, updatedPlayerStats);
+});
 
 export const addCourtToSessionThunk = createAsyncThunkForSession<{
-  sessionId: string, court: Court }>(
+  sessionId: string;
+  court: Court;
+}>(
   "sessions/addCourt",
-  (session, { court } ) => SessionService.addCourt(session, court),
-);
+  (session, { court }) => { return SessionService.addCourt(session, court);
+});
 
 export const updateCourtInSessionThunk = createAsyncThunkForSession<{
-  sessionId: string, court: Court }>(
+  sessionId: string;
+  court: Court;
+}>(
   "sessions/updateCourt",
-  (session, { court } ) => SessionService.updateCourt(session, court),
+  (session, { court }) => { return SessionService.updateCourt(session, court); }
 );
 
 export const removeCourtFromSessionThunk = createAsyncThunkForSession<{
-  sessionId: string, courtId: string }>(
+  sessionId: string;
+  courtId: string;
+}>(
   "sessions/removeCourt",
-  (session, { courtId } ) => SessionService.removeCourt(session, courtId),
-);
+  (session, { courtId }) => {
+  return SessionService.removeCourt(session, courtId);
+});
 
 export const addPlayerToSessionThunk = createAsyncThunkForSession<{
-  sessionId: string, playerId: string }>(
+  sessionId: string;
+  playerId: string;
+}>(
   "sessions/addPlayer",
-  (session, { playerId } ) => SessionService.addPlayer(session, playerId)
-);
+  (session, { playerId }) => {
+  return SessionService.addPlayer(session, playerId);
+});
 
 export const removePlayerFromSessionThunk = createAsyncThunkForSession<{
-  sessionId: string, playerId: string }>(
+  sessionId: string;
+  playerId: string;
+}>(
   "sessions/removePlayer",
-  (session, { playerId } ) => SessionService.removePlayer(session, playerId)
-);
+  (session, { playerId }) => {
+  return SessionService.removePlayer(session, playerId);
+});

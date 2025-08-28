@@ -20,7 +20,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { Users } from 'lucide-react-native';
 import { RootState } from '@/src/store';
-import { addPlayer, updatePlayer, removePlayer } from '@/src/store/slices/playersSlice';
+import { addPlayer, updatePlayer, removePlayer, selectAllPlayers } from '@/src/store/slices/playersSlice';
 import { getShortGender } from '@/src/utils/util';
 import { Group, Player } from '@/src/types';
 import PlayerForm from '@/src/components/PlayerForm';
@@ -39,7 +39,8 @@ const theme = useTheme()
 
 export default function PlayersTab() {
   const dispatch = useDispatch();
-  const { players, loading } = useSelector((state: RootState) => state.players);
+  // const { players, loading } = useSelector((state: RootState) => state.players);
+  const allPlayers = useSelector(selectAllPlayers);
   const groups = useSelector((state: RootState) => state.groups.groups);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -109,7 +110,7 @@ export default function PlayersTab() {
 
 const handleExportPlayers = async () => {
   try {
-    if (players.length === 0) {
+    if (allPlayers.length === 0) {
       Alert.alert('No Data', 'No players to export.');
       return;
     }
@@ -118,7 +119,7 @@ const handleExportPlayers = async () => {
     const headers = ['name', 'email', 'phone', 'gender', 'rating', 'notes'];
 
     // Convert players to CSV rows
-    const csvRows = players.map(player => [
+    const csvRows = allPlayers.map(player => [
       `"${(player.name || '').replace(/"/g, '""')}"`,
       `"${(player.email || '').replace(/"/g, '""')}"`,
       `"${(player.phone || '').replace(/"/g, '""')}"`,
@@ -231,7 +232,7 @@ const handleImportPlayers = async () => {
         }
 
         // Check for duplicate names (case-insensitive)
-        const existingPlayer = players.find(p =>
+        const existingPlayer = allPlayers.find(p =>
           p.name.toLowerCase().trim() === rowData.name.toLowerCase().trim()
         );
         if (existingPlayer) {
@@ -427,7 +428,7 @@ const handleImportPlayers = async () => {
         borderBottomColor: theme.colors.surfaceVariant
       }}>
         <Text variant="headlineMedium" style={{ fontWeight: 'bold' }}>
-          Players ({players.length})
+          Players ({allPlayers.length})
         </Text>
         <View style={{ flexDirection: 'row', gap: 8, }}>
           <Button icon="account-multiple-plus-outline" mode="elevated" onPress={() => setBulkModalVisible(true)}>Bulk Add</Button>
@@ -439,11 +440,11 @@ const handleImportPlayers = async () => {
 
       {useNew ?
         <PlayerManager
-          players={[...players].sort((a, b) => a.name.localeCompare(b.name))}
+          players={[...allPlayers].sort((a, b) => a.name.localeCompare(b.name))}
         />
         :
         <FlatList
-          data={[...players].sort((a, b) => a.name.localeCompare(b.name))}
+          data={[...allPlayers].sort((a, b) => a.name.localeCompare(b.name))}
           renderItem={renderPlayerList}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, }}

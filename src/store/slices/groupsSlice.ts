@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Group } from '@/src/types';
+import { removePlayer } from '@/src/store/slices/playersSlice';
 
 interface GroupsState {
   groups: Group[];
@@ -64,6 +65,12 @@ const groupsSlice = createSlice({
       state.error = action.payload;
     },
   },
+  // extraReducers: (builder) => {
+  //   builder.addCase(removePlayer, (state, action: PayloadAction<string> ) => {
+  //     const removedPlayerId = action.payload;
+  //   });
+  // },
+
 });
 
 export const {

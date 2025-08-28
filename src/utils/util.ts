@@ -34,6 +34,14 @@ export function playerDetailsToString(item: Player): String {
   return details;
 };
 
+export function logSession(session: Session|undefined, msg = "Session: ") {
+  if (session) {
+    console.log(`${msg}: ${session.name}, state: ${session.state}, updatedAt: ${session.updatedAt}, liveData: ${session.liveData}`);
+  } else {
+    console.log(`${msg}: no session`);
+  }
+}
+
 export function getSessionPlayers(
   session: Session,
   allPlayers: Player[],

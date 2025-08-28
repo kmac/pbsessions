@@ -53,39 +53,6 @@ export interface Session {
   };
 }
 
-export interface LiveSession {
-  sessionId: string;
-  currentGameNumber: number;
-  courts: Court[];
-  activeGames: Game[];
-  playerStats: PlayerStats[];
-  scoring: boolean;
-  showRatings: boolean;
-  isActive: boolean;
-}
-
-// ## Suggested Improvements
-//
-// **Option 1: Merge Types**
-// ```typescript
-// export interface Session {
-//   // ... existing Session fields
-//   liveData?: {
-//     currentGameNumber: number;
-//     activeGames: Game[];
-//     playerStats: PlayerStats[];
-//     isActive: boolean;
-//   };
-// }
-// ```
-//
-// **Option 2: Use Computed Property**
-// ```typescript
-// // Remove isLive from Session, derive it from LiveSession existence
-// const isSessionLive = (sessionId: string, liveSessions: LiveSession[]) =>
-//   liveSessions.some(ls => ls.sessionId === sessionId && ls.isActive);
-// ```
-
 export interface Score { serveScore: number; receiveScore: number; }
 
 export interface Team {

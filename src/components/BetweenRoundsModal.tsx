@@ -20,6 +20,10 @@ import {
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import RoundComponent from "@/src/components/RoundComponent";
 import { SessionCoordinator } from "@/src/services/sessionCoordinator";
+import {
+  getCurrentRound,
+  getCurrentRoundNumber,
+} from "@/src/services/sessionService";
 import { getSessionPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 import { updateCurrentRoundThunk } from "@/src/store/actions/sessionActions";
@@ -38,6 +42,7 @@ export default function BetweenRoundsModal({
   onClose,
 }: BetweenRoundsModalProps) {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
   const [selectedPlayers, setSelectedPlayers] = useState(
     new Map<string, Player>(),
   );
@@ -49,11 +54,8 @@ export default function BetweenRoundsModal({
   const liveData = session.liveData
     ? session.liveData
     : { rounds: [], playerStats: [] };
-  const roundNumber = liveData.rounds.length;
-  const currentRound: Round =
-    roundNumber > 0
-      ? liveData.rounds[roundNumber]
-      : { games: [], sittingOutIds: [] };
+  const roundNumber = getCurrentRoundNumber(session);
+  const currentRound: Round = getCurrentRound(session);
   const games = currentRound.games;
   const playerStats = liveData.playerStats;
   const sessionPlayers: Player[] = session
@@ -93,10 +95,10 @@ export default function BetweenRoundsModal({
       );
       return;
     }
-    updateCurrentRoundThunk({
+    dispatch(updateCurrentRoundThunk({
       sessionId: session.id,
       assignment: roundAssignment,
-    });
+    }));
 
     // Clear selected players after reshuffling since assignments have changed
     setSelectedPlayers(new Map());

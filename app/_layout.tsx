@@ -14,7 +14,7 @@ import { StatusBar } from 'expo-status-bar'
 import { adaptNavigationTheme, Appbar, PaperProvider } from 'react-native-paper'
 
 import { store } from '@/src/store';
-import { StorageManager } from '@/src/utils/storage';
+import { StorageManager } from '@/src/store/storage';
 import { setPlayers } from '@/src/store/slices/playersSlice';
 import { setGroups } from '@/src/store/slices/groupsSlice';
 import { setSessions } from '@/src/store/slices/sessionsSlice';
