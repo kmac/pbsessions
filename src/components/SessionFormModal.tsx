@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  ScrollView,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useEffect } from "react";
+import { View, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
   Button,
@@ -11,32 +8,35 @@ import {
   Checkbox,
   Chip,
   Icon,
-  RadioButton,
+  IconButton,
   Surface,
-  Switch,
   Text,
   TextInput,
   useTheme,
-} from 'react-native-paper';
-import {
-  DatePickerInput,
-  TimePickerModal,
-} from 'react-native-paper-dates';
-import { useAppSelector } from '../store';
-import { Session, SessionState, Court, Player, Group } from '../types';
-import { validateSessionSize } from '../utils/validation';
-import SessionPlayerManager from './SessionPlayerManager';
-import Session2PlayerManager from './Session2PlayerManager';
-import CourtManager from './CourtManager';
-import { Alert } from '../utils/alert'
+} from "react-native-paper";
+import { DatePickerInput, TimePickerModal } from "react-native-paper-dates";
+import { useAppSelector } from "../store";
+import { createCourt, Session, SessionState, Court, Player, Group } from "../types";
+import { validateSessionSize } from "../utils/validation";
+import SessionPlayerManager from "./SessionPlayerManager";
+import CourtManager from "./CourtManager";
+import { Alert } from "../utils/alert";
 
 interface SessionFormModalProps {
   session?: Session | null;
-  onSave: (session: Session | Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>) => void;
+  onSave: (
+    session:
+      | Session
+      | Omit<Session, "id" | "state" | "createdAt" | "updatedAt">,
+  ) => void;
   onCancel: () => void;
 }
 
-export default function SessionFormModal({ session, onSave, onCancel }: SessionFormModalProps) {
+export default function SessionFormModal({
+  session,
+  onSave,
+  onCancel,
+}: SessionFormModalProps) {
   const theme = useTheme();
   const { players } = useAppSelector((state) => state.players);
   const { appConfig } = useAppSelector((state) => state.appConfig);
@@ -48,11 +48,7 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
     name: `${new Date().toDateString()}`,
     dateTime: new Date().toISOString(),
     playerIds: [] as string[],
-    courts: [
-      { id: 'court1', number: 1, name: 'Court 1', minimumRating: undefined, isActive: true },
-      { id: 'court2', number: 2, name: 'Court 2', minimumRating: undefined, isActive: true },
-      { id: 'court3', number: 3, name: 'Court 3', minimumRating: undefined, isActive: true },
-    ] as Court[],
+    courts: [] as Court[],
     scoring: appConfig.defaultUseScoring,
     showRatings: appConfig.defaultUseRatings,
   });
@@ -61,39 +57,45 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
   const [showCourtManager, setShowCourtManager] = useState(false);
 
   useEffect(
-    () => { /* Effect function: contains side effect code */
-    if (session) {
-      setFormData({
-        name: session.name,
-        dateTime: session.dateTime,
-        playerIds: session.playerIds,
-        courts: session.courts,
-        scoring: session.scoring,
-        showRatings: session.showRatings,
-      });
-    } else {
-      const now = new Date();
-      now.setHours(now.getHours() + 1, 0, 0, 0);
-      setFormData(prev => ({ ...prev, dateTime: now.toISOString() }));
-    }
-  },
-    [session]  /* Dependency array: effect function runs whenever any dependency changes */
+    () => {
+      /* Effect function: contains side effect code */
+      if (session) {
+        setFormData({
+          name: session.name,
+          dateTime: session.dateTime,
+          playerIds: session.playerIds,
+          courts: session.courts,
+          scoring: session.scoring,
+          showRatings: session.showRatings,
+        });
+      } else {
+        const now = new Date();
+        now.setHours(now.getHours() + 1, 0, 0, 0);
+        setFormData((prev) => ({ ...prev, dateTime: now.toISOString() }));
+      }
+    },
+    [
+      session,
+    ] /* Dependency array: effect function runs whenever any dependency changes */,
   );
 
   const handleSave = () => {
     // Saves formData which is then persisted by calling the 'onSave' callback
     if (!formData.name.trim()) {
-      Alert.alert('Validation Error', 'Session name is required');
+      Alert.alert("Validation Error", "Session name is required");
       return;
     }
-    const activeCourts = formData.courts.filter(c => c.isActive);
+    const activeCourts = formData.courts.filter((c) => c.isActive);
     if (activeCourts.length === 0) {
-      Alert.alert('Validation Error', 'At least one court must be active');
+      Alert.alert("Validation Error", "At least one court must be active");
       return;
     }
-    const validation = validateSessionSize(formData.playerIds.length, activeCourts.length);
+    const validation = validateSessionSize(
+      formData.playerIds.length,
+      activeCourts.length,
+    );
     if (!validation.isValid) {
-      Alert.alert('Validation Error', validation.error);
+      Alert.alert("Validation Error", validation.error);
       return;
     }
 
@@ -111,7 +113,7 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
     } else {
       onSave(sessionData);
       if (validation.warning) {
-        Alert.alert('Session Created', validation.warning);
+        Alert.alert("Session Created", validation.warning);
       }
     }
   };
@@ -129,11 +131,11 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
   // };
 
   const getSelectedPlayers = () => {
-    return players.filter(p => formData.playerIds.includes(p.id));
+    return players.filter((p) => formData.playerIds.includes(p.id));
   };
 
   const getActiveCourts = () => {
-    return formData.courts.filter(c => c.isActive);
+    return formData.courts.filter((c) => c.isActive);
   };
 
   const updatePlayerIds = (playerIds: string[]) => {
@@ -141,20 +143,50 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
   };
 
   const updateCourts = (courts: Court[]) => {
-    setFormData({ ...formData, courts });
+    setFormData({
+      ...formData,
+      courts: [...courts],
+    });
+  };
+
+  const adjustCourts = (delta: "plus" | "minus") => {
+    if (delta === "minus") {
+      if (activeCourts.length > 0) {
+        let courtIdToRemove: string | undefined;
+        [...formData.courts].reverse().forEach((court) => {
+          if (!courtIdToRemove) {
+            if (court.isActive) {
+              courtIdToRemove = court.id;
+            }
+          }
+        });
+        if (courtIdToRemove) {
+          formData.courts = formData.courts.filter(
+            (c) => c.id !== courtIdToRemove,
+          );
+        }
+        updateCourts(formData.courts);
+      }
+    } else {
+      formData.courts.push(createCourt(activeCourts.length + 1));
+      updateCourts(formData.courts);
+    }
   };
 
   const selectedPlayers = getSelectedPlayers();
   const activeCourts = getActiveCourts();
-  const validation = validateSessionSize(selectedPlayers.length, activeCourts.length);
+  const validation = validateSessionSize(
+    selectedPlayers.length,
+    activeCourts.length,
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Appbar.Header>
         <Appbar.BackAction onPress={onCancel} />
         <Appbar.Content
-          title={session ? 'Edit Session' : 'New Session'}
-          titleStyle={{ fontWeight: '600' }}
+          title={session ? "Edit Session" : "New Session"}
+          titleStyle={{ fontWeight: "600" }}
         />
         <Button
           icon="content-save"
@@ -170,16 +202,18 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
         style={{ flex: 1, padding: 16 }}
         showsVerticalScrollIndicator={false}
       >
-        <Surface style={{
-          padding: 16,
-          borderRadius: 12,
-          marginBottom: 16
-        }}>
+        <Surface
+          style={{
+            padding: 16,
+            borderRadius: 12,
+            marginBottom: 16,
+          }}
+        >
           <Text
             variant="labelLarge"
             style={{
               marginBottom: 8,
-              color: theme.colors.onSurface
+              color: theme.colors.onSurface,
             }}
           >
             Session Name *
@@ -193,37 +227,41 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
           />
         </Surface>
 
-        <Surface style={{
-          padding: 16,
-          // borderRadius: 12,
-          marginBottom: 16
-        }}>
+        <Surface
+          style={{
+            padding: 16,
+            // borderRadius: 12,
+            marginBottom: 16,
+          }}
+        >
           <Text
             variant="labelLarge"
             style={{
               marginBottom: 8,
-              color: theme.colors.onSurface
+              color: theme.colors.onSurface,
             }}
           >
             Settings
           </Text>
 
-          <View style={{
-            flexDirection: 'row',
-            //alignItems: 'flex-start',
-            //alignContent: 'space-evenly',
-            padding: 12,
-            borderWidth: 1,
-            borderColor: theme.colors.outline,
-            borderRadius: 4,
-            gap: 8
-          }}>
+          <View
+            style={{
+              flexDirection: "row",
+              //alignItems: 'flex-start',
+              //alignContent: 'space-evenly',
+              padding: 12,
+              borderWidth: 1,
+              borderColor: theme.colors.outline,
+              borderRadius: 4,
+              gap: 8,
+            }}
+          >
             <DatePickerInput
               locale="en"
               label="Date"
               value={new Date(formData.dateTime)}
               //onChange={(d) => setInputDate(d)}
-              onChange={(d) => { }}
+              onChange={(d) => {}}
               inputMode="start"
               style={{
                 flex: 1,
@@ -238,7 +276,7 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
               hours={12}
               minutes={14}
             />*/}
-            <View style={{ flexDirection: 'row', flex: 2 }}>
+            <View style={{ flexDirection: "row", flex: 2 }}>
               {/*<Text>Scoring Enabled:</Text>
               <Switch value={scoring} onValueChange={() => setScoring(!scoring)} />
               <RadioButton
@@ -248,7 +286,7 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
               />*/}
               <Checkbox.Item
                 label="Scoring Enabled"
-                status={scoring ? 'checked' : 'unchecked'}
+                status={scoring ? "checked" : "unchecked"}
                 onPress={() => {
                   setScoring(!scoring);
                 }}
@@ -262,7 +300,7 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
               />*/}
               <Checkbox.Item
                 label="Use Ratings"
-                status={useRatings ? 'checked' : 'unchecked'}
+                status={useRatings ? "checked" : "unchecked"}
                 onPress={() => {
                   setUseRatings(!useRatings);
                 }}
@@ -273,13 +311,15 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
 
         <Card style={{ marginBottom: 16 }}>
           <Card.Content>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 12
-            }}>
-              <Text variant="titleMedium" style={{ fontWeight: '600' }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <Text variant="titleMedium" style={{ fontWeight: "600" }}>
                 Players ({selectedPlayers.length})
               </Text>
               <Button
@@ -288,25 +328,27 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
                 onPress={() => setShowPlayerManager(true)}
                 compact={true}
               >
-                Manage
+                Manage Players
               </Button>
             </View>
 
             {selectedPlayers.length === 0 ? (
-              <Surface style={{
-                alignItems: 'center',
-                padding: 24,
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: theme.colors.outline,
-                borderStyle: 'dashed'
-              }}>
+              <Surface
+                style={{
+                  alignItems: "center",
+                  padding: 24,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: theme.colors.outline,
+                  borderStyle: "dashed",
+                }}
+              >
                 <Icon source="account-multiple-plus" size={32} />
                 <Text
                   variant="bodyLarge"
                   style={{
                     color: theme.colors.onSurfaceVariant,
-                    marginVertical: 8
+                    marginVertical: 8,
                   }}
                 >
                   No players selected
@@ -320,16 +362,21 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
                 </Button>
               </Surface>
             ) : (
-              <Surface style={{
-                padding: 12,
-                borderRadius: 8,
-                backgroundColor: theme.colors.surfaceVariant
-              }}>
+              <Surface
+                style={{
+                  padding: 12,
+                  borderRadius: 8,
+                  backgroundColor: theme.colors.surfaceVariant,
+                }}
+              >
                 <Text
                   variant="bodyMedium"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  {selectedPlayers.map(p => p.name).sort().join(', ')}
+                  {selectedPlayers
+                    .map((p) => p.name)
+                    .sort()
+                    .join(", ")}
                 </Text>
               </Surface>
             )}
@@ -338,13 +385,15 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
 
         <Card style={{ marginBottom: 16 }}>
           <Card.Content>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 12
-            }}>
-              <Text variant="titleMedium" style={{ fontWeight: '600' }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <Text variant="titleMedium" style={{ fontWeight: "600" }}>
                 Courts ({activeCourts.length} active)
               </Text>
               <Button
@@ -353,110 +402,183 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
                 onPress={() => setShowCourtManager(true)}
                 compact={true}
               >
-                Configure
+                Manage Courts
               </Button>
             </View>
 
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {formData.courts.map(court => (
-                <Chip
-                  key={court.id}
-                  icon="map-marker-outline"
+            <Surface
+              style={{
+                alignItems: "center",
+                padding: 24,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: theme.colors.outline,
+                borderStyle: "dashed",
+              }}
+            >
+              {activeCourts.length === 0 && (
+                <Text
+                  variant="bodyLarge"
                   style={{
-                    backgroundColor: court.isActive
-                      ? theme.colors.tertiaryContainer
-                      : theme.colors.surfaceVariant
+                    color: theme.colors.onSurfaceVariant,
+                    marginVertical: 8,
                   }}
                 >
-                  Court {court.number}
-                  {court.minimumRating ? ` (${court.minimumRating.toFixed(1)}+)` : ''}
-                </Chip>
-              ))}
-            </View>
+                  No courts configured
+                </Text>
+              )}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <IconButton
+                  icon="minus"
+                  size={20}
+                  mode="contained-tonal"
+                  onPress={() => adjustCourts("minus")}
+                />
+                <Text>{activeCourts.length}</Text>
+                <IconButton
+                  icon="plus"
+                  size={20}
+                  mode="contained-tonal"
+                  onPress={() => adjustCourts("plus")}
+                />
+              </View>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {formData.courts.map((court) => (
+                  <Chip
+                    key={court.id}
+                    icon="map-marker-outline"
+                    style={{
+                      backgroundColor: court.isActive
+                        ? theme.colors.tertiaryContainer
+                        : theme.colors.surfaceVariant,
+                    }}
+                  >
+                    Court: {court.name}
+                    {court.minimumRating
+                      ? ` (${court.minimumRating.toFixed(1)}+)`
+                      : ""}
+                  </Chip>
+                ))}
+              </View>
+            </Surface>
           </Card.Content>
         </Card>
 
         {selectedPlayers.length > 0 && activeCourts.length > 0 && (
           <Card>
             <Card.Content>
-              <Text variant="titleMedium" style={{
-                fontWeight: '600',
-                marginBottom: 12
-              }}>
+              <Text
+                variant="titleMedium"
+                style={{
+                  fontWeight: "600",
+                  marginBottom: 12,
+                }}
+              >
                 Session Summary
               </Text>
 
               <View style={{ gap: 8 }}>
-                <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <Text variant="bodyMedium" style={{
-                    color: theme.colors.onSurfaceVariant
-                  }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    variant="bodyMedium"
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                    }}
+                  >
                     Total Players:
                   </Text>
-                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
+                  <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
                     {selectedPlayers.length}
                   </Text>
                 </View>
-                <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <Text variant="bodyMedium" style={{
-                    color: theme.colors.onSurfaceVariant
-                  }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    variant="bodyMedium"
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                    }}
+                  >
                     Active Courts:
                   </Text>
-                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
+                  <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
                     {activeCourts.length}
                   </Text>
                 </View>
-                <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <Text variant="bodyMedium" style={{
-                    color: theme.colors.onSurfaceVariant
-                  }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    variant="bodyMedium"
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                    }}
+                  >
                     Playing per game:
                   </Text>
-                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
+                  <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
                     {activeCourts.length * 4}
                   </Text>
                 </View>
-                <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <Text variant="bodyMedium" style={{
-                    color: theme.colors.onSurfaceVariant
-                  }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    variant="bodyMedium"
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                    }}
+                  >
                     Sitting out:
                   </Text>
-                  <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
-                    {Math.max(0, selectedPlayers.length - (activeCourts.length * 4))}
+                  <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
+                    {Math.max(
+                      0,
+                      selectedPlayers.length - activeCourts.length * 4,
+                    )}
                   </Text>
                 </View>
               </View>
 
               {validation.warning && (
-                <Surface style={{
-                  backgroundColor: theme.colors.errorContainer,
-                  padding: 8,
-                  borderRadius: 6,
-                  marginTop: 12
-                }}>
+                <Surface
+                  style={{
+                    backgroundColor: theme.colors.errorContainer,
+                    padding: 8,
+                    borderRadius: 6,
+                    marginTop: 12,
+                  }}
+                >
                   <Text
                     variant="bodySmall"
                     style={{
                       color: theme.colors.onErrorContainer,
-                      textAlign: 'center'
+                      textAlign: "center",
                     }}
                   >
                     {validation.warning}
@@ -474,14 +596,6 @@ export default function SessionFormModal({ session, onSave, onCancel }: SessionF
         onSelectionChange={updatePlayerIds}
         onClose={() => setShowPlayerManager(false)}
       />
-
-      {/*<Session2PlayerManager
-        visible={showPlayerManager}
-        name={formData.name}
-        selectedPlayerIds={formData.playerIds}
-        onSelectionChange={updatePlayerIds}
-        onClose={() => setShowPlayerManager(false)}
-      />*/}
 
       <CourtManager
         visible={showCourtManager}

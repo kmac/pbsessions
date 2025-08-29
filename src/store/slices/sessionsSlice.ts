@@ -1,6 +1,6 @@
-import type { RootState } from '@/src/store';
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Session, SessionState } from '@/src/types';
+import type { RootState } from "@/src/store";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { Session, SessionState } from "@/src/types";
 
 interface SessionsState {
   sessions: Session[];
@@ -15,10 +15,15 @@ const initialState: SessionsState = {
 };
 
 const sessionsSlice = createSlice({
-  name: 'sessions',
+  name: "sessions",
   initialState,
   reducers: {
-    addSession: (state, action: PayloadAction<Omit<Session, 'id' | 'state' | 'createdAt' | 'updatedAt'>>) => {
+    addSession: (
+      state,
+      action: PayloadAction<
+        Omit<Session, "id" | "state" | "createdAt" | "updatedAt">
+      >,
+    ) => {
       const now = new Date().toISOString();
       const newSession: Session = {
         ...action.payload,
@@ -29,8 +34,31 @@ const sessionsSlice = createSlice({
       };
       state.sessions.push(newSession);
     },
+    cloneSession: (
+      state,
+      action: PayloadAction<
+        Omit<Session, "id" | "state" | "createdAt" | "updatedAt" | "liveData">
+      >,
+    ) => {
+      const now = new Date().toISOString();
+      const newSession: Session = {
+        ...action.payload,
+        name: `${action.payload.name} (clone)`,
+        // name: `${new Date().toDateString()}`,
+        id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        state: SessionState.Unstarted,
+        //courts: {...action.payload.courts},
+        // liveData: {
+        //   rounds: [],
+        //   playerStats: [],
+        // },
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.sessions.push(newSession);
+    },
     updateSession: (state, action: PayloadAction<Session>) => {
-      const index = state.sessions.findIndex(s => s.id === action.payload.id);
+      const index = state.sessions.findIndex((s) => s.id === action.payload.id);
       if (index !== -1) {
         state.sessions[index] = {
           ...action.payload,
@@ -39,17 +67,17 @@ const sessionsSlice = createSlice({
       }
     },
     removeSession: (state, action: PayloadAction<string>) => {
-      state.sessions = state.sessions.filter(s => s.id !== action.payload);
+      state.sessions = state.sessions.filter((s) => s.id !== action.payload);
     },
     archiveSession: (state, action: PayloadAction<string>) => {
-      const session = state.sessions.find(s => s.id === action.payload);
+      const session = state.sessions.find((s) => s.id === action.payload);
       if (session) {
         session.state = SessionState.Archived;
         session.updatedAt = new Date().toISOString();
       }
     },
     restoreSession: (state, action: PayloadAction<string>) => {
-      const session = state.sessions.find(s => s.id === action.payload);
+      const session = state.sessions.find((s) => s.id === action.payload);
       if (session) {
         session.state = SessionState.Complete;
         session.updatedAt = new Date().toISOString();
@@ -74,6 +102,7 @@ const sessionsSlice = createSlice({
 export const {
   addSession,
   archiveSession,
+  cloneSession,
   removeSession,
   restoreSession,
   setError,

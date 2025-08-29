@@ -1,11 +1,12 @@
-import Colors from '@/src/ui/styles/colors'
+import { v4 as uuidv4 } from "uuid";
+import Colors from "@/src/ui/styles/colors";
 
 export interface Player {
   id: string;
   name: string;
   email?: string;
   phone?: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: "male" | "female" | "other";
   rating?: number; // DUPR-style rating
   notes?: string;
   createdAt: string;
@@ -29,6 +30,21 @@ export interface Court {
   isActive: boolean;
 }
 
+export const createCourt = (
+  courtNum: number,
+  name: string | undefined = undefined,
+  minimumRating: number | undefined = undefined,
+  isActive = true,
+): Court => {
+  return {
+    id: uuidv4(),
+    number: courtNum,
+    name: name ? name : `Court ${courtNum}`,
+    minimumRating: minimumRating,
+    isActive: isActive ? isActive : true,
+  };
+};
+
 export enum SessionState {
   Unstarted = "Unstarted",
   Live = "Live",
@@ -42,7 +58,7 @@ export interface Session {
   dateTime: string;
   playerIds: string[];
   courts: Court[];
-  state: SessionState,
+  state: SessionState;
   scoring: boolean;
   showRatings: boolean;
   createdAt: string;
@@ -53,12 +69,15 @@ export interface Session {
   };
 }
 
-export interface Score { serveScore: number; receiveScore: number; }
+export interface Score {
+  serveScore: number;
+  receiveScore: number;
+}
 
 export interface Team {
-    player1Id: string;
-    player2Id: string;
-  };
+  player1Id: string;
+  player2Id: string;
+}
 
 export interface Game {
   id: string;
@@ -83,7 +102,7 @@ export interface PlayerStats {
 }
 
 export interface Results {
-    scores: { [gameId: string]: Score | null };
+  scores: { [gameId: string]: Score | null };
 }
 
 export interface Round {
@@ -91,7 +110,10 @@ export interface Round {
   sittingOutIds: string[];
 }
 
-export type GameAssignment = Pick<Game, "courtId" | "serveTeam" | "receiveTeam">;
+export type GameAssignment = Pick<
+  Game,
+  "courtId" | "serveTeam" | "receiveTeam"
+>;
 
 export interface RoundAssignment {
   roundNumber: number;
@@ -100,11 +122,11 @@ export interface RoundAssignment {
 }
 
 // TODO this should go away with full theme support?:
-export type Color = keyof typeof Colors.light
+export type Color = keyof typeof Colors.light;
 
 export interface Setting {
   color: Color;
-  theme: 'light' | 'dark' | 'auto';
-  defaultUseScoring: boolean,
-  defaultUseRatings: boolean,
+  theme: "light" | "dark" | "auto";
+  defaultUseScoring: boolean;
+  defaultUseRatings: boolean;
 }

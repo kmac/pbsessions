@@ -10,6 +10,8 @@ import {
   Session,
   SessionState,
 } from "@/src/types";
+import { SessionCoordinator } from "./sessionCoordinator";
+import { getSessionPlayers, logSession } from "@/src/utils/util";
 
 export const validateLive = (session?: Session): void => {
   if (!session) {
@@ -20,13 +22,33 @@ export const validateLive = (session?: Session): void => {
   }
 };
 
+export const getCurrentRoundIndex = (session: Session, live: boolean = true): number => {
+  if (live) {
+    validateLive(session);
+  } else if (!session || !session.liveData) {
+    return 0;
+  }
+  return session.liveData!.rounds.length;
+};
+
 export const getCurrentRoundNumber = (session: Session, live: boolean = true): number => {
   if (live) {
     validateLive(session);
   } else if (!session || !session.liveData) {
     return 0;
   }
-  return session.liveData!.rounds.length - 1;
+  return session.liveData!.rounds.length;
+
+  // if (session.state === SessionState.Live) {
+  //   return length - 1;
+  // }
+  // if (session.state === SessionState.Unstarted) {
+  //   return 0;
+  // }
+  // if (session.state === SessionState.Complete) {
+  //   return length - 1;
+  // }
+  // return length === 0 ? 0 : length - 1;
 };
 
 export const getCurrentRound = (session: Session, live: boolean = true): Round => {
@@ -35,11 +57,11 @@ export const getCurrentRound = (session: Session, live: boolean = true): Round =
   } else if (!session || !session.liveData) {
     return { games: [], sittingOutIds: [] };
   }
-  const roundNumber = session.liveData!.rounds.length - 1;
-  if (session.liveData!.rounds[roundNumber]) {
-    return session.liveData!.rounds[roundNumber];
+  const length = session.liveData!.rounds.length;
+  if (length === 0) {
+    return { games: [], sittingOutIds: [] };
   }
-  return { games: [], sittingOutIds: [] };
+  return session.liveData!.rounds[length - 1];
 };
 
 const convertAssignmentToRound = (session: Session, roundAssignment: RoundAssignment): Round => {
@@ -92,12 +114,16 @@ export const playerStatsToString = (stats: PlayerStats[]): string => {
 };
 
 export class SessionService {
-  static startLiveSession = (session: Session): Session => {
+  static startLiveSession = (session: Session, sessionPlayers: Player[]): Session => {
+    // message: "Invalid session: missing required live data. session: [object Object]"
+    const sessionCoordinator = new SessionCoordinator({...session, liveData: { rounds:[], playerStats: []}}, sessionPlayers);
+    const roundAssignment = sessionCoordinator.generateRoundAssignment();
+    const newRound = convertAssignmentToRound(session, roundAssignment);
     return {
       ...session,
       state: SessionState.Live,
       liveData: {
-        rounds: [],
+        rounds: [newRound],
         playerStats: [],
       },
       updatedAt: new Date().toISOString(),
@@ -135,10 +161,17 @@ export class SessionService {
   ): Session {
     validateLive(session);
     const newRound = convertAssignmentToRound(session, assignment);
-
-    session.liveData!.rounds[session.liveData!.rounds.length - 1] = newRound;
+    const updatedRounds = session.liveData!.rounds.map((round, index) =>
+      index === session.liveData!.rounds.length - 1
+        ? newRound
+        : round,
+    );
     return {
       ...session,
+      liveData: {
+        ...session.liveData!,
+        rounds: updatedRounds,
+      },
       updatedAt: new Date().toISOString(),
     };
   }

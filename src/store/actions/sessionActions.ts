@@ -6,6 +6,7 @@ import { logSession } from "@/src/utils/util";
 import {
   Court,
   Session,
+  Player,
   PlayerStats,
   Results,
   RoundAssignment,
@@ -51,6 +52,7 @@ const createAsyncThunkForSession = <
         } else if (error instanceof Error) {
           message = error.message;
         }
+        console.error(`Session action ${actionType}, message=${message}`);
         return rejectWithValue(message);
       }
     },
@@ -121,35 +123,6 @@ const createFullAsyncThunkForSession = <
   );
 };
 
-// Example: Start round with notifications and logging
-// export const startRoundThunk = createSessionThunk(
-//   'sessions/startRound',
-//   (session) => SessionService.startRound(session),
-//   {
-//     beforeUpdate: (session, updatedSession, dispatch) => {
-//       // Log the round start
-//       console.log(`Starting round ${updatedSession.liveData?.rounds.length} for session ${session.id}`);
-//
-//       // Set loading state
-//       dispatch(setLoading(true));
-//     },
-//     afterUpdate: (session, updatedSession, dispatch) => {
-//       // Clear loading state
-//       dispatch(setLoading(false));
-//
-//       // Dispatch notification
-//       dispatch(addNotification({
-//         message: `Round ${updatedSession.liveData?.rounds.length} started!`,
-//         type: 'success'
-//       }));
-//
-//       // Auto-save to external service
-//       dispatch(saveSessionToCloud(updatedSession));
-//     }
-//   }
-// );
-
-// Usage:  applyNextRoundThunk({sessionId: 'asfa', assignment: {} as RoundAssignment});
 export const applyNextRoundThunk = createAsyncThunkForSession<{
   sessionId: string;
   assignment: RoundAssignment;
@@ -168,10 +141,11 @@ export const updateCurrentRoundThunk = createAsyncThunkForSession<{
 
 export const startLiveSessionThunk = createAsyncThunkForSession<{
   sessionId: string;
+  sessionPlayers: Player[];
 }>(
   "sessions/startLiveSession",
-  (session) => {
-  return SessionService.startLiveSession(session);
+  (session, { sessionPlayers }) => {
+  return SessionService.startLiveSession(session, sessionPlayers);
 });
 
 export const endSessionThunk = createAsyncThunkForSession<{

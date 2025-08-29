@@ -40,7 +40,6 @@ export default function LiveSessionScreen() {
 
   // useAppSelector, useAppDispatch is redux
   // const { liveSession: currentSession } = useAppSelector((state) => state.liveSession);
-  // const liveSession: Session = currentSession.liveData ? currentSession : getEmptyLiveSession();
   const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
 
@@ -51,12 +50,9 @@ export default function LiveSessionScreen() {
   const [roundStartTime, setRoundStartTime] = useState<Date | null>(null);
 
   const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
-  //const liveSession = sessions.find(s => s.id === liveSessionId);
-  const liveSession = sessions.find((s) => s.state === SessionState.Live);
 
-  {
-    logSession(liveSession);
-  }
+  // TODO we should have a way to look this up - probably need to use redux since it will be global
+  const liveSession = sessions.find((s) => s.state === SessionState.Live);
 
   if (!liveSession || !liveSession.liveData) {
     return (
@@ -322,7 +318,7 @@ export default function LiveSessionScreen() {
     <SafeAreaView style={{ flex: 1 }}>
       {/* TODO remove this?  it must be in the uppper level */}
       <Appbar.Header>
-        {/*<Appbar.BackAction onPress={() => router.back()} />*/}
+        <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title={`Live Session: ${liveSession.name}`} />
         <Button
           mode="contained-tonal"
@@ -429,7 +425,7 @@ export default function LiveSessionScreen() {
                 marginBottom: 4,
               }}
             >
-              {numCompletedRounds}
+              {Math.max(0, numCompletedRounds)}
             </Text>
             <Text
               variant="labelMedium"
@@ -496,7 +492,7 @@ export default function LiveSessionScreen() {
             >
               Round{" "}
               {isRoundCompleted
-                ? `${currentRoundNumber - 1} (Complete)`
+                ? `${currentRoundNumber} (Complete)`
                 : `${currentRoundNumber} Games`}
             </Text>
 

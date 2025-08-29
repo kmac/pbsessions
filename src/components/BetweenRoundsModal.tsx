@@ -54,9 +54,12 @@ export default function BetweenRoundsModal({
   const liveData = session.liveData
     ? session.liveData
     : { rounds: [], playerStats: [] };
-  const roundNumber = getCurrentRoundNumber(session);
-  const currentRound: Round = getCurrentRound(session);
-  const games = currentRound.games;
+  const roundNumber = liveData.rounds.length === 0 ? 1 : liveData.rounds.length;
+  const currentRound: Round =
+    liveData.rounds.length === 0
+      ? { games: [], sittingOutIds: [] }
+      : liveData.rounds[liveData.rounds.length - 1];
+
   const playerStats = liveData.playerStats;
   const sessionPlayers: Player[] = session
     ? getSessionPlayers(session, players)
@@ -95,10 +98,12 @@ export default function BetweenRoundsModal({
       );
       return;
     }
-    dispatch(updateCurrentRoundThunk({
-      sessionId: session.id,
-      assignment: roundAssignment,
-    }));
+    dispatch(
+      updateCurrentRoundThunk({
+        sessionId: session.id,
+        assignment: roundAssignment,
+      }),
+    );
 
     // Clear selected players after reshuffling since assignments have changed
     setSelectedPlayers(new Map());

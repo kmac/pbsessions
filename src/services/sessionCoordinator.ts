@@ -17,6 +17,8 @@ export class SessionCoordinator {
   private players: Player[];
   private playerStats: Map<string, PlayerStats> = new Map();
   private liveData: NonNullable<Session["liveData"]>;
+  private currentRound : Round;
+  private currentRoundNumber : number;
 
   constructor(session: Session, players: Player[]) {
     if (!session.liveData) {
@@ -27,6 +29,8 @@ export class SessionCoordinator {
     this.liveData = session.liveData;
     this.courts = session.courts.filter((c) => c.isActive);
     this.players = players;
+    this.currentRoundNumber = this.liveData.rounds.length;
+    this.currentRound = this.liveData.rounds[this.currentRoundNumber - 1];
 
     // Initialize or load existing stats
     players.forEach((player) => {
@@ -46,16 +50,7 @@ export class SessionCoordinator {
     });
   }
 
-  public getCurrentRoundNumber(): number {
-    return this.liveData.rounds.length;
-  }
-
-  public getCurrentRound(): Round {
-    return this.liveData.rounds[this.getCurrentRoundNumber() - 1];
-  }
-
   public generateRoundAssignment(sittingOut?: Player[]): RoundAssignment {
-    const roundNumber = this.getCurrentRoundNumber();
     const gameAssignments: GameAssignment[] = [];
     const availablePlayers = [...this.players];
     const playersPerRound = this.courts.length * 4;
@@ -89,7 +84,7 @@ export class SessionCoordinator {
       }
     });
     return {
-      roundNumber: roundNumber,
+      roundNumber: this.currentRoundNumber,
       gameAssignments: gameAssignments,
       sittingOutIds: sittingOut.map((player) => player.id),
     };
@@ -100,7 +95,7 @@ export class SessionCoordinator {
       const score = results.scores[game.id];
       this.updatePlayerStatsForGame(game, score || undefined);
     });
-    this.updateSittingOutStats(this.getCurrentRound().sittingOutIds);
+    this.updateSittingOutStats(this.currentRound.sittingOutIds);
     return this.getPlayerStats();
   }
 

@@ -205,7 +205,7 @@ export default function ArchivedSessions({ onCancel }: ArchivedSessionsProps) {
       }} elevation={1}>
         <View style={{ flex: 1 }}>
           <Text variant="headlineMedium" style={{ fontWeight: 'bold' }}>
-            Archived Sessions ({sessions.length})
+            Archived Sessions ({sessions.filter(s => s.state === SessionState.Archived).length})
           </Text>
         </View>
       </Surface>

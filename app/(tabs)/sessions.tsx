@@ -6,9 +6,7 @@ import {
   Button,
   Card,
   Chip,
-  FAB,
   Icon,
-  IconButton,
   Surface,
   Text,
   useTheme,
@@ -17,15 +15,18 @@ import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
   addSession,
   archiveSession,
+  cloneSession,
   updateSession,
   removeSession,
-  // startLiveSession,
 } from "@/src/store/slices/sessionsSlice";
-import { Session, SessionState } from "@/src/types";
+import { Court, Session, SessionState } from "@/src/types";
 import ArchivedSessions from "@/src/components/ArchivedSessions";
 import SessionFormModal from "@/src/components/SessionFormModal";
 import { Alert } from "@/src/utils/alert";
-import { startLiveSessionThunk, updateCourtInSessionThunk } from "@/src/store/actions/sessionActions";
+import {
+  startLiveSessionThunk,
+  updateCourtInSessionThunk,
+} from "@/src/store/actions/sessionActions";
 
 export default function SessionsTab() {
   const theme = useTheme();
@@ -34,40 +35,43 @@ export default function SessionsTab() {
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
-  //const { liveSession } = useAppSelector((state) => state.liveSession);
 
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
 
-  const allLiveSessions = sessions.filter(session => session.state === SessionState.Live);
-  const allLiveSessionIds : string[] = allLiveSessions.map(session => session.id);
+  const allLiveSessions = sessions.filter(
+    (session) => session.state === SessionState.Live,
+  );
+  const allLiveSessionIds: string[] = allLiveSessions.map(
+    (session) => session.id,
+  );
   const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
 
   const getSession = (sessionId: string) => {
-    return sessions.find(session => session.id === sessionId);
-  }
+    return sessions.find((session) => session.id === sessionId);
+  };
 
   const isSessionLive = (sessionId: string) => {
     const session = getSession(sessionId);
     return session ? isLive(session) : false;
-  }
+  };
 
   const isUnstarted = (session: Session) => {
     return session.state === SessionState.Unstarted;
-  }
+  };
 
   const isLive = (session: Session) => {
     return session.state === SessionState.Live;
-  }
+  };
 
   const isComplete = (session: Session) => {
     return session.state === SessionState.Complete;
-  }
+  };
 
   const isArchived = (session: Session) => {
     return session.state === SessionState.Archived;
-  }
+  };
 
   const handleDeleteSession = (session: Session) => {
     if (isSessionLive(session.id)) {
@@ -123,6 +127,14 @@ export default function SessionsTab() {
     openEditSessionModal(session);
   };
 
+  const handleCloneSession = (session: Session) => {
+    dispatch(
+      cloneSession(
+        session as Omit<Session, "id" | "state" | "createdAt" | "updatedAt">,
+      ),
+    );
+  };
+
   const handleStartLiveSession = (session: Session) => {
     if (session.playerIds.length < 4) {
       Alert.alert(
@@ -151,7 +163,13 @@ export default function SessionsTab() {
       return;
     }
 
-    dispatch(startLiveSessionThunk({sessionId: session.id}));
+    dispatch(
+      startLiveSessionThunk({
+        sessionId: session.id,
+        sessionPlayers: getSessionPlayers(session),
+      }),
+    );
+
     setTimeout(() => {
       setLiveSessionId(session.id);
     }, 100);
@@ -228,7 +246,9 @@ export default function SessionsTab() {
 
   const renderSession = ({ item: session }: { item: Session }) => {
     const sessionPlayers = getSessionPlayers(session);
-    const activeCourts = session.courts.filter((c) => c.isActive);
+    const activeCourts: Court[] = session.courts
+      ? session.courts.filter((c) => c.isActive)
+      : [];
 
     return (
       <Card
@@ -257,12 +277,20 @@ export default function SessionsTab() {
           )}
 
           <View style={{ marginBottom: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             <Text
               variant="titleMedium"
-              style={{ fontWeight: "600", marginBottom: 8 }}
+              style={{ fontWeight: "600", marginBottom: 8, flex: 2 }}
             >
-              {isComplete(session) ? `${session.name} ${session.state.toString()} (Complete)` : `${session.name} ${session.state.toString()}`}
+                {session.name}
             </Text>
+            <Text
+              variant="titleSmall"
+              style={{ fontWeight: "400", marginBottom: 8 }}
+            >
+                {session.state}
+            </Text>
+            </View>
             <View style={{ flexDirection: "row", gap: 16 }}>
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
@@ -381,6 +409,15 @@ export default function SessionsTab() {
             >
               Delete
             </Button>
+            {!isLive(session) && (
+              <Button
+                icon="content-duplicate"
+                mode="text"
+                onPress={() => handleCloneSession(session)}
+              >
+                Clone
+              </Button>
+            )}
           </View>
         </Card.Actions>
       </Card>
@@ -460,7 +497,7 @@ export default function SessionsTab() {
       >
         <View style={{ flex: 1 }}>
           <Text variant="headlineMedium" style={{ fontWeight: "bold" }}>
-            Sessions ({sessions.length})
+            Sessions ({sessions.filter(s => s.state !== SessionState.Archived).length})
           </Text>
           {allLiveSessionIds.length > 0 && (
             <Text
@@ -509,8 +546,8 @@ export default function SessionsTab() {
         data={sessions
           .filter((session) => session.state != SessionState.Archived)
           .sort((a, b) => {
-            return a.createdAt.localeCompare(b.createdAt)}
-          )}
+            return a.createdAt.localeCompare(b.createdAt);
+          })}
         renderItem={renderSession}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16 }}
