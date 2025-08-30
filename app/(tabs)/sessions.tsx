@@ -22,6 +22,7 @@ import {
 import { Court, Session, SessionState } from "@/src/types";
 import ArchivedSessions from "@/src/components/ArchivedSessions";
 import SessionFormModal from "@/src/components/SessionFormModal";
+import ViewSessionModal from "@/src/components/ViewSessionModal";
 import { Alert } from "@/src/utils/alert";
 import {
   startLiveSessionThunk,
@@ -39,6 +40,8 @@ export default function SessionsTab() {
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [viewSessionModalVisible, setViewSessionModalVisible] = useState(false);
+  const [viewingSession, setViewingSession] = useState<Session | null>(null);
 
   const allLiveSessions = sessions.filter(
     (session) => session.state === SessionState.Live,
@@ -96,6 +99,20 @@ export default function SessionsTab() {
       ],
     );
   };
+
+  const handleViewSession = (session: Session) => {
+    openViewSessionModal(session);
+  };
+
+  function openViewSessionModal(session: Session) {
+    setViewingSession(session);
+    setViewSessionModalVisible(true);
+  }
+
+  function closeViewSessionModal() {
+    setViewingSession(null);
+    setViewSessionModalVisible(false);
+  }
 
   function openEditSessionModal(session: Session) {
     setEditingSession(session);
@@ -376,12 +393,12 @@ export default function SessionsTab() {
             </Button>
           )}
           <View style={{ flexDirection: "row", gap: 2 }}>
-            {!isLive(session) && !isArchived(session) && (
+            {!isArchived(session) && (
               <Button
                 icon="archive"
                 mode="text"
-                disabled={true}
-                onPress={() => {}}
+                disabled={false}
+                onPress={() => handleViewSession(session)}
               >
                 View
               </Button>
@@ -590,6 +607,17 @@ export default function SessionsTab() {
           session={editingSession}
           onSave={handleSaveSession}
           onCancel={closeEditSessionModal}
+        />
+      </Modal>
+
+      <Modal
+        visible={viewSessionModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <ViewSessionModal
+          session={viewingSession}
+          onCancel={closeViewSessionModal}
         />
       </Modal>
     </SafeAreaView>
