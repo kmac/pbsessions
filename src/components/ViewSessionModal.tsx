@@ -58,61 +58,64 @@ export default function ViewSessionModal({
     return court?.name || "Unknown Court";
   };
 
+  const getSessionPlayers = () => {
+    return players.filter((player) => session.playerIds.includes(player.id));
+  };
+
   const renderGame = (game: Game) => (
     <Card key={game.id} style={styles.gameCard}>
       <Card.Content>
         <View style={styles.gameHeader}>
-          <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
-            Game {game.gameNumber}
-          </Text>
-          <Chip compact>
+          <Chip
+            compact
+            style={{ backgroundColor: theme.colors.tertiaryContainer }}
+          >
             {getCourtName(game.courtId)}
           </Chip>
         </View>
 
         <View style={styles.teamsContainer}>
           <View style={styles.team}>
-            {/*<Text variant="bodyMedium" style={styles.teamLabel}>
-              Serve Team:
-            </Text>*/}
-            <Text variant="bodySmall">
-              {getPlayerName(game.serveTeam.player1Id)} & {getPlayerName(game.serveTeam.player2Id)}
-            </Text>
+            <Chip compact style={styles.partnerChip}>
+              {getPlayerName(game.serveTeam.player1Id)}
+            </Chip>
+            <Chip compact style={styles.partnerChip}>
+              {getPlayerName(game.serveTeam.player2Id)}
+            </Chip>
           </View>
 
+          <Chip
+            compact
+            style={[
+              styles.statusChip,
+              { backgroundColor: theme.colors.surfaceVariant },
+            ]}
+          >
+            {game.score
+              ? `${game.score.serveScore} - ${game.score.receiveScore}`
+              : "vs."}
+          </Chip>
+
           <View style={styles.team}>
-            {/*<Text variant="bodyMedium" style={styles.teamLabel}>
-              Receive Team:
-            </Text>*/}
-            <Text variant="bodySmall">
-              {getPlayerName(game.receiveTeam.player1Id)} & {getPlayerName(game.receiveTeam.player2Id)}
-            </Text>
+            <Chip compact style={styles.partnerChip}>
+              {getPlayerName(game.receiveTeam.player1Id)}
+            </Chip>
+            <Chip compact style={styles.partnerChip}>
+              {getPlayerName(game.receiveTeam.player2Id)}
+            </Chip>
           </View>
         </View>
 
-        {!game.score && (
-          <View style={styles.scoreContainer}>
-            <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
-              Score: n/a - n/a
-            </Text>
-          </View>
-        )}
-
-        {game.score && (
-          <View style={styles.scoreContainer}>
-            <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
-              Score: {game.score?.serveScore} - {game.score.receiveScore}
-            </Text>
-          </View>
-        )}
-
-        {false && game.isCompleted && (
+        {!game.isCompleted && (
           <Chip
             icon="check-circle"
             compact
-            style={[styles.statusChip, { backgroundColor: theme.colors.surfaceVariant }]}
+            style={[
+              styles.statusChip,
+              { backgroundColor: theme.colors.surfaceVariant },
+            ]}
           >
-            Completed
+            Incomplete
           </Chip>
         )}
       </Card.Content>
@@ -122,7 +125,8 @@ export default function ViewSessionModal({
   const renderRound = ({ item, index }: { item: Round; index: number }) => (
     <List.Accordion
       title={`Round ${index + 1}`}
-      description={`${item.games.length} games${item.sittingOutIds.length > 0 ? ` • ${item.sittingOutIds.length} sitting out` : ""}`}
+      //description={`${item.games.length} games`}
+      right={(props) => <View style={{flexDirection: "row"}}><Text style={{marginRight: 10}}>{item.games.length} games</Text><List.Icon {...props} icon="chevron-down" /></View>}
       left={(props) => <List.Icon {...props} icon="view-list" />}
       id={index}
     >
@@ -131,7 +135,7 @@ export default function ViewSessionModal({
       {item.sittingOutIds.length > 0 && (
         <View style={styles.sittingOutContainer}>
           <Text variant="labelMedium" style={styles.sittingOutLabel}>
-            Sitting Out:
+            Sat Out:
           </Text>
           <Text variant="bodySmall">
             {item.sittingOutIds.map(getPlayerName).join(", ")}
@@ -150,23 +154,31 @@ export default function ViewSessionModal({
 
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
-            <Text variant="bodySmall" style={styles.statLabel}>Games Played</Text>
+            <Text variant="bodySmall" style={styles.statLabel}>
+              Games Played
+            </Text>
             <Text variant="titleMedium">{item.gamesPlayed}</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text variant="bodySmall" style={styles.statLabel}>Games Sat Out</Text>
+            <Text variant="bodySmall" style={styles.statLabel}>
+              Games Sat Out
+            </Text>
             <Text variant="titleMedium">{item.gamesSatOut}</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text variant="bodySmall" style={styles.statLabel}>Total Score</Text>
+            <Text variant="bodySmall" style={styles.statLabel}>
+              Total Score
+            </Text>
             <Text variant="titleMedium">{item.totalScore}</Text>
           </View>
 
           {item.averageRating && (
             <View style={styles.statItem}>
-              <Text variant="bodySmall" style={styles.statLabel}>Avg Rating</Text>
+              <Text variant="bodySmall" style={styles.statLabel}>
+                Avg Rating
+              </Text>
               <Text variant="titleMedium">{item.averageRating.toFixed(1)}</Text>
             </View>
           )}
@@ -206,26 +218,25 @@ export default function ViewSessionModal({
         </Text>
 
         <View style={styles.sessionInfo}>
+          <View style={styles.sessionMetrics}>
+            <Chip icon="account-group" compact>
+              {session.playerIds.length} players
+            </Chip>
+            <Chip icon="map-marker-outline" compact>
+              {session.courts.filter((c) => c.isActive).length} courts
+            </Chip>
+            {session.scoring && (
+              <Chip icon="scoreboard" compact>
+                Scoring
+              </Chip>
+            )}
+          </View>
           <Text variant="bodyMedium">
             {formatDate(session.dateTime)} at {formatTime(session.dateTime)}
           </Text>
           <Chip compact style={styles.stateChip}>
             {session.state}
           </Chip>
-        </View>
-
-        <View style={styles.sessionMetrics}>
-          <Chip icon="account-group" compact>
-            {session.playerIds.length} players
-          </Chip>
-          <Chip icon="map-marker-outline" compact>
-            {session.courts.filter(c => c.isActive).length} courts
-          </Chip>
-          {session.scoring && (
-            <Chip icon="scoreboard" compact>
-              Scoring
-            </Chip>
-          )}
         </View>
       </Surface>
 
@@ -256,6 +267,31 @@ export default function ViewSessionModal({
               renderItem={renderRound}
               keyExtractor={(_, index) => index.toString()}
               contentContainerStyle={styles.listContainer}
+              ListFooterComponent={
+                <View>
+                  <Text
+                    variant="titleSmall"
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                      marginTop: 12,
+                      marginHorizontal: 22,
+                    }}
+                  >
+                    Players:
+                  </Text>
+                  <Text
+                    variant="bodySmall"
+                    //numberOfLines={2}
+                    //style={{ color: theme.colors.onSurfaceVariant, margin: 16 }}
+                    style={{ marginHorizontal: 22 }}
+                  >
+                    {getSessionPlayers()
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((p) => p.name)
+                      .join(", ")}
+                  </Text>
+                </View>
+              }
             />
           </List.AccordionGroup>
         ) : (
@@ -263,19 +299,17 @@ export default function ViewSessionModal({
             <Text variant="bodyMedium">No rounds available</Text>
           </View>
         )
+      ) : playerStats.length > 0 ? (
+        <FlatList
+          data={playerStats}
+          renderItem={renderPlayerStats}
+          keyExtractor={(item) => item.playerId}
+          contentContainerStyle={styles.listContainer}
+        />
       ) : (
-        playerStats.length > 0 ? (
-          <FlatList
-            data={playerStats}
-            renderItem={renderPlayerStats}
-            keyExtractor={(item) => item.playerId}
-            contentContainerStyle={styles.listContainer}
-          />
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Text variant="bodyMedium">No player stats available</Text>
-          </View>
-        )
+        <View style={styles.emptyContainer}>
+          <Text variant="bodyMedium">No player stats available</Text>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -313,22 +347,23 @@ const styles = StyleSheet.create({
   },
   gameCard: {
     marginVertical: 4,
-    marginHorizontal: 16,
   },
   gameHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "center",
     marginBottom: 12,
   },
   teamsContainer: {
-    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
   },
   team: {
-    flexDirection: "row",
-    justifyContent: "space-around",
+    flexDirection: "column",
     alignItems: "center",
-    marginBottom: 4,
+    minWidth: 80,
   },
   teamLabel: {
     fontWeight: "600",
@@ -339,12 +374,13 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   statusChip: {
-    alignSelf: "flex-start",
+    alignSelf: "center",
     marginTop: 8,
   },
   sittingOutContainer: {
     margin: 16,
     padding: 12,
+    // TODO: fix for theme:
     backgroundColor: "#f5f5f5",
     borderRadius: 8,
   },
@@ -385,7 +421,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   partnerChip: {
-    marginRight: 4,
     marginBottom: 4,
   },
   emptyContainer: {

@@ -21,6 +21,7 @@ import {
   removeSession,
   restoreSession,
 } from '@/src/store/slices/sessionsSlice';
+import ViewSessionModal from "@/src/components/ViewSessionModal";
 import { Session, SessionState } from '@/src/types';
 import { Alert } from '@/src/utils/alert'
 
@@ -33,6 +34,9 @@ export default function ArchivedSessions({ onCancel }: ArchivedSessionsProps) {
   const dispatch = useAppDispatch();
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
+
+  const [viewSessionModalVisible, setViewSessionModalVisible] = useState(false);
+  const [viewingSession, setViewingSession] = useState<Session | null>(null);
 
   const handleRestoreSession = (session: Session) => {
     Alert.alert(
@@ -90,6 +94,20 @@ export default function ArchivedSessions({ onCancel }: ArchivedSessionsProps) {
   function isComplete(session: Session) {
     return session.state === SessionState.Complete;
   };
+
+  const handleViewSession = (session: Session) => {
+    openViewSessionModal(session);
+  };
+
+  function openViewSessionModal(session: Session) {
+    setViewingSession(session);
+    setViewSessionModalVisible(true);
+  }
+
+  function closeViewSessionModal() {
+    setViewingSession(null);
+    setViewSessionModalVisible(false);
+  }
 
   const renderSession = ({ item }: { item: Session }) => {
     const sessionPlayers = getSessionPlayers(item);
@@ -163,8 +181,7 @@ export default function ArchivedSessions({ onCancel }: ArchivedSessionsProps) {
             <Button
               icon="archive"
               mode="outlined"
-              disabled={true}
-              onPress={() => { }}
+              onPress={() => handleViewSession(item)}
             >
               View Session
             </Button>
@@ -219,20 +236,17 @@ export default function ArchivedSessions({ onCancel }: ArchivedSessionsProps) {
         // ListEmptyComponent={<EmptyState />}
       />
 
-      {/*<Modal
-        visible={modalVisible}
+      <Modal
+        visible={viewSessionModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SessionFormModal
-          session={editingSession}
-          onSave={() => {}}
-          onCancel={() => {
-            setModalVisible(false);
-            setEditingSession(null);
-          }}
+        <ViewSessionModal
+          session={viewingSession}
+          onCancel={closeViewSessionModal}
         />
-      </Modal>*/}
+      </Modal>
+
     </SafeAreaView>
   );
 }

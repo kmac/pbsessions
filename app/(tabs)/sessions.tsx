@@ -294,19 +294,21 @@ export default function SessionsTab() {
           )}
 
           <View style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <Text
-              variant="titleMedium"
-              style={{ fontWeight: "600", marginBottom: 8, flex: 2 }}
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 16 }}
             >
+              <Text
+                variant="titleMedium"
+                style={{ fontWeight: "600", marginBottom: 8, flex: 2 }}
+              >
                 {session.name}
-            </Text>
-            <Text
-              variant="titleSmall"
-              style={{ fontWeight: "400", marginBottom: 8 }}
-            >
+              </Text>
+              <Text
+                variant="titleSmall"
+                style={{ fontWeight: "400", marginBottom: 8 }}
+              >
                 {session.state}
-            </Text>
+              </Text>
             </View>
             <View style={{ flexDirection: "row", gap: 16 }}>
               <View
@@ -403,15 +405,15 @@ export default function SessionsTab() {
                 View
               </Button>
             )}
-            {
-              /*!isComplete(session) &&*/ <Button
+            {!isComplete(session) && (
+              <Button
                 icon="pencil"
                 mode="text"
                 onPress={() => handleEditSession(session)}
               >
                 Edit
               </Button>
-            }
+            )}
             <Button
               icon="archive"
               mode="text"
@@ -514,7 +516,8 @@ export default function SessionsTab() {
       >
         <View style={{ flex: 1 }}>
           <Text variant="headlineMedium" style={{ fontWeight: "bold" }}>
-            Sessions ({sessions.filter(s => s.state !== SessionState.Archived).length})
+            Sessions (
+            {sessions.filter((s) => s.state !== SessionState.Archived).length})
           </Text>
           {allLiveSessionIds.length > 0 && (
             <Text
