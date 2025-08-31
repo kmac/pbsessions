@@ -136,7 +136,7 @@ export default function BetweenRoundsModal({
           style={{ flex: 1, padding: 16 }}
           showsVerticalScrollIndicator={false}
         >
-          <RoundComponent editing={true} liveSession={session} />
+          <RoundComponent editing={true} session={session} />
           <View // Action buttons
             style={{
               flexDirection: "row",

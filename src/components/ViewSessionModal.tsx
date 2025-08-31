@@ -108,7 +108,7 @@ export default function ViewSessionModal({
 
         {!game.isCompleted && (
           <Chip
-            icon="check-circle"
+            icon="timer-outline"
             compact
             style={[
               styles.statusChip,

@@ -25,6 +25,7 @@ import SessionFormModal from "@/src/components/SessionFormModal";
 import ViewSessionModal from "@/src/components/ViewSessionModal";
 import { Alert } from "@/src/utils/alert";
 import {
+  endSessionThunk,
   startLiveSessionThunk,
   updateCourtInSessionThunk,
 } from "@/src/store/actions/sessionActions";
@@ -74,6 +75,30 @@ export default function SessionsTab() {
 
   const isArchived = (session: Session) => {
     return session.state === SessionState.Archived;
+  };
+
+  const handleEndSession = (session: Session) => {
+    if (!isSessionLive(session.id)) {
+      Alert.alert(
+        "Cannot End Session",
+        "Cannot end session. Session is not live.",
+        [{ text: "OK" }],
+      );
+      return;
+    }
+
+    Alert.alert(
+      "End Session",
+      `Are you sure you want to end "${session.name}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => dispatch(endSessionThunk({ sessionId: session.id })),
+        },
+      ],
+    );
   };
 
   const handleDeleteSession = (session: Session) => {
@@ -147,7 +172,10 @@ export default function SessionsTab() {
   const handleCloneSession = (session: Session) => {
     dispatch(
       cloneSession(
-        session as Omit<Session, "id" | "state" | "createdAt" | "updatedAt">,
+        session as Omit<
+          Session,
+          "id" | "state" | "createdAt" | "updatedAt" | "liveData"
+        >,
       ),
     );
   };
@@ -377,13 +405,22 @@ export default function SessionsTab() {
 
         <Card.Actions style={{ justifyContent: "space-between" }}>
           {isLive(session) && (
-            <Button
-              icon="play"
-              mode="contained"
-              onPress={() => router.push("/live-session")}
-            >
-              Continue Live Session
-            </Button>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Button
+                icon="play"
+                mode="contained"
+                onPress={() => router.push("/live-session")}
+              >
+                Continue Live Session
+              </Button>
+              <Button
+                icon="stop"
+                mode="outlined"
+                onPress={() => handleEndSession(session)}
+              >
+                End Session
+              </Button>
+            </View>
           )}
           {isUnstarted(session) && (
             <Button
@@ -414,13 +451,15 @@ export default function SessionsTab() {
                 Edit
               </Button>
             )}
-            <Button
-              icon="archive"
-              mode="text"
-              onPress={() => handleArchiveSession(session)}
-            >
-              Archive
-            </Button>
+            {isComplete(session) && (
+              <Button
+                icon="archive"
+                mode="text"
+                onPress={() => handleArchiveSession(session)}
+              >
+                Archive
+              </Button>
+            )}
             <Button
               icon="delete"
               mode="text"

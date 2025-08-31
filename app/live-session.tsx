@@ -230,9 +230,9 @@ export default function LiveSessionScreen() {
           contentStyle={{ paddingVertical: 8 }}
           style={{ marginBottom: 12 }}
         >
-          {numCompletedRounds === 0
+          {numCompletedRounds <= 0
             ? "Generate First Round"
-            : "Generate Next Round"}
+            : `Generate Next Round (${numCompletedRounds})`}
         </Button>
       );
     }
@@ -496,7 +496,7 @@ export default function LiveSessionScreen() {
                 : `${currentRoundNumber} Games`}
             </Text>
 
-            <RoundComponent editing={false} liveSession={liveSession} />
+            <RoundComponent editing={false} session={liveSession} />
           </View>
         )}
 
@@ -570,6 +570,7 @@ export default function LiveSessionScreen() {
         visible={scoreModalVisible}
         games={currentRound.games}
         players={liveSessionPlayers}
+        courts={liveSession.courts}
         onSave={handleRoundScoresSubmitted}
         onClose={() => setScoreModalVisible(false)}
       />

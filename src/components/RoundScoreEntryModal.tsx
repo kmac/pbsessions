@@ -19,20 +19,21 @@ import {
   TextInput,
   useTheme,
 } from 'react-native-paper';
-import { Game, Player, Results } from '../types';
+import { Court, Game, Player, Results } from '../types';
 import { COURT_COLORS } from '../theme';
 
 interface RoundScoreEntryModalProps {
   visible: boolean;
   games: Game[];
   players: Player[];
+  courts: Court[],
   onSave: (results: Results) => void;
   onClose: () => void;
 }
 
 interface CourtScore {
   gameId: string;
-  courtNumber: string;
+  courtName: string;
   serveScore: number;
   receiveScore: number;
   hasScore: boolean;
@@ -44,11 +45,16 @@ export default function RoundScoreEntryModal({
   visible,
   games,
   players,
+  courts,
   onSave,
   onClose
 }: RoundScoreEntryModalProps) {
   const theme = useTheme();
   const [courtScores, setCourtScores] = useState<CourtScore[]>([]);
+
+  const getCourtName = (courtId: string) : string => {
+    return courts.find(c => c.id === courtId)?.name || "unknown";
+  }
 
   useEffect(() => {
     if (games.length > 0) {
@@ -57,7 +63,7 @@ export default function RoundScoreEntryModal({
 
         return {
           gameId: game.id,
-          courtNumber: game.courtId.slice(-1),
+          courtName: getCourtName(game.courtId),
           serveScore: game.score?.serveScore || 0,
           receiveScore: game.score?.receiveScore || 0,
           hasScore: !!game.score,
@@ -69,7 +75,7 @@ export default function RoundScoreEntryModal({
             getPlayer(game.receiveTeam.player1Id),
             getPlayer(game.receiveTeam.player2Id)
           ] as [Player | undefined, Player | undefined],
-        };
+        } as CourtScore;
       });
       setCourtScores(scores);
     }
@@ -160,14 +166,14 @@ export default function RoundScoreEntryModal({
             marginBottom: 16,
           }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={{
+              {/*<View style={{
                 width: 12,
                 height: 12,
                 borderRadius: 6,
                 backgroundColor: courtColor
-              }} />
+              }} />*/}
               <Text variant="titleMedium" style={{ fontWeight: '600' }}>
-                Court {court.courtNumber}
+                {court.courtName}
               </Text>
             </View>
 

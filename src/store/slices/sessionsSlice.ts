@@ -48,10 +48,7 @@ const sessionsSlice = createSlice({
         id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
         state: SessionState.Unstarted,
         //courts: {...action.payload.courts},
-        // liveData: {
-        //   rounds: [],
-        //   playerStats: [],
-        // },
+        //liveData: undefined,
         createdAt: now,
         updatedAt: now,
       };

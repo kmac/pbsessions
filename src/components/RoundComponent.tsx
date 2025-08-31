@@ -15,11 +15,8 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
-import {
-  useAppDispatch,
-  useAppSelector,
-} from "@/src/store";
-import { Court, Game, Session, Player } from "@/src/types";
+import { useAppDispatch, useAppSelector } from "@/src/store";
+import { Court, Game, Session, Player, PlayerStats } from "@/src/types";
 import {
   getCurrentRound,
   getCurrentRoundNumber,
@@ -28,20 +25,24 @@ import {
   updateCourtInSessionThunk,
   updateCurrentRoundThunk,
 } from "@/src/store/actions/sessionActions";
+import {
+  PlayerRenderData,
+  RoundRender,
+} from "@/src/components/render/RoundRender";
 import { getSessionPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
-const theme = useTheme();
 
 interface RoundComponentProps {
   editing: boolean;
-  liveSession: Session;
+  session: Session;
 }
 
 export default function RoundComponent({
   editing,
-  liveSession,
+  session,
 }: RoundComponentProps) {
   const dispatch = useAppDispatch();
+  const theme = useTheme();
   const [selectedPlayers, setSelectedPlayers] = useState(
     new Map<string, Player>(),
   );
@@ -57,28 +58,47 @@ export default function RoundComponent({
 
   const { players } = useAppSelector((state) => state.players);
 
-  const courts = liveSession ? liveSession.courts : [];
-  const sessionPlayers: Player[] = liveSession
-    ? getSessionPlayers(liveSession, players)
+  const courts = session ? session.courts : [];
+  const sessionPlayers: Player[] = session
+    ? getSessionPlayers(session, players)
     : [];
-  const currentRound = getCurrentRound(liveSession, false);
+  const currentRound = getCurrentRound(session, false);
 
-  const showRating = liveSession ? liveSession.showRatings : false;
-  const scoring = liveSession ? liveSession.scoring : false;
+  const showRating = session ? session.showRatings : false;
+  const scoring = session ? session.scoring : false;
 
   const chipMode = editing ? "outlined" : "flat";
 
-  const getPlayer = (playerId: string) => {
-    return sessionPlayers.find((p) => p.id === playerId);
+  const getPlayer = (playerId: string): Player => {
+    const player = sessionPlayers.find((p) => p.id === playerId);
+    if (!player) {
+      throw new Error(
+        `Player with ID "${playerId}" not found in session players`,
+      );
+    }
+    return player;
   };
 
-  const getCourt = (courtId: string): Court | undefined => {
-    return courts?.find((c) => c.id === courtId);
+  const getPlayerStats = (
+    session: Session,
+    playerId: string,
+  ): PlayerStats | undefined => {
+    return session.liveData?.playerStats.find(
+      (stat) => stat.playerId === playerId,
+    );
+  };
+
+  const getCourt = (courtId: string): Court => {
+    const court = courts?.find((c) => c.id === courtId);
+    if (!court) {
+      throw new Error(`Court with ID "${courtId}" not found in session courts`);
+    }
+    return court;
   };
 
   const getCourtMinimumRating = (courtId: string): string | undefined => {
     const court = getCourt(courtId);
-    if (court && court.minimumRating) {
+    if (court.minimumRating) {
       return court.minimumRating.toFixed(2);
     }
     return undefined;
@@ -89,14 +109,13 @@ export default function RoundComponent({
     rating: number | undefined,
   ) => {
     const court = getCourt(courtId);
-    if (!court) {
-      return;
-    }
     const updatedCourt = { ...court, minimumRating: rating };
-    dispatch(updateCourtInSessionThunk({
-      sessionId: liveSession.id,
-      court: updatedCourt,
-    }));
+    dispatch(
+      updateCourtInSessionThunk({
+        sessionId: session.id,
+        court: updatedCourt,
+      }),
+    );
   };
 
   const sittingOutPlayers =
@@ -209,41 +228,6 @@ export default function RoundComponent({
       return;
     }
 
-    // // Create new games array with swapped players
-    // const {newGames, newSittingOuts} = (sittingOutIds : string[]) => games.map((game, gameIndex) => {
-    //   const newGame = { ...game };
-    //   const newSittingOutIds = [...sittingOutIds];
-    //
-    //   // Helper function to set player at position
-    //   const setPlayerAtPosition = (pos: string, playerId: string) => {
-    //     if (pos === "serveTeam.player1Id") {
-    //       newGame.serveTeam = { ...newGame.serveTeam, player1Id: playerId };
-    //     } else if (pos === "serveTeam.player2Id") {
-    //       newGame.serveTeam = { ...newGame.serveTeam, player2Id: playerId };
-    //     } else if (pos === "receiveTeam.player1Id") {
-    //       newGame.receiveTeam = { ...newGame.receiveTeam, player1Id: playerId };
-    //     } else if (pos === "receiveTeam.player2Id") {
-    //       newGame.receiveTeam = { ...newGame.receiveTeam, player2Id: playerId };
-    //     } else if (pos.startsWith("sittingOut.")) {
-    //       const index = parseInt(pos.split(".")[1]);
-    //       newSittingOutIds[index] = playerId;
-    //     }
-    //   };
-    //
-    //   // Perform the swap
-    //   if (gameIndex === position1.gameIndex) {
-    //     setPlayerAtPosition(position1.position, playerId2);
-    //   }
-    //   if (gameIndex === position2.gameIndex) {
-    //     setPlayerAtPosition(position2.position, playerId1);
-    //   }
-    //
-    //   return {newGame,newSittingOutIds}
-    // });
-    //
-    // // Update the store with new games
-    // dispatch(updateGames(newGames(games[0].sittingOutIds)));
-
     const newSittingOutIds = [...currentRound.sittingOutIds];
     const newGames = games.map((game, gameIndex) => {
       const newGame = { ...game };
@@ -275,20 +259,22 @@ export default function RoundComponent({
       return newGame;
     });
 
-    dispatch(updateCurrentRoundThunk({
-      sessionId: liveSession.id,
-      assignment: {
-        roundNumber: getCurrentRoundNumber(liveSession),
-        gameAssignments: newGames.map((game) => {
-          return {
-            courtId: game.courtId,
-            serveTeam: game.serveTeam,
-            receiveTeam: game.receiveTeam,
-          };
-        }),
-        sittingOutIds: newSittingOutIds,
-      },
-    }));
+    dispatch(
+      updateCurrentRoundThunk({
+        sessionId: session.id,
+        assignment: {
+          roundNumber: getCurrentRoundNumber(session),
+          gameAssignments: newGames.map((game) => {
+            return {
+              courtId: game.courtId,
+              serveTeam: game.serveTeam,
+              receiveTeam: game.receiveTeam,
+            };
+          }),
+          sittingOutIds: newSittingOutIds,
+        },
+      }),
+    );
 
     // Clear selected players
     setSelectedPlayers(new Map());
@@ -297,7 +283,7 @@ export default function RoundComponent({
   const handleSetCourtRating = () => {
     selectedCourts.forEach((courtId) => {
       const court = getCourt(courtId);
-      if (court?.minimumRating) {
+      if (court.minimumRating) {
         setCourtMinimumRating(courtId, undefined);
       } else {
         setCourtMinimumRating(courtId, 4.0);
@@ -306,30 +292,17 @@ export default function RoundComponent({
     setSelectedCourts(new Set());
   };
 
-  // function handleCourtSetting(courtId: string) {
-  //     const court = getCourt(courtId);
-  //     if (court?.minimumRating) {
-  //       setCourtMinimumRating(courtId, undefined);
-  //     } else {
-  //       setCourtMinimumRating(courtId, 4.0);
-  //     }
-  // }
-
   const handleCourtSetting = (courtId: string) => {
     const court = getCourt(courtId);
     setCurrentCourtId(courtId);
-    setRatingInput(court?.minimumRating?.toString() || "");
-    setRatingEnabled(!!court?.minimumRating);
+    setRatingInput(court.minimumRating?.toString() || "");
+    setRatingEnabled(court.minimumRating ? true : false);
     //setCourtDisabled(!!court?.disabled);
     setCourtSettingDialogVisible(true);
   };
 
   const handleSaveCourtRating = () => {
     const court = getCourt(currentCourtId);
-    if (!court) {
-      return;
-    }
-
     const rating =
       ratingEnabled && ratingInput.trim() !== ""
         ? parseFloat(ratingInput)
@@ -339,10 +312,12 @@ export default function RoundComponent({
       minimumRating: rating,
     };
 
-    dispatch(updateCourtInSessionThunk({
-      sessionId: liveSession.id,
-      court: updatedCourt,
-    }));
+    dispatch(
+      updateCourtInSessionThunk({
+        sessionId: session.id,
+        court: updatedCourt,
+      }),
+    );
 
     setCourtSettingDialogVisible(false);
     setCurrentCourtId("");
@@ -366,11 +341,101 @@ export default function RoundComponent({
     }
   };
 
-  const renderCourtAssignment = ({ item: game }: { item: Game }) => {
+  const renderSidePlayerScore = (score: number | undefined, side: string) => {
+    return (
+      <View>
+        {score ? (
+          <Chip elevated={true}>
+            <Text variant="titleMedium">{score}</Text>
+          </Chip>
+        ) : (
+          false && (
+            <Text
+              variant="labelMedium"
+              style={{
+                //fontWeight: "bold",
+                marginBottom: 4,
+                color: theme.colors.onPrimaryContainer,
+              }}
+            >
+              {side}
+            </Text>
+          )
+        )}
+      </View>
+    );
+  };
+
+  const renderSidePlayers = (
+    player1: Player,
+    player2: Player,
+    score: number | undefined,
+    side: "Serve" | "Receive",
+  ) => {
+    return (
+      <Surface
+        style={{
+          flexDirection: "row",
+          flex: 1,
+          gap: 10,
+          padding: 12,
+          borderRadius: 8,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.colors.primaryContainer,
+        }}
+      >
+        {side === "Receive" && renderSidePlayerScore(score, side)}
+
+        <View
+          style={{
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: 5,
+          }}
+        >
+          <Chip
+            mode={chipMode}
+            disabled={playerSelectDisabled(player1)}
+            elevated={!playerSelectDisabled(player1)}
+            selected={getPlayerSelected(player1)}
+            onPress={() => {
+              editing && player1 && togglePlayerSelected(player1);
+            }}
+          >
+            {player1?.name}
+            {showRating &&
+              player1?.rating &&
+              ` (${player1?.rating.toFixed(2)})`}
+          </Chip>
+          <Chip
+            mode={chipMode}
+            disabled={playerSelectDisabled(player2)}
+            elevated={!playerSelectDisabled(player2)}
+            selected={getPlayerSelected(player2)}
+            onPress={() => {
+              editing && player2 && togglePlayerSelected(player2);
+            }}
+          >
+            {player2?.name}
+            {showRating &&
+              player2?.rating &&
+              ` (${player2?.rating.toFixed(2)})`}
+          </Chip>
+        </View>
+
+        {side === "Serve" && renderSidePlayerScore(score, side)}
+      </Surface>
+    );
+  };
+
+  const renderCourtAssignmentOrig = ({ item: game }: { item: Game }) => {
     const servePlayer1 = getPlayer(game.serveTeam.player1Id);
     const servePlayer2 = getPlayer(game.serveTeam.player2Id);
     const receivePlayer1 = getPlayer(game.receiveTeam.player1Id);
     const receivePlayer2 = getPlayer(game.receiveTeam.player2Id);
+
+    const roundRender = new RoundRender(theme, showRating, chipMode);
 
     return (
       <Card style={{ marginBottom: 12 }}>
@@ -396,8 +461,8 @@ export default function RoundComponent({
               }}
             >
               <Text variant="titleMedium" style={{ fontWeight: "600" }}>
-                {getCourt(game.courtId)?.name
-                  ? getCourt(game.courtId)?.name
+                {getCourt(game.courtId).name
+                  ? getCourt(game.courtId).name
                   : "Court"}
                 {/*getCourtMinimumRating(item.courtId) && ` (${getCourtMinimumRating(item.courtId)})`*/}
               </Text>
@@ -418,126 +483,100 @@ export default function RoundComponent({
           <View
             style={{ flexDirection: "row", alignItems: "center", columnGap: 6 }}
           >
-            <Surface // Serve side
-              style={styles.courtSurface}
-            >
-              <Text
-                variant="labelMedium"
-                style={{
-                  fontWeight: "600",
-                  marginBottom: 4,
-                  color: theme.colors.onPrimaryContainer,
-                }}
-              >
-                <Text
-                  variant="labelLarge"
-                  style={{
-                    fontWeight: "bold",
-                    marginBottom: 4,
-                    color: theme.colors.onPrimaryContainer,
-                  }}
-                >
-                  {game.score ? ` : ${game.score?.serveScore}` : "Serve"}
-                </Text>
-              </Text>
-              <View
-                style={{
-                  flexDirection: "column",
-                  alignItems: "stretch",
-                  gap: 5,
-                }}
-              >
-                <Chip
-                  mode={chipMode}
-                  //disabled={!editing || playerSelectDisabled(servePlayer1)}
-                  disabled={playerSelectDisabled(servePlayer1)}
-                  selected={getPlayerSelected(servePlayer1)}
-                  onPress={() => {
-                    editing &&
-                      servePlayer1 &&
-                      togglePlayerSelected(servePlayer1);
-                  }}
-                >
-                  {servePlayer1?.name}
-                  {showRating &&
-                    servePlayer1?.rating &&
-                    ` (${servePlayer1?.rating.toFixed(2)})`}
-                </Chip>
-                <Chip
-                  mode={chipMode}
-                  disabled={playerSelectDisabled(servePlayer2)}
-                  selected={getPlayerSelected(servePlayer2)}
-                  onPress={() => {
-                    editing &&
-                      servePlayer2 &&
-                      togglePlayerSelected(servePlayer2);
-                  }}
-                >
-                  {servePlayer2?.name}
-                  {showRating &&
-                    servePlayer2?.rating &&
-                    ` (${servePlayer2?.rating.toFixed(2)})`}
-                </Chip>
-              </View>
-            </Surface>
-            <Surface // Receive side
-              style={styles.courtSurface}
-            >
-              <Text
-                variant="labelMedium"
-                style={{
-                  fontWeight: "600",
-                  marginBottom: 4,
-                  color: theme.colors.onSecondaryContainer,
-                }}
-              >
-                <Text
-                  variant="labelLarge"
-                  style={{
-                    fontWeight: "bold",
-                    marginBottom: 4,
-                    color: theme.colors.onPrimaryContainer,
-                  }}
-                >
-                  {game.score ? ` : ${game.score?.receiveScore}` : "Receive"}
-                </Text>
-              </Text>
-              <View style={{ flexDirection: "column", gap: 5 }}>
-                <Chip
-                  mode={chipMode}
-                  disabled={playerSelectDisabled(receivePlayer1)}
-                  selected={getPlayerSelected(receivePlayer1)}
-                  onPress={() => {
-                    editing &&
-                      receivePlayer1 &&
-                      togglePlayerSelected(receivePlayer1);
-                  }}
-                >
-                  {receivePlayer1?.name}
-                  {showRating &&
-                    receivePlayer1?.rating &&
-                    ` (${receivePlayer1?.rating.toFixed(2)})`}
-                </Chip>
-                <Chip
-                  mode={chipMode}
-                  disabled={playerSelectDisabled(receivePlayer2)}
-                  selected={getPlayerSelected(receivePlayer2)}
-                  onPress={() => {
-                    editing &&
-                      receivePlayer2 &&
-                      togglePlayerSelected(receivePlayer2);
-                  }}
-                >
-                  {receivePlayer2?.name}
-                  {showRating &&
-                    receivePlayer2?.rating &&
-                    ` (${receivePlayer2?.rating.toFixed(2)})`}
-                </Chip>
-              </View>
-            </Surface>
+            {/*{renderSidePlayers(
+              servePlayer1!,
+              servePlayer2!,
+              game.score?.serveScore,
+              "Serve",
+            )}
+            {renderSidePlayers(
+              receivePlayer1!,
+              receivePlayer2!,
+              game.score?.receiveScore,
+              "Receive",
+            )}*/}
+            {roundRender.renderSide(
+              {
+                player: servePlayer1!,
+                selected: getPlayerSelected(servePlayer1),
+                selectDisabled: playerSelectDisabled(servePlayer1),
+                onSelected: () => {
+                  editing && togglePlayerSelected(servePlayer1);
+                },
+              },
+              {
+                player: servePlayer2!,
+                selected: getPlayerSelected(servePlayer2),
+                selectDisabled: playerSelectDisabled(servePlayer2),
+                onSelected: () => {
+                  editing && togglePlayerSelected(servePlayer2);
+                },
+              },
+              game.score?.serveScore,
+              "Serve",
+            )}
+            {roundRender.renderSide(
+              {
+                player: receivePlayer1!,
+                selected: getPlayerSelected(receivePlayer1),
+                selectDisabled: playerSelectDisabled(receivePlayer1),
+                onSelected: () => {
+                  editing && togglePlayerSelected(receivePlayer1);
+                },
+              },
+              {
+                player: receivePlayer2!,
+                selected: getPlayerSelected(receivePlayer2),
+                selectDisabled: playerSelectDisabled(receivePlayer2),
+                onSelected: () => {
+                  editing && togglePlayerSelected(receivePlayer2);
+                },
+              },
+              game.score?.receiveScore,
+              "Receive",
+            )}
           </View>
         </Card.Content>
       </Card>
+    );
+  };
+
+  const renderCourtAssignment = ({ item: game }: { item: Game }) => {
+    const servePlayer1 = getPlayer(game.serveTeam.player1Id);
+    const servePlayer2 = getPlayer(game.serveTeam.player2Id);
+    const receivePlayer1 = getPlayer(game.receiveTeam.player1Id);
+    const receivePlayer2 = getPlayer(game.receiveTeam.player2Id);
+
+    const roundRender = new RoundRender(theme, showRating, chipMode);
+
+    return roundRender.renderGame(
+      {
+        player: servePlayer1,
+        selected: getPlayerSelected(servePlayer1),
+        selectDisabled: playerSelectDisabled(servePlayer1),
+        onSelected: () => editing && togglePlayerSelected(servePlayer1),
+      },
+      {
+        player: servePlayer2,
+        selected: getPlayerSelected(servePlayer2),
+        selectDisabled: playerSelectDisabled(servePlayer2),
+        onSelected: () => editing && togglePlayerSelected(servePlayer2),
+      },
+      {
+        player: receivePlayer1,
+        selected: getPlayerSelected(receivePlayer1),
+        selectDisabled: playerSelectDisabled(receivePlayer1),
+        onSelected: () => editing && togglePlayerSelected(receivePlayer1),
+      },
+      {
+        player: receivePlayer2,
+        selected: getPlayerSelected(receivePlayer2),
+        selectDisabled: playerSelectDisabled(receivePlayer2),
+        onSelected: () => editing && togglePlayerSelected(receivePlayer2),
+      },
+      getCourt(game.courtId),
+      game.score,
+      editing ? handleCourtSetting : undefined,
     );
   };
 
@@ -605,7 +644,8 @@ export default function RoundComponent({
                   editing && player && togglePlayerSelected(player);
                 }}
               >
-                {player.name}
+                {player.name} (
+                {getPlayerStats(session, player.id)?.gamesSatOut || 0})
                 {showRating &&
                   player.rating &&
                   ` (${player.rating.toFixed(2)})`}
@@ -694,14 +734,3 @@ export default function RoundComponent({
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  courtSurface: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.primaryContainer,
-  },
-});

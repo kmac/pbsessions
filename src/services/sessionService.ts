@@ -22,15 +22,6 @@ export const validateLive = (session?: Session): void => {
   }
 };
 
-export const getCurrentRoundIndex = (session: Session, live: boolean = true): number => {
-  if (live) {
-    validateLive(session);
-  } else if (!session || !session.liveData) {
-    return 0;
-  }
-  return session.liveData!.rounds.length;
-};
-
 export const getCurrentRoundNumber = (session: Session, live: boolean = true): number => {
   if (live) {
     validateLive(session);
@@ -114,16 +105,28 @@ export const playerStatsToString = (stats: PlayerStats[]): string => {
 };
 
 export class SessionService {
+
+  // static startLiveSession = (session: Session, sessionPlayers: Player[]): Session => {
+  //   const sessionCoordinator = new SessionCoordinator({...session, liveData: { rounds:[], playerStats: []}}, sessionPlayers);
+  //   const roundAssignment = sessionCoordinator.generateRoundAssignment();
+  //   const newRound = convertAssignmentToRound(session, roundAssignment);
+  //   return {
+  //     ...session,
+  //     state: SessionState.Live,
+  //     liveData: {
+  //       rounds: [newRound],
+  //       playerStats: [],
+  //     },
+  //     updatedAt: new Date().toISOString(),
+  //   };
+  // };
+
   static startLiveSession = (session: Session, sessionPlayers: Player[]): Session => {
-    // message: "Invalid session: missing required live data. session: [object Object]"
-    const sessionCoordinator = new SessionCoordinator({...session, liveData: { rounds:[], playerStats: []}}, sessionPlayers);
-    const roundAssignment = sessionCoordinator.generateRoundAssignment();
-    const newRound = convertAssignmentToRound(session, roundAssignment);
     return {
       ...session,
       state: SessionState.Live,
       liveData: {
-        rounds: [newRound],
+        rounds: [],
         playerStats: [],
       },
       updatedAt: new Date().toISOString(),
