@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Modal, FlatList, ScrollView } from "react-native";
+import { View, Modal, FlatList, ScrollView, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
@@ -12,6 +12,7 @@ import {
   Text,
   TextInput,
   useTheme,
+  FAB,
 } from "react-native-paper";
 import { useAppSelector, useAppDispatch } from "@/src/store";
 import { addPlayer } from "@/src/store/slices/playersSlice";
@@ -40,6 +41,10 @@ export default function GroupPlayerManager({
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { players: allPlayers } = useAppSelector((state) => state.players);
+
+  // Get screen dimensions for responsive design
+  const { width: screenWidth } = Dimensions.get("window");
+  const isNarrowScreen = screenWidth < 768;
 
   const [selectedPlayers, setSelectedPlayers] =
     useState<Player[]>(groupPlayers);
@@ -318,6 +323,86 @@ export default function GroupPlayerManager({
     </View>
   );
 
+  const BottomActionBar = () => (
+    <Surface
+      style={{
+        flexDirection: isNarrowScreen ? "column" : "row",
+        padding: 16,
+        gap: isNarrowScreen ? 12 : 16,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.outlineVariant,
+        backgroundColor: theme.colors.surface,
+      }}
+      elevation={3}
+    >
+      {isNarrowScreen ? (
+        // Stack buttons vertically on narrow screens
+        <>
+          <Button
+            icon="content-save"
+            mode="contained"
+            onPress={handleSave}
+            //contentStyle={{ paddingVertical: 12 }}
+          >
+            Save Changes
+          </Button>
+          <Button
+            icon="cancel"
+            mode="outlined"
+            onPress={onCancel}
+            //contentStyle={{ paddingVertical: 12 }}
+          >
+            Cancel
+          </Button>
+        </>
+      ) : (
+        // Side by side on wider screens
+        <>
+          <Button
+            icon="cancel"
+            mode="outlined"
+            onPress={onCancel}
+            style={{ flex: 1 }}
+            //contentStyle={{ paddingVertical: 8 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            icon="content-save"
+            mode="contained"
+            onPress={handleSave}
+            style={{ flex: 1 }}
+            //contentStyle={{ paddingVertical: 8 }}
+          >
+            Save Changes
+          </Button>
+        </>
+      )}
+    </Surface>
+  );
+
+  // Floating Action Button for primary action on mobile
+  const PrimaryFAB = () => {
+    if (!isNarrowScreen) {
+      return null;
+    }
+    return (
+      <FAB
+        icon="content-save"
+        onPress={handleSave}
+        color={theme.colors.onPrimary}
+        size="medium"
+        style={{
+          position: "absolute",
+          margin: 16,
+          right: 0,
+          bottom: 20, // Above the bottom action bar
+          backgroundColor: theme.colors.primary,
+        }}
+      />
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -328,53 +413,47 @@ export default function GroupPlayerManager({
         <Appbar.Header>
           <Appbar.BackAction onPress={onCancel} />
           <Appbar.Content title={groupName} />
-          <Button
-            style={{ marginRight: 8 }}
-            icon="cancel"
-            mode="outlined"
-            onPress={onCancel}
-          >
-            Cancel
-          </Button>
-          <Button
-            style={{ marginRight: 8 }}
-            icon="content-save"
-            mode="contained"
-            onPress={handleSave}
-          >
-            Save
-          </Button>
+          {/* Keep one action button on wider screens */}
+          {!isNarrowScreen && (
+            <Appbar.Action icon="content-save" onPress={handleSave} />
+          )}
         </Appbar.Header>
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: isNarrowScreen ? 160 : 100 }}
+        >
+          <SegmentedButtons
+            value={viewMode}
+            onValueChange={(value) => setViewMode(value as ViewMode)}
+            buttons={[
+              {
+                value: "select",
+                label: "Select Existing",
+                icon: "account-group",
+              },
+              {
+                value: "add",
+                label: "Add New",
+                icon: "plus",
+              },
+            ]}
+            style={{ margin: 16 }}
+          />
 
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <SegmentedButtons
-          value={viewMode}
-          onValueChange={(value) => setViewMode(value as ViewMode)}
-          buttons={[
-            {
-              value: "select",
-              label: "Select Existing",
-              icon: "account-group",
-            },
-            {
-              value: "add",
-              label: "Add New",
-              icon: "plus",
-            },
-          ]}
-          style={{ margin: 16 }}
-        />
-
-        <Searchbar
-          placeholder="Search players..."
-          onChangeText={setGroupPlayerSearchQuery}
-          value={groupPlayerSearchQuery}
-          mode="bar"
-          style={{ marginHorizontal: 16, marginTop: 6, marginBottom: 12 }}
-        />
+          <Searchbar
+            placeholder="Search players..."
+            onChangeText={setGroupPlayerSearchQuery}
+            value={groupPlayerSearchQuery}
+            mode="bar"
+            style={{ marginHorizontal: 16, marginTop: 6, marginBottom: 12 }}
+          />
 
           {viewMode === "select" ? <SelectExistingView /> : <AddNewView />}
         </ScrollView>
+
+        {isNarrowScreen && <PrimaryFAB />}
+        {!isNarrowScreen && <BottomActionBar />}
 
         <Modal
           visible={showQuickAdd}
