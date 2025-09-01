@@ -42,7 +42,8 @@
     "uuid": "^11.1.0",
     "expo-file-system": "~18.1.11",
     "expo-sharing": "~13.1.5",
-    "expo-document-picker": "~13.1.6"
+    "expo-document-picker": "~13.1.6",
+    "react-native-get-random-values": "~1.11.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

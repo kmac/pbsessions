@@ -346,6 +346,7 @@ export default function GroupPlayerManager({
           </Button>
         </Appbar.Header>
 
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <SegmentedButtons
           value={viewMode}
           onValueChange={(value) => setViewMode(value as ViewMode)}
@@ -372,7 +373,6 @@ export default function GroupPlayerManager({
           style={{ marginHorizontal: 16, marginTop: 6, marginBottom: 12 }}
         />
 
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
           {viewMode === "select" ? <SelectExistingView /> : <AddNewView />}
         </ScrollView>
 

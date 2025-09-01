@@ -35,6 +35,8 @@ interface PlayerManagerProps {
 //
 // maybe: pull-down for group, create/update/delete group
 //
+// TODO remove PlayerManager - it is not used
+//
 export default function PlayerManager({
   players,
 }: PlayerManagerProps) {

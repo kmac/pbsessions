@@ -119,12 +119,6 @@ export default function BetweenRoundsModal({
         <Appbar.BackAction onPress={onClose} />
         <Appbar.Content title={`New Games: Round ${roundNumber}`} />
         <Appbar.Action
-          icon="account-group"
-          onPress={() => {
-            setHelpDialogVisible(true);
-          }}
-        />
-        <Appbar.Action
           icon="help-circle"
           onPress={() => {
             setHelpDialogVisible(true);

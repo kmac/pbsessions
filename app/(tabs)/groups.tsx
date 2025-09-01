@@ -1,11 +1,6 @@
-import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  Modal,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState } from "react";
+import { View, StyleSheet, FlatList, Modal } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Avatar,
   Button,
@@ -17,21 +12,32 @@ import {
   Surface,
   Text,
   useTheme,
-} from 'react-native-paper';
-import { router } from 'expo-router';
-import { Plus, Edit2, Trash2, Users, UserPlus, ExternalLink } from 'lucide-react-native';
-import { useAppDispatch, useAppSelector } from '@/src/store';
-import { addGroup, updateGroup, removeGroup } from '@/src/store/slices/groupsSlice';
-import { Group, Player } from '@/src/types';
-import GroupForm from '@/src/components/GroupForm';
-import GroupPlayerManager from '@/src/components/GroupPlayerManager';
-import { Alert } from '@/src/utils/alert'
+} from "react-native-paper";
+import { router } from "expo-router";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Users,
+  UserPlus,
+  ExternalLink,
+} from "lucide-react-native";
+import { useAppDispatch, useAppSelector } from "@/src/store";
+import {
+  addGroup,
+  updateGroup,
+  removeGroup,
+} from "@/src/store/slices/groupsSlice";
+import { Group, Player } from "@/src/types";
+import GroupForm from "@/src/components/GroupForm";
+import GroupPlayerManager from "@/src/components/GroupPlayerManager";
+import { Alert } from "@/src/utils/alert";
 
 export default function GroupsTab() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { groups, loading } = useAppSelector((state) => state.groups);
-  const { players : allPlayers } = useAppSelector((state) => state.players);
+  const { players: allPlayers } = useAppSelector((state) => state.players);
 
   const [groupModalVisible, setGroupModalVisible] = useState(false);
   const [playerManagerVisible, setPlayerManagerVisible] = useState(false);
@@ -40,16 +46,16 @@ export default function GroupsTab() {
 
   const handleDeleteGroup = (group: Group) => {
     Alert.alert(
-      'Delete Group',
+      "Delete Group",
       `Are you sure you want to delete "${group.name}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: () => dispatch(removeGroup(group.id)),
         },
-      ]
+      ],
     );
   };
 
@@ -64,48 +70,64 @@ export default function GroupsTab() {
   };
 
   const navigateToPlayers = () => {
-    router.navigate('/players');
+    router.navigate("/players");
   };
 
-  const getGroupPlayers = (group: Group) : Player[] => {
-    return allPlayers.filter(player => group.playerIds.includes(player.id));
+  const getGroupPlayers = (group: Group): Player[] => {
+    return allPlayers.filter((player) => group.playerIds.includes(player.id));
   };
 
   const renderGroup = ({ item }: { item: Group }) => {
     const groupPlayers = getGroupPlayers(item);
-    const averageRating = groupPlayers.length > 0
-      ? groupPlayers.reduce((sum, p) => sum + (p.rating || 0), 0) / groupPlayers.filter(p => p.rating).length
-      : 0;
+    const averageRating =
+      groupPlayers.length > 0
+        ? groupPlayers.reduce((sum, p) => sum + (p.rating || 0), 0) /
+          groupPlayers.filter((p) => p.rating).length
+        : 0;
 
     return (
-      <Card style={{
-        marginBottom: 12,
-      }}>
+      <Card
+        style={{
+          marginBottom: 12,
+        }}
+      >
         <Card.Content>
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: 12,
-          }}>
-            <View style={{
-              flex: 1,
-              marginRight: 12,
-            }}>
-              <Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 4 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              marginBottom: 12,
+            }}
+          >
+            <View
+              style={{
+                flex: 1,
+                marginRight: 12,
+              }}
+            >
+              <Text
+                variant="titleMedium"
+                style={{ fontWeight: "600", marginBottom: 4 }}
+              >
                 {item.name}
               </Text>
               {item.description && (
-                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Text
+                  variant="bodyMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
                   {item.description}
                 </Text>
               )}
             </View>
-            <View style={{
-              alignItems: 'flex-end',
-              gap: 8,
-            }}>
-              <View style={{ flexDirection: 'row' }}>
+            <View
+              style={{
+                alignItems: "flex-end",
+                gap: 8,
+              }}
+            >
+              <View style={{ flexDirection: "row" }}>
                 {averageRating > 0 && (
                   <Chip
                     icon="star-outline"
@@ -126,41 +148,43 @@ export default function GroupsTab() {
 
           {groupPlayers.length > 0 && (
             <View style={{ marginVertical: 12 }}>
-              <Text variant="labelMedium" style={{
-                color: theme.colors.onSurfaceVariant,
-                marginBottom: 4
-              }}>
+              <Text
+                variant="labelMedium"
+                style={{
+                  color: theme.colors.onSurfaceVariant,
+                  marginBottom: 4,
+                }}
+              >
                 Players ({groupPlayers.length}):
               </Text>
-              <Text variant="bodyMedium" numberOfLines={2} style={{
-                color: theme.colors.onSurfaceVariant
-              }}>
-                {groupPlayers.map(p => p.name).sort((a, b) => a.localeCompare(b)).join(', ')}
+              <Text
+                variant="bodyMedium"
+                numberOfLines={2}
+                style={{
+                  color: theme.colors.onSurfaceVariant,
+                }}
+              >
+                {groupPlayers
+                  .map((p) => p.name)
+                  .sort((a, b) => a.localeCompare(b))
+                  .join(", ")}
               </Text>
             </View>
           )}
         </Card.Content>
 
-        <Card.Actions style={{ justifyContent: 'space-between' }}>
+        <Card.Actions style={{ justifyContent: "space-between" }}>
           <Button
             icon="account-multiple-plus-outline"
-                mode="contained-tonal"
+            mode="contained-tonal"
             onPress={() => handleManagePlayers(item)}
           >
-            {groupPlayers.length === 0 ? 'Add Players' : 'Manage Players'}
+            Players
           </Button>
 
-          <View style={{ flexDirection: 'row', gap: 4 }}>
-            <Button
-              icon="pencil"
-              mode="elevated"
-              onPress={() => handleEditGroup(item)}
-            >Edit</Button>
-            <Button
-              icon="delete"
-              mode="elevated"
-              onPress={() => handleDeleteGroup(item)}
-            >Delete</Button>
+          <View style={{ flexDirection: "row", gap: 4 }}>
+            <IconButton icon="pencil" onPress={() => handleEditGroup(item)} />
+            <IconButton icon="delete" onPress={() => handleDeleteGroup(item)} />
           </View>
         </Card.Actions>
       </Card>
@@ -168,56 +192,64 @@ export default function GroupsTab() {
   };
 
   const EmptyState = () => (
-    <View style={{
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 64,
-    }}>
+    <View
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 64,
+      }}
+    >
       <Icon source="account-group" size={48} />
-      <Text variant="titleMedium" style={{
-        fontWeight: '600',
-        marginTop: 16,
-        color: theme.colors.onSurfaceVariant
-      }}>
+      <Text
+        variant="titleMedium"
+        style={{
+          fontWeight: "600",
+          marginTop: 16,
+          color: theme.colors.onSurfaceVariant,
+        }}
+      >
         No groups yet
       </Text>
-      <Text variant="bodyMedium" style={{
-        color: theme.colors.onSurfaceVariant,
-        marginTop: 4,
-        textAlign: 'center',
-        marginBottom: 20
-      }}>
+      <Text
+        variant="bodyMedium"
+        style={{
+          color: theme.colors.onSurfaceVariant,
+          marginTop: 4,
+          textAlign: "center",
+          marginBottom: 20,
+        }}
+      >
         Create groups to organize players for sessions
       </Text>
 
       {allPlayers.length === 0 && (
-        <Button
-          icon="open-in-new"
-          mode="outlined"
-          onPress={navigateToPlayers}
-        >
+        <Button icon="open-in-new" mode="outlined" onPress={navigateToPlayers}>
           Add Players First
         </Button>
       )}
     </View>
   );
 
-  const handleSaveGroup = (groupData: Group | Omit<Group, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveGroup = (
+    groupData: Group | Omit<Group, "id" | "createdAt" | "updatedAt">,
+  ) => {
     if (editingGroup) {
       dispatch(updateGroup(groupData as Group));
       setEditingGroup(null);
     } else {
-      dispatch(addGroup(groupData as Omit<Group, 'id' | 'createdAt' | 'updatedAt'>));
+      dispatch(
+        addGroup(groupData as Omit<Group, "id" | "createdAt" | "updatedAt">),
+      );
     }
     setGroupModalVisible(false);
   };
 
   const handleSaveGroupPlayers = (group: Group, players: Player[]) => {
     if (!players || !Array.isArray(players)) {
-      console.error('Players is not an array:', players);
+      console.error("Players is not an array:", players);
       return;
     }
-    const newPlayerIds: string[] = players.map(player => player.id);
+    const newPlayerIds: string[] = players.map((player) => player.id);
     const newGroup: Group = { ...group, playerIds: newPlayerIds };
     dispatch(updateGroup(newGroup));
     setPlayerManagerVisible(false);
@@ -225,34 +257,44 @@ export default function GroupsTab() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <Surface style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-      }} elevation={1}>
-        <View style={{
-          flex: 1,
-        }}>
-          <Text variant="headlineMedium" style={{ fontWeight: 'bold' }}>
+      <Surface
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+        }}
+        elevation={1}
+      >
+        <View
+          style={{
+            flex: 1,
+          }}
+        >
+          <Text variant="headlineMedium" style={{ fontWeight: "bold" }}>
             Groups ({groups.length})
           </Text>
           {allPlayers.length > 0 && (
-            <Text variant="bodyMedium" style={{
-              color: theme.colors.onSurfaceVariant,
-              marginTop: 2
-            }}>
+            <Text
+              variant="bodyMedium"
+              style={{
+                color: theme.colors.onSurfaceVariant,
+                marginTop: 2,
+              }}
+            >
               {allPlayers.length} players available
             </Text>
           )}
         </View>
 
-        <View style={{
-          flexDirection: 'row',
-          gap: 8,
-          marginLeft: 12,
-        }}>
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 8,
+            marginLeft: 12,
+          }}
+        >
           {/*
           <Button
             icon="open-in-new"
@@ -289,7 +331,7 @@ export default function GroupsTab() {
       >
         <GroupForm
           group={editingGroup}
-          onSave={groupData => {
+          onSave={(groupData) => {
             handleSaveGroup(groupData);
           }}
           onCancel={() => {
@@ -304,7 +346,7 @@ export default function GroupsTab() {
           visible={playerManagerVisible}
           groupName={selectedGroup.name}
           groupPlayers={getGroupPlayers(selectedGroup)}
-          onSave={groupPlayers => {
+          onSave={(groupPlayers) => {
             handleSaveGroupPlayers(selectedGroup, groupPlayers);
           }}
           onCancel={() => {

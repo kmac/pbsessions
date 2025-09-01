@@ -1,22 +1,28 @@
 // app/(tabs)/_layout.tsx (Tab Layout)
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs } from 'expo-router';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { Tabs } from "expo-router";
 // import { useColorScheme } from 'react-native';
-import { Appbar, Icon, Tooltip } from 'react-native-paper';
-import { router } from 'expo-router';
-import { Users, Users2, Calendar, Settings } from 'lucide-react-native';
-import { TabsHeader } from '@/src/components/TabsHeader';
+import { Appbar, Icon, Tooltip } from "react-native-paper";
+import { router } from "expo-router";
+import { Users, Users2, Calendar, Settings } from "lucide-react-native";
+import { TabsHeader } from "@/src/components/TabsHeader";
 
-import Colors from '@/src/theme/Colors';
-import { useClientOnlyValue } from '@/src/utils/useClientOnlyValue';
+import Colors from "@/src/theme/Colors";
+import { useClientOnlyValue } from "@/src/utils/useClientOnlyValue";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
+  name: React.ComponentProps<typeof FontAwesome>["name"];
   color: string;
   size?: number;
 }) {
-  return <FontAwesome size={props.size || 28} style={{ marginBottom: -3 }} {...props} />;
+  return (
+    <FontAwesome
+      size={props.size || 28}
+      style={{ marginBottom: -3 }}
+      {...props}
+    />
+  );
 }
 
 export default function TabLayout() {
@@ -40,7 +46,6 @@ export default function TabLayout() {
         header: (props) => <TabsHeader navProps={props} children={undefined} />,
       }}
     >
-
       <Tabs.Screen
         name="index"
         options={{
@@ -50,8 +55,16 @@ export default function TabLayout() {
       <Tabs.Screen
         name="players"
         options={{
-          title: 'Players',
-          tabBarIcon: ({ color, size }) => <Users color={color} size={size || 24} />,
+          headerShown: false,
+          title: "Players",
+          //tabBarIcon: ({ color, size }) => <Users color={color} size={size || 24} />,
+          tabBarIcon: ({ color, size }) => (
+            <Icon
+              source="account-multiple-plus"
+              color={color}
+              size={size || 24}
+            />
+          ),
           // tabBarIcon: (props) => (
           //   <MaterialCommunityIcons
           //     {...props}
@@ -59,62 +72,57 @@ export default function TabLayout() {
           //     name={props.focused ? 'account' : 'account-outline'}
           //   />
           // ),
-          headerLeft: () => (
-            <Icon
-              source="camera"
-              size={20}
-            />
-          ),
-          headerTitle : "Switch",
+          headerLeft: () => <Icon source="camera" size={20} />,
+          headerTitle: "Switch",
           headerRight: () => (
             <>
-              <Tooltip title='Search'>
-                <Appbar.Action
-                  icon="magnify"
-                  onPress={() => { }}
-                />
+              <Tooltip title="Search">
+                <Appbar.Action icon="magnify" onPress={() => {}} />
               </Tooltip>
-              <Tooltip title='Settings'>
+              <Tooltip title="Settings">
                 <Appbar.Action
                   icon="menu"
-                  onPress={() => router.navigate('/settings')}
+                  onPress={() => router.navigate("/settings")}
                 />
               </Tooltip>
             </>
           ),
         }}
-
       />
       <Tabs.Screen
         name="groups"
         options={{
-          title: 'Groups',
-          tabBarIcon: ({ color, size }) => <Users2 color={color} size={size || 24} />,
+          headerShown: false,
+          title: "Groups",
+          tabBarIcon: ({ color, size }) => (
+            <Icon source="account-group" color={color} size={size || 24} />
+          ),
         }}
       />
       <Tabs.Screen
         name="sessions"
         options={{
-          title: 'Sessions',
-          tabBarIcon: ({ color, size }) => <Calendar color={color} size={size || 24} />,
+          headerShown: false,
+          title: "Sessions",
+          tabBarIcon: ({ color, size }) => (
+            <Icon
+              source="view-grid"
+              //source="scoreboard-outline"
+              color={color}
+              size={size || 24}
+            />
+          ),
         }}
       />
-      {/*
-      <Tabs.Screen
-        name="archived"
-        options={{
-          href: null,
-          title: 'Archived',
-          tabBarIcon: ({ color, size }) => <Settings color={color} size={size || 24} />,
-        }}
-      />
-      */}
       <Tabs.Screen
         name="settings"
         options={{
+          headerShown: false,
           // href: null,
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => <Settings color={color} size={size || 24} />,
+          title: "Settings",
+          tabBarIcon: ({ color, size }) => (
+            <Icon source="cog" color={color} size={size || 24} />
+          ),
         }}
       />
     </Tabs>

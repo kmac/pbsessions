@@ -469,13 +469,13 @@ export default function LiveSessionScreen() {
         </View>
 
         {/* Timer Display */}
-        {isRoundInProgress && roundStartTime && (
+        {/*{isRoundInProgress && roundStartTime && (
           <Card style={{ marginBottom: 16 }}>
             <Card.Content>
               <RoundTimer startTime={roundStartTime} />
             </Card.Content>
           </Card>
-        )}
+        )}*/}
 
         {/* Round Action Button */}
         <View style={{ marginBottom: 24 }}>{getRoundActionButton()}</View>

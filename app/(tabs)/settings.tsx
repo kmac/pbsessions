@@ -12,6 +12,7 @@ export default function SettingsTab() {
   const dispatch = useDispatch();
   const { players } = useSelector((state: RootState) => state.players);
   const { groups } = useSelector((state: RootState) => state.groups);
+  const { sessions } = useSelector((state: RootState) => state.sessions);
 
   const handleExportData = async () => {
     try {
@@ -56,8 +57,8 @@ export default function SettingsTab() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Settings size={32} color={colors.primary} />
-        <Text style={styles.title}>Configuration</Text>
+        {/*<Settings size={32} color={colors.primary} />*/}
+        <Text style={styles.title}>Settings</Text>
       </View>
 
       <View style={styles.section}>
@@ -73,7 +74,7 @@ export default function SettingsTab() {
             <Text style={styles.statLabel}>Groups</Text>
           </View>
           <View style={styles.stat}>
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{sessions.length}</Text>
             <Text style={styles.statLabel}>Sessions</Text>
           </View>
         </View>

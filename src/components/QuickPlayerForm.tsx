@@ -2,12 +2,14 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
 } from 'react-native';
+import {
+  Text,
+} from "react-native-paper";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { X, Save, UserPlus } from 'lucide-react-native';

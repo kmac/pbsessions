@@ -2,7 +2,6 @@
 import { useMemo, useState } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Modal,
@@ -16,6 +15,7 @@ import {
   Searchbar,
   SegmentedButtons,
   Surface,
+  Text,
   useTheme,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";

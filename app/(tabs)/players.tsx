@@ -33,7 +33,6 @@ import {
 import { getShortGender } from "@/src/utils/util";
 import { Group, Player } from "@/src/types";
 import PlayerForm from "@/src/components/PlayerForm";
-import PlayerManager from "@/src/components/PlayerManager";
 import BulkAddPlayersModal from "@/src/components/BulkAddPlayersModal";
 import { Alert } from "@/src/utils/alert";
 import { APP_CONFIG } from "@/src/constants";
@@ -57,10 +56,12 @@ export default function PlayersTab() {
   const [csvText, setCsvText] = useState("");
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const filteredPlayers = allPlayers.filter(player =>
-    player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (player.email && player.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  const [searchQuery, setSearchQuery] = useState("");
+  const filteredPlayers = allPlayers.filter(
+    (player) =>
+      player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (player.email &&
+        player.email.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
   const handleAddPlayer = (
@@ -548,24 +549,20 @@ export default function PlayersTab() {
                 marginRight: 20,
               }}
             >
-              {getPlayerGroupNames(item.id) && (
-                <>
+              {getPlayerGroupNames(item.id).length > 0 && (
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Icon source="account-group" size={20} />
                   <Text
                     style={{
                       fontSize: 12,
                       fontWeight: "400",
-                      // color: theme.colors.primary,
-                      // backgroundColor: themeColors.backdrop,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      flex: 3,
+                      //flex: 3,
                       marginLeft: 5,
                     }}
                   >
-                    Groups: {getPlayerGroupNames(item.id)}
+                    {getPlayerGroupNames(item.id)}
                   </Text>
-                </>
+                </View>
               )}
             </View>
           </View>
@@ -594,8 +591,6 @@ export default function PlayersTab() {
       />
     </Surface>
   );
-
-  const useNew = false;
 
   return (
     <SafeAreaView
@@ -637,7 +632,7 @@ export default function PlayersTab() {
             mode="contained-tonal"
             onPress={() => setModalVisible(true)}
           >
-            <Text style={{ fontWeight: "600" }}>Add Player</Text>
+            Add Player
           </Button>
         </View>
       </View>
@@ -650,48 +645,42 @@ export default function PlayersTab() {
         style={{ marginHorizontal: 16, marginTop: 6, marginBottom: 6 }}
       />
 
-      {useNew ? (
-        <PlayerManager
-          players={[...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name))}
-        />
-      ) : (
-        <FlatList
-          data={[...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name))}
-          renderItem={renderPlayerList}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16 }}
-          showsVerticalScrollIndicator={true}
-          ListEmptyComponent={
-            <View
+      <FlatList
+        data={[...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name))}
+        renderItem={renderPlayerList}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ padding: 16 }}
+        showsVerticalScrollIndicator={true}
+        ListEmptyComponent={
+          <View
+            style={{
+              alignItems: "center",
+              justifyContent: "center",
+              paddingVertical: 64,
+            }}
+          >
+            <Users size={48} />
+            <Text
               style={{
-                alignItems: "center",
-                justifyContent: "center",
-                paddingVertical: 64,
+                fontSize: 18,
+                fontWeight: "600",
+                marginTop: 16,
               }}
             >
-              <Users size={48} />
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "600",
-                  marginTop: 16,
-                }}
-              >
-                No players yet
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  // color: colors.gray,
-                  marginTop: 4,
-                }}
-              >
-                Add players to start organizing sessions
-              </Text>
-            </View>
-          }
-        />
-      )}
+              No players yet
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                // color: colors.gray,
+                marginTop: 4,
+              }}
+            >
+              Add players to start organizing sessions
+            </Text>
+          </View>
+        }
+      />
       {/*<FAB
         icon="account-plus"
         label="Add Player"

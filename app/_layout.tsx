@@ -1,39 +1,48 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { useFonts } from 'expo-font';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useFonts } from "expo-font";
 import {
   DarkTheme as NavDarkTheme,
   DefaultTheme as NavLightTheme,
   ThemeProvider,
-} from '@react-navigation/native'
-import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/src/store';
-import { Provider as StoreProvider, useDispatch } from 'react-redux';
-import { SplashScreen, Stack } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
-import { adaptNavigationTheme, Appbar, PaperProvider } from 'react-native-paper'
+} from "@react-navigation/native";
+import { useEffect, useState } from "react";
+import { View } from "react-native";
+import {
+  Provider as StoreProvider,
+  useDispatch,
+  useSelector,
+} from "react-redux";
+import { SplashScreen, Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import {
+  adaptNavigationTheme,
+  Appbar,
+  Text,
+  PaperProvider,
+  Tooltip,
+} from "react-native-paper";
 
-import { store } from '@/src/store';
-import { StorageManager } from '@/src/store/storage';
-import { setPlayers } from '@/src/store/slices/playersSlice';
-import { setGroups } from '@/src/store/slices/groupsSlice';
-import { setSessions } from '@/src/store/slices/sessionsSlice';
-import { setAppSettings } from '@/src/store/slices/appSettingsSlice';
-import { Colors, Themes } from '@/src/ui/styles';
-import { StackHeader } from '@/src/components/StackHeader';
-import { Settings } from '@/src/types'
-import { Alert } from '@/src/utils/alert'
+import { store, RootState } from "@/src/store";
+import { StorageManager } from "@/src/store/storage";
+import { setPlayers } from "@/src/store/slices/playersSlice";
+import { setGroups } from "@/src/store/slices/groupsSlice";
+import { setSessions } from "@/src/store/slices/sessionsSlice";
+import { setAppSettings } from "@/src/store/slices/appSettingsSlice";
+import { Colors, Themes } from "@/src/ui/styles";
+import { StackHeader } from "@/src/components/StackHeader";
+import { Settings } from "@/src/types";
+import { Alert } from "@/src/utils/alert";
 
-import { router } from 'expo-router';
+import { router } from "expo-router";
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
-} from 'expo-router';
+} from "expo-router";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
+  initialRouteName: "(tabs)",
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -58,93 +67,106 @@ function StorageLoader() {
         dispatch(setGroups(groups));
         dispatch(setSessions(sessions));
         dispatch(setAppSettings(appSettings));
-
       } catch (error) {
-        console.error('Error loading initial data:', error);
+        console.error("Error loading initial data:", error);
       }
     };
 
     loadInitialData();
-
   }, [dispatch]);
 
   return null;
 }
 
 const RootLayoutNav = () => {
-
   // Get settings from Redux store
-  const settings = useSelector((state: RootState) => state.appSettings.appSettings);
+  const settings = useSelector(
+    (state: RootState) => state.appSettings.appSettings,
+  );
 
   // const colorScheme = settings.theme || 'light';
-  const colorScheme = 'light';
+  const colorScheme = "light";
 
   // Fallback to default if settings not loaded yet
   const effectiveSettings: Settings = settings || {
-    theme: 'light',
-    color: 'default',
+    theme: "light",
+    color: "default",
   };
 
   const theme =
     Themes[
-    effectiveSettings.theme === 'auto' ? (colorScheme ?? 'dark') : effectiveSettings.theme
-    ][effectiveSettings.color]
+      effectiveSettings.theme === "auto"
+        ? (colorScheme ?? "dark")
+        : effectiveSettings.theme
+    ][effectiveSettings.color];
 
   const { DarkTheme, LightTheme } = adaptNavigationTheme({
     reactNavigationDark: NavDarkTheme,
     reactNavigationLight: NavLightTheme,
     materialDark: Themes.dark[settings.color],
     materialLight: Themes.light[settings.color],
-  })
+  });
 
   return (
     <ThemeProvider
       value={
-        colorScheme === 'light'
+        colorScheme === "light"
           ? { ...LightTheme, fonts: NavLightTheme.fonts }
           : { ...DarkTheme, fonts: NavDarkTheme.fonts }
       }
     >
       <PaperProvider theme={theme}>
-
         <StorageLoader />
         <Stack
           screenOptions={{
             // animation: 'slide_from_bottom',
             header: (props) => (
-              <Appbar.Header>
-                <Appbar.BackAction onPress={() => { router.navigate('/sessions');}} />
-                {/*<Appbar.Content title="Title" />
-                <Appbar.Action icon="calendar" onPress={() => { }} />
-                <Appbar.Action icon="magnify" onPress={() => { }} />*/}
+              <Appbar.Header mode="center-aligned">
+                {/*<Appbar.BackAction
+                  onPress={() => {
+                    router.navigate("/sessions");
+                  }}
+                />*/}
+                <Appbar.Content
+                  title={
+                    <Text
+                      variant="titleLarge"
+                      style={{
+                        alignItems: "center",
+                        fontWeight: "600",
+                      }}
+                    >
+                      Pickleball Sessions
+                    </Text>
+                  }
+                />
+                <Tooltip title="Settings">
+                  <Appbar.Action
+                    icon="cogs"
+                    onPress={() => router.navigate("/settings")}
+                  />
+                </Tooltip>
               </Appbar.Header>
             ),
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: true }} />
+
           <Stack.Screen
             name="live-session"
             options={{
               headerShown: false,
-              presentation: 'modal',
-              title: 'Live Session',
-              // headerStyle: {
-              //   backgroundColor: '#059669',
-              // },
-              // headerTintColor: '#fff',
-              // headerTitleStyle: {
-              //   fontWeight: 'bold',
-              // },
+              presentation: "modal",
+              title: "Live Session",
             }}
           />
         </Stack>
-
       </PaperProvider>
 
       <StatusBar style="auto" />
     </ThemeProvider>
-  )
-}
+  );
+};
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -172,4 +194,3 @@ export default function RootLayout() {
     </StoreProvider>
   );
 }
-
