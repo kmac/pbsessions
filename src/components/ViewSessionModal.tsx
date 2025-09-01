@@ -169,9 +169,16 @@ export default function ViewSessionModal({
 
           <View style={styles.statItem}>
             <Text variant="bodySmall" style={styles.statLabel}>
-              Total Score
+              Total Points (for)
             </Text>
             <Text variant="titleMedium">{item.totalScore}</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Text variant="bodySmall" style={styles.statLabel}>
+              Total Points (against)
+            </Text>
+            <Text variant="titleMedium">{item.totalScoreAgainst}</Text>
           </View>
 
           {item.averageRating && (

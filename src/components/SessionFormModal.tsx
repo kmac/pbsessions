@@ -459,7 +459,7 @@ export default function SessionFormModal({
                         : theme.colors.surfaceVariant,
                     }}
                   >
-                    Court: {court.name}
+                    {court.name}
                     {court.minimumRating
                       ? ` (${court.minimumRating.toFixed(1)}+)`
                       : ""}

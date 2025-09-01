@@ -16,6 +16,7 @@ import {
   Icon,
   IconButton,
   List,
+  Searchbar,
   Surface,
   Text,
   TextInput,
@@ -43,9 +44,8 @@ import * as DocumentPicker from "expo-document-picker";
 
 import { useTheme } from "react-native-paper";
 
-const theme = useTheme();
-
 export default function PlayersTab() {
+  const theme = useTheme();
   const dispatch = useDispatch();
   // const { players, loading } = useSelector((state: RootState) => state.players);
   const allPlayers = useSelector(selectAllPlayers);
@@ -56,6 +56,12 @@ export default function PlayersTab() {
   const [csvImportModalVisible, setCsvImportModalVisible] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const filteredPlayers = allPlayers.filter(player =>
+    player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (player.email && player.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const handleAddPlayer = (
     playerData: Omit<Player, "id" | "createdAt" | "updatedAt">,
@@ -610,7 +616,7 @@ export default function PlayersTab() {
         }}
       >
         <Text variant="headlineMedium" style={{ fontWeight: "bold" }}>
-          Players ({allPlayers.length})
+          Players ({filteredPlayers.length})
         </Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Button
@@ -636,13 +642,21 @@ export default function PlayersTab() {
         </View>
       </View>
 
+      <Searchbar
+        placeholder="Search players..."
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        mode="bar"
+        style={{ marginHorizontal: 16, marginTop: 6, marginBottom: 6 }}
+      />
+
       {useNew ? (
         <PlayerManager
-          players={[...allPlayers].sort((a, b) => a.name.localeCompare(b.name))}
+          players={[...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name))}
         />
       ) : (
         <FlatList
-          data={[...allPlayers].sort((a, b) => a.name.localeCompare(b.name))}
+          data={[...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name))}
           renderItem={renderPlayerList}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16 }}

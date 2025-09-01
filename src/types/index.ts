@@ -98,6 +98,7 @@ export interface PlayerStats {
   gamesSatOut: number;
   partners: { [playerId: string]: number }; // count of games played with each partner
   totalScore: number;
+  totalScoreAgainst: number;
   averageRating?: number;
 }
 

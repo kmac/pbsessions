@@ -1,28 +1,24 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Modal,
-  FlatList,
-  ScrollView,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState } from "react";
+import { View, Modal, FlatList, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
   Button,
   Card,
   Icon,
   SegmentedButtons,
+  Searchbar,
   Surface,
   Text,
   TextInput,
   useTheme,
-} from 'react-native-paper';
-import { useAppSelector, useAppDispatch } from '@/src/store';
-import { addPlayer } from '@/src/store/slices/playersSlice';
-import { Group, Player } from '@/src/types';
-import PlayerCard from './PlayerCard';
-import QuickPlayerForm from './QuickPlayerForm';
-import { Alert } from '@/src/utils/alert'
+} from "react-native-paper";
+import { useAppSelector, useAppDispatch } from "@/src/store";
+import { addPlayer } from "@/src/store/slices/playersSlice";
+import { Group, Player } from "@/src/types";
+import PlayerCard from "./PlayerCard";
+import QuickPlayerForm from "./QuickPlayerForm";
+import { Alert } from "@/src/utils/alert";
 
 interface GroupPlayerManagerProps {
   visible: boolean;
@@ -32,29 +28,30 @@ interface GroupPlayerManagerProps {
   onCancel: () => void;
 }
 
-type ViewMode = 'select' | 'add';
+type ViewMode = "select" | "add";
 
 export default function GroupPlayerManager({
   visible,
   groupName,
   groupPlayers,
   onSave,
-  onCancel
+  onCancel,
 }: GroupPlayerManagerProps) {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { players: allPlayers } = useAppSelector((state) => state.players);
 
-  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>(groupPlayers);
-  const selectedPlayerIds = selectedPlayers.map(item => item.id);
+  const [selectedPlayers, setSelectedPlayers] =
+    useState<Player[]>(groupPlayers);
+  const selectedPlayerIds = selectedPlayers.map((item) => item.id);
 
-  const [viewMode, setViewMode] = useState<ViewMode>('select');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>("select");
+  const [groupPlayerSearchQuery, setGroupPlayerSearchQuery] = useState("");
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   function isPlayerSelected(player: Player) {
     return selectedPlayerIds.includes(player.id);
-  };
+  }
 
   function addPlayerToSelected(player: Player) {
     setSelectedPlayers([...selectedPlayers, player]);
@@ -62,19 +59,43 @@ export default function GroupPlayerManager({
 
   function handleTogglePlayer(player: Player) {
     if (isPlayerSelected(player)) {
-      setSelectedPlayers(selectedPlayers.filter(item => item.id !== player.id));
+      setSelectedPlayers(
+        selectedPlayers.filter((item) => item.id !== player.id),
+      );
     } else {
       addPlayerToSelected(player);
     }
-  };
+  }
 
-  const filteredPlayers = allPlayers.filter(player =>
-    player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (player.email && player.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredPlayers = allPlayers.filter(
+    (player) =>
+      player.name
+        .toLowerCase()
+        .includes(groupPlayerSearchQuery.toLowerCase()) ||
+      (player.email &&
+        player.email
+          .toLowerCase()
+          .includes(groupPlayerSearchQuery.toLowerCase())),
   );
-  const availablePlayers = filteredPlayers.filter(player => !isPlayerSelected(player));
 
-  function handleQuickAddPlayer(playerData: Omit<Player, 'id' | 'createdAt' | 'updatedAt'>) {
+  const availablePlayers = filteredPlayers.filter(
+    (player) => !isPlayerSelected(player),
+  );
+
+  const filteredSelectedPlayers = selectedPlayers.filter(
+    (player) =>
+      player.name
+        .toLowerCase()
+        .includes(groupPlayerSearchQuery.toLowerCase()) ||
+      (player.email &&
+        player.email
+          .toLowerCase()
+          .includes(groupPlayerSearchQuery.toLowerCase())),
+  );
+
+  function handleQuickAddPlayer(
+    playerData: Omit<Player, "id" | "createdAt" | "updatedAt">,
+  ) {
     dispatch(addPlayer(playerData));
 
     setTimeout(() => {
@@ -83,8 +104,8 @@ export default function GroupPlayerManager({
     }, 100);
 
     setShowQuickAdd(false);
-    Alert.alert('Success', `${playerData.name} has been added to the group!`);
-  };
+    Alert.alert("Success", `${playerData.name} has been added to the group!`);
+  }
 
   const handleSave = () => {
     onSave(selectedPlayers);
@@ -99,19 +120,10 @@ export default function GroupPlayerManager({
         showActions={true}
       />
     );
-  };
+  }
 
   const SelectExistingView = () => (
     <>
-      <TextInput
-        mode="outlined"
-        placeholder="Search players..."
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        left={<TextInput.Icon icon="magnify" />}
-        style={{ marginHorizontal: 16, marginBottom: 16 }}
-      />
-
       {/*
       <List.Section title="Group">
         <List.Accordion
@@ -130,14 +142,19 @@ export default function GroupPlayerManager({
 
       {selectedPlayers.length > 0 && (
         <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
-          <Text variant="titleMedium" style={{
-            fontWeight: '600',
-            marginBottom: 12
-          }}>
+          <Text
+            variant="titleMedium"
+            style={{
+              fontWeight: "600",
+              marginBottom: 12,
+            }}
+          >
             Selected Players ({selectedPlayers.length})
           </Text>
           <FlatList
-            data={[...selectedPlayers].sort((a, b) => a.name.localeCompare(b.name))}
+            data={[...filteredSelectedPlayers].sort((a, b) =>
+              a.name.localeCompare(b.name),
+            )}
             renderItem={({ item }) => renderPlayer({ item })}
             keyExtractor={(item) => `selected-${item.id}`}
             scrollEnabled={false}
@@ -146,37 +163,48 @@ export default function GroupPlayerManager({
       )}
 
       <View style={{ marginHorizontal: 16 }}>
-        <Text variant="titleMedium" style={{
-          fontWeight: '600',
-          marginBottom: 12
-        }}>
+        <Text
+          variant="titleMedium"
+          style={{
+            fontWeight: "600",
+            marginBottom: 12,
+          }}
+        >
           Available Players ({availablePlayers.length})
         </Text>
 
         {availablePlayers.length === 0 ? (
-          <Surface style={{
-            alignItems: 'center',
-            paddingVertical: 32,
-            borderRadius: 8
-          }}>
-            {searchQuery ? (
-              <Text variant="bodyLarge" style={{
-                color: theme.colors.onSurfaceVariant
-              }}>
+          <Surface
+            style={{
+              alignItems: "center",
+              paddingVertical: 32,
+              borderRadius: 8,
+            }}
+          >
+            {groupPlayerSearchQuery ? (
+              <Text
+                variant="bodyLarge"
+                style={{
+                  color: theme.colors.onSurfaceVariant,
+                }}
+              >
                 No players match your search
               </Text>
             ) : (
               <>
-                <Text variant="bodyLarge" style={{
-                  color: theme.colors.onSurfaceVariant,
-                  marginBottom: 16
-                }}>
+                <Text
+                  variant="bodyLarge"
+                  style={{
+                    color: theme.colors.onSurfaceVariant,
+                    marginBottom: 16,
+                  }}
+                >
                   All players are already in this group
                 </Text>
                 <Button
                   icon="plus"
                   mode="outlined"
-                  onPress={() => setViewMode('add')}
+                  onPress={() => setViewMode("add")}
                 >
                   Add New Player
                 </Button>
@@ -185,7 +213,9 @@ export default function GroupPlayerManager({
           </Surface>
         ) : (
           <FlatList
-            data={[...availablePlayers].sort((a, b) => a.name.localeCompare(b.name))}
+            data={[...availablePlayers].sort((a, b) =>
+              a.name.localeCompare(b.name),
+            )}
             renderItem={({ item }) => renderPlayer({ item })}
             keyExtractor={(item) => `available-${item.id}`}
             scrollEnabled={false}
@@ -197,26 +227,34 @@ export default function GroupPlayerManager({
 
   const AddNewView = () => (
     <View style={{ padding: 16 }}>
-      <Surface style={{
-        alignItems: 'center',
-        borderRadius: 12,
-        padding: 24,
-        marginBottom: 24
-      }}>
+      <Surface
+        style={{
+          alignItems: "center",
+          borderRadius: 12,
+          padding: 24,
+          marginBottom: 24,
+        }}
+      >
         <Icon source="account" size={32} />
-        <Text variant="headlineSmall" style={{
-          fontWeight: '600',
-          marginTop: 12,
-          textAlign: 'center'
-        }}>
+        <Text
+          variant="headlineSmall"
+          style={{
+            fontWeight: "600",
+            marginTop: 12,
+            textAlign: "center",
+          }}
+        >
           Add New Player to Group
         </Text>
-        <Text variant="bodyMedium" style={{
-          color: theme.colors.onSurfaceVariant,
-          marginTop: 8,
-          textAlign: 'center',
-          lineHeight: 20
-        }}>
+        <Text
+          variant="bodyMedium"
+          style={{
+            color: theme.colors.onSurfaceVariant,
+            marginTop: 8,
+            textAlign: "center",
+            lineHeight: 20,
+          }}
+        >
           Add a new player and they'll be automatically added to "{groupName}"
         </Text>
       </Surface>
@@ -234,23 +272,29 @@ export default function GroupPlayerManager({
       {selectedPlayers.length > 0 && (
         <Card>
           <Card.Content>
-            <Text variant="titleMedium" style={{
-              fontWeight: '600',
-              marginBottom: 12
-            }}>
+            <Text
+              variant="titleMedium"
+              style={{
+                fontWeight: "600",
+                marginBottom: 12,
+              }}
+            >
               Current players in this group:
             </Text>
-            <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={true}>
-              {selectedPlayers.map(player => (
+            <ScrollView
+              style={{ maxHeight: 200 }}
+              showsVerticalScrollIndicator={true}
+            >
+              {selectedPlayers.map((player) => (
                 <View
                   key={player.id}
                   style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     paddingVertical: 8,
                     borderBottomWidth: 1,
-                    borderBottomColor: theme.colors.surfaceVariant
+                    borderBottomColor: theme.colors.surfaceVariant,
                   }}
                 >
                   <Text variant="bodyMedium">{player.name}</Text>
@@ -259,7 +303,7 @@ export default function GroupPlayerManager({
                       variant="bodySmall"
                       style={{
                         color: theme.colors.primary,
-                        fontWeight: '500'
+                        fontWeight: "500",
                       }}
                     >
                       {player.rating.toFixed(1)}
@@ -289,13 +333,17 @@ export default function GroupPlayerManager({
             icon="cancel"
             mode="outlined"
             onPress={onCancel}
-          >Cancel</Button>
+          >
+            Cancel
+          </Button>
           <Button
             style={{ marginRight: 8 }}
             icon="content-save"
             mode="contained"
             onPress={handleSave}
-          >Save</Button>
+          >
+            Save
+          </Button>
         </Appbar.Header>
 
         <SegmentedButtons
@@ -303,24 +351,29 @@ export default function GroupPlayerManager({
           onValueChange={(value) => setViewMode(value as ViewMode)}
           buttons={[
             {
-              value: 'select',
-              label: 'Select Existing',
-              icon: 'account-group'
+              value: "select",
+              label: "Select Existing",
+              icon: "account-group",
             },
             {
-              value: 'add',
-              label: 'Add New',
-              icon: 'plus'
-            }
+              value: "add",
+              label: "Add New",
+              icon: "plus",
+            },
           ]}
           style={{ margin: 16 }}
         />
 
-        <ScrollView
-          style={{ flex: 1 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {viewMode === 'select' ? <SelectExistingView /> : <AddNewView />}
+        <Searchbar
+          placeholder="Search players..."
+          onChangeText={setGroupPlayerSearchQuery}
+          value={groupPlayerSearchQuery}
+          mode="bar"
+          style={{ marginHorizontal: 16, marginTop: 6, marginBottom: 12 }}
+        />
+
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+          {viewMode === "select" ? <SelectExistingView /> : <AddNewView />}
         </ScrollView>
 
         <Modal

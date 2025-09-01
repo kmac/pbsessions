@@ -45,6 +45,7 @@ export class SessionCoordinator {
           gamesSatOut: 0,
           partners: {},
           totalScore: 0,
+          totalScoreAgainst: 0,
         },
       );
     });
@@ -132,7 +133,8 @@ export class SessionCoordinator {
       // Update score if provided
       if (score) {
         const playerScore = this.getPlayerScore(game, playerId, score);
-        mutableStats.totalScore += playerScore;
+        mutableStats.totalScore += playerScore.for;
+        mutableStats.totalScoreAgainst += playerScore.against;
       }
       this.playerStats.set(playerId, mutableStats);
     });
@@ -397,11 +399,11 @@ export class SessionCoordinator {
     return null;
   }
 
-  private getPlayerScore(game: Game, playerId: string, score: Score): number {
+  private getPlayerScore(game: Game, playerId: string, score: Score): { for: number, against: number } {
     const isOnServeTeam =
       game.serveTeam.player1Id === playerId ||
       game.serveTeam.player2Id === playerId;
-    return isOnServeTeam ? score.serveScore : score.receiveScore;
+    return isOnServeTeam ? { for: score.serveScore, against: score.receiveScore} : { for: score.receiveScore, against: score.serveScore};
   }
 
   // This is the key method - it returns the current stats
