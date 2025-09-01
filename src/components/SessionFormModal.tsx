@@ -39,9 +39,9 @@ export default function SessionFormModal({
 }: SessionFormModalProps) {
   const theme = useTheme();
   const { players } = useAppSelector((state) => state.players);
-  const { appConfig } = useAppSelector((state) => state.appConfig);
-  const [scoring, setScoring] = useState(appConfig.defaultUseScoring);
-  const [useRatings, setUseRatings] = useState(appConfig.defaultUseRatings);
+  const { appSettings } = useAppSelector((state) => state.appSettings);
+  const [scoring, setScoring] = useState(appSettings.defaultUseScoring);
+  const [useRatings, setUseRatings] = useState(appSettings.defaultUseRatings);
 
   const [formData, setFormData] = useState({
     // defaults
@@ -49,8 +49,8 @@ export default function SessionFormModal({
     dateTime: new Date().toISOString(),
     playerIds: [] as string[],
     courts: [] as Court[],
-    scoring: appConfig.defaultUseScoring,
-    showRatings: appConfig.defaultUseRatings,
+    scoring: appSettings.defaultUseScoring,
+    showRatings: appSettings.defaultUseRatings,
   });
 
   const [showPlayerManager, setShowPlayerManager] = useState(false);

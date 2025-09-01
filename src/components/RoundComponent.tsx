@@ -54,7 +54,6 @@ export default function RoundComponent({
   const [ratingInput, setRatingInput] = useState<string>("");
   const [ratingEnabled, setRatingEnabled] = useState<boolean>(false);
   const [courtDisabled, setCourtDisabled] = useState<boolean>(false);
-  // const { appConfig } = useAppSelector((state) => state.appConfig);
 
   const { players } = useAppSelector((state) => state.players);
 

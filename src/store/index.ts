@@ -3,7 +3,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import playersReducer from './slices/playersSlice';
 import groupsReducer from './slices/groupsSlice';
 import sessionsReducer from './slices/sessionsSlice';
-import appConfigReducer from './slices/appConfigSlice';
+import appSettingsReducer from './slices/appSettingsSlice';
 import { storageMiddleware } from './middleware/storageMiddleware';
 
 export const store = configureStore({
@@ -11,7 +11,7 @@ export const store = configureStore({
     players: playersReducer,
     groups: groupsReducer,
     sessions: sessionsReducer,
-    appConfig: appConfigReducer,
+    appSettings: appSettingsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

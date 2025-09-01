@@ -64,7 +64,7 @@ export default function GroupsTab() {
   };
 
   const navigateToPlayers = () => {
-    router.push('/players');
+    router.navigate('/players');
   };
 
   const getGroupPlayers = (group: Group) : Player[] => {

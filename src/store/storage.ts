@@ -1,21 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
-import { Group, Player, Session, Setting } from "@/src/types";
+import { Group, Player, Session, Settings } from "@/src/types";
 import { Alert } from "@/src/utils/alert";
 
 const STORAGE_KEYS = {
   PLAYERS: "@pickleball_players",
   GROUPS: "@pickleball_groups",
   SESSIONS: "@pickleball_sessions",
-  //LIVE_SESSION: "@pickleball_live_session",
-  APP_CONFIG: "@pickleball_config",
+  APP_SETTINGS: "@pickleball_settings",
 } as const;
 
 export interface StoredData {
   players: Player[];
   groups: Group[];
   sessions: Session[];
-  appConfig: Setting;
+  appSettings: Settings;
   lastBackup?: string;
   version: string;
 }
@@ -115,23 +114,12 @@ export class StorageManager {
     return sessions || [];
   }
 
-  // async saveLiveSession(liveSession: LiveSession): Promise<void> {
-  //   await this.saveData(STORAGE_KEYS.LIVE_SESSION, liveSession);
-  // }
-
-  // async loadLiveSession(): Promise<LiveSession | null> {
-  //   const liveSession = await this.loadData<LiveSession>(
-  //     STORAGE_KEYS.LIVE_SESSION,
-  //   );
-  //   return liveSession;
-  // }
-
-  async saveAppConfig(appConfig: Setting): Promise<void> {
-    await this.saveData(STORAGE_KEYS.APP_CONFIG, appConfig);
+  async saveAppSettings(appSettings: Settings): Promise<void> {
+    await this.saveData(STORAGE_KEYS.APP_SETTINGS, appSettings);
   }
 
-  async loadAppConfig(): Promise<Setting> {
-    const setting = await this.loadData<Setting>(STORAGE_KEYS.APP_CONFIG);
+  async loadAppSettings(): Promise<Settings> {
+    const setting = await this.loadData<Settings>(STORAGE_KEYS.APP_SETTINGS);
     return (
       setting || {
         color: "default",
@@ -143,20 +131,18 @@ export class StorageManager {
   }
 
   async exportAllData(): Promise<StoredData> {
-    const [players, groups, sessions, appConfig] = await Promise.all([
+    const [players, groups, sessions, appSettings] = await Promise.all([
       this.loadPlayers(),
       this.loadGroups(),
       this.loadSessions(),
-      // this.loadLiveSession(),
-      this.loadAppConfig(),
+      this.loadAppSettings(),
     ]);
 
     return {
       players,
       groups,
       sessions,
-      // liveSession,
-      appConfig,
+      appSettings,
       lastBackup: new Date().toISOString(),
       version: "1.0.0",
     };

@@ -219,7 +219,7 @@ export default function SessionsTab() {
       setLiveSessionId(session.id);
     }, 100);
 
-    router.push("/live-session");
+    router.navigate("/live-session");
   };
 
   const handleArchiveSession = (session: Session) => {
@@ -235,11 +235,11 @@ export default function SessionsTab() {
   };
 
   const navigateToGroups = () => {
-    router.push("/groups");
+    router.navigate("/groups");
   };
 
   const navigateToPlayers = () => {
-    router.push("/");
+    router.navigate("/");
   };
 
   const getSessionPlayers = (session: Session) => {
@@ -409,7 +409,7 @@ export default function SessionsTab() {
               <Button
                 icon="play"
                 mode="contained"
-                onPress={() => router.push("/live-session")}
+                onPress={() => router.navigate("/live-session")}
               >
                 Continue Live Session
               </Button>

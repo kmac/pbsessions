@@ -77,7 +77,7 @@ export default function TabLayout() {
               <Tooltip title='Settings'>
                 <Appbar.Action
                   icon="menu"
-                  onPress={() => router.push('/settings')}
+                  onPress={() => router.navigate('/settings')}
                 />
               </Tooltip>
             </>

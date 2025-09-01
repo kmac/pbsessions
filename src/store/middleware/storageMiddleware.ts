@@ -23,9 +23,9 @@ export const storageMiddleware: Middleware = (store) => (next) => async (_action
     await storage.saveSessions(state.sessions.sessions);
   }
 
-  if (action.type.startsWith('appConfig/')) {
+  if (action.type.startsWith('appSettings/')) {
     const state = store.getState();
-    await storage.saveAppConfig(state.appConfig.appConfig);
+    await storage.saveAppSettings(state.appSettings.appSettings);
   }
 
   // if (action.type.startsWith('liveSession/')) {
@@ -60,7 +60,7 @@ export const storageMiddleware: Middleware = (store) => (next) => async (_action
 //         } else if (action.type?.startsWith("sessions/")) {
 //           await storage.saveSessions(state.sessions.sessions);
 //
-//         } else if (action.type?.startsWith("appConfig/")) {
+//         } else if (action.type?.startsWith("appSettings/")) {
 //           // TODO
 //
 //         } else {

@@ -78,7 +78,7 @@ export default function LiveSessionScreen() {
           </Text>
           <Button
             mode="outlined"
-            onPress={() => router.push("/sessions")}
+            onPress={() => router.navigate("/sessions")}
             icon="arrow-left"
           >
             Back to Sessions
@@ -191,7 +191,7 @@ export default function LiveSessionScreen() {
       logSession(liveSession, "Ending session");
       dispatch(endSessionThunk({ sessionId: liveSession.id }));
       setLiveSessionId(null);
-      router.push("/sessions");
+      router.navigate("/sessions");
     };
     if (isRoundInProgress) {
       Alert.alert(

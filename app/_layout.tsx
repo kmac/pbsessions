@@ -18,10 +18,10 @@ import { StorageManager } from '@/src/store/storage';
 import { setPlayers } from '@/src/store/slices/playersSlice';
 import { setGroups } from '@/src/store/slices/groupsSlice';
 import { setSessions } from '@/src/store/slices/sessionsSlice';
-import { setAppConfig } from '@/src/store/slices/appConfigSlice';
+import { setAppSettings } from '@/src/store/slices/appSettingsSlice';
 import { Colors, Themes } from '@/src/ui/styles';
 import { StackHeader } from '@/src/components/StackHeader';
-import { Setting } from '@/src/types'
+import { Settings } from '@/src/types'
 import { Alert } from '@/src/utils/alert'
 
 import { router } from 'expo-router';
@@ -47,17 +47,17 @@ function StorageLoader() {
       const storage = StorageManager.getInstance();
 
       try {
-        const [players, groups, sessions, appConfig] = await Promise.all([
+        const [players, groups, sessions, appSettings] = await Promise.all([
           storage.loadPlayers(),
           storage.loadGroups(),
           storage.loadSessions(),
-          storage.loadAppConfig(),
+          storage.loadAppSettings(),
         ]);
 
         dispatch(setPlayers(players));
         dispatch(setGroups(groups));
         dispatch(setSessions(sessions));
-        dispatch(setAppConfig(appConfig));
+        dispatch(setAppSettings(appSettings));
 
       } catch (error) {
         console.error('Error loading initial data:', error);
@@ -74,13 +74,13 @@ function StorageLoader() {
 const RootLayoutNav = () => {
 
   // Get settings from Redux store
-  const settings = useSelector((state: RootState) => state.appConfig.appConfig);
+  const settings = useSelector((state: RootState) => state.appSettings.appSettings);
 
   // const colorScheme = settings.theme || 'light';
   const colorScheme = 'light';
 
   // Fallback to default if settings not loaded yet
-  const effectiveSettings: Setting = settings || {
+  const effectiveSettings: Settings = settings || {
     theme: 'light',
     color: 'default',
   };
@@ -113,7 +113,7 @@ const RootLayoutNav = () => {
             // animation: 'slide_from_bottom',
             header: (props) => (
               <Appbar.Header>
-                <Appbar.BackAction onPress={() => { router.push('/sessions');}} />
+                <Appbar.BackAction onPress={() => { router.navigate('/sessions');}} />
                 {/*<Appbar.Content title="Title" />
                 <Appbar.Action icon="calendar" onPress={() => { }} />
                 <Appbar.Action icon="magnify" onPress={() => { }} />*/}
