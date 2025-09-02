@@ -6,6 +6,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -20,6 +21,9 @@ import {
   Surface,
   Text,
   TextInput,
+  FAB,
+  Menu,
+  Divider,
 } from "react-native-paper";
 import { useSelector, useDispatch } from "react-redux";
 import { Users } from "lucide-react-native";
@@ -50,6 +54,11 @@ export default function PlayersTab() {
   const allPlayers = useSelector(selectAllPlayers);
   const groups = useSelector((state: RootState) => state.groups.groups);
 
+  // Get screen dimensions for responsive design
+  const { width: screenWidth } = Dimensions.get("window");
+  const isNarrowScreen = screenWidth < 768;
+
+  const [menuVisible, setMenuVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [bulkModalVisible, setBulkModalVisible] = useState(false);
   const [csvImportModalVisible, setCsvImportModalVisible] = useState(false);
@@ -567,7 +576,7 @@ export default function PlayersTab() {
             </View>
           </View>
         )}
-        left={(props) => getAvatarName(item.name, props)}
+        left={isNarrowScreen ? undefined : (props) => getAvatarName(item.name, props)}
         right={(props) => (
           <View
             {...props}
@@ -578,12 +587,12 @@ export default function PlayersTab() {
           >
             <IconButton
               icon="pencil"
-              size={20}
+              // size={20}
               onPress={() => handleEditPlayer(item)}
             />
             <IconButton
               icon="delete"
-              size={20}
+              // size={20}
               onPress={() => handleDeletePlayer(item)}
             />
           </View>
@@ -592,27 +601,72 @@ export default function PlayersTab() {
     </Surface>
   );
 
-  return (
-    <SafeAreaView
+  const PlayerHeader = () => (
+    <View
       style={{
-        flex: 1,
-        // backgroundColor: colors.background,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.surfaceVariant,
       }}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          borderBottomWidth: 1,
-          borderBottomColor: theme.colors.surfaceVariant,
-        }}
-      >
-        <Text variant="headlineMedium" style={{ fontWeight: "bold" }}>
-          Players ({filteredPlayers.length})
-        </Text>
+      <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
+        Players ({filteredPlayers.length})
+      </Text>
+
+      {isNarrowScreen ? (
+        // Mobile: Show only primary action + menu
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Button
+            icon="account-plus-outline"
+            mode="contained-tonal"
+            onPress={() => setModalVisible(true)}
+            compact
+          >
+            Add
+          </Button>
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <IconButton
+                icon="dots-vertical"
+                onPress={() => setMenuVisible(true)}
+              />
+            }
+          >
+            <Menu.Item
+              leadingIcon="account-multiple-plus-outline"
+              onPress={() => {
+                setMenuVisible(false);
+                setBulkModalVisible(true);
+              }}
+              title="Bulk Add"
+            />
+            <Divider />
+            <Menu.Item
+              leadingIcon="export"
+              onPress={() => {
+                setMenuVisible(false);
+                handleExportPlayers();
+              }}
+              title="Export"
+            />
+            <Menu.Item
+              leadingIcon="import"
+              onPress={() => {
+                setMenuVisible(false);
+                handleImportPlayers();
+              }}
+              title="Import"
+            />
+          </Menu>
+        </View>
+      ) : (
+        // Desktop: Show all buttons
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Button
             icon="account-multiple-plus-outline"
@@ -635,7 +689,34 @@ export default function PlayersTab() {
             Add Player
           </Button>
         </View>
-      </View>
+      )}
+    </View>
+  );
+
+  // Mobile FAB for quick access to primary action
+  const PrimaryFAB = () => {
+    if (!isNarrowScreen) {
+      return null;
+    }
+    return (
+      <FAB
+        icon="account-plus"
+        onPress={() => setModalVisible(true)}
+        color={theme.colors.onSecondary}
+        style={{
+          position: "absolute",
+          margin: 16,
+          right: 0,
+          bottom: 0,
+          backgroundColor: theme.colors.secondary,
+        }}
+      />
+    );
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      <PlayerHeader />
 
       <Searchbar
         placeholder="Search players..."
@@ -649,7 +730,10 @@ export default function PlayersTab() {
         data={[...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name))}
         renderItem={renderPlayerList}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: isNarrowScreen ? 80 : 16, // Extra space for FAB
+        }}
         showsVerticalScrollIndicator={true}
         ListEmptyComponent={
           <View
@@ -672,7 +756,6 @@ export default function PlayersTab() {
             <Text
               style={{
                 fontSize: 14,
-                // color: colors.gray,
                 marginTop: 4,
               }}
             >
@@ -681,18 +764,10 @@ export default function PlayersTab() {
           </View>
         }
       />
-      {/*<FAB
-        icon="account-plus"
-        label="Add Player"
-        style={{
-          position: 'absolute',
-          margin: 16,
-          right: 0,
-          bottom: 0,
-        }}
-        onPress={() => setModalVisible(true)}
-      />*/}
 
+      <PrimaryFAB />
+
+      {/* ...existing modals... */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -715,12 +790,7 @@ export default function PlayersTab() {
         presentationStyle="pageSheet"
       >
         <SafeAreaView style={{ flex: 1 }}>
-          <View
-            style={{
-              flex: 1,
-              padding: 16,
-            }}
-          >
+          <View style={{ flex: 1, padding: 16 }}>
             <View
               style={{
                 flexDirection: "row",
@@ -752,9 +822,7 @@ export default function PlayersTab() {
                 value={csvText}
                 onChangeText={setCsvText}
                 placeholder="Paste CSV data here..."
-                style={{
-                  minHeight: 300,
-                }}
+                style={{ minHeight: 300 }}
                 contentStyle={{
                   fontFamily:
                     Platform.OS === "ios" ? "Courier New" : "monospace",
@@ -765,22 +833,41 @@ export default function PlayersTab() {
 
             <View
               style={{
-                flexDirection: "row",
+                flexDirection: isNarrowScreen ? "column" : "row",
                 justifyContent: "flex-end",
                 gap: 12,
                 marginTop: 16,
               }}
             >
-              <Button mode="outlined" onPress={handleCancelCsvImport}>
-                Cancel
-              </Button>
-              <Button
-                mode="contained"
-                onPress={handleCsvImport}
-                disabled={!csvText.trim()}
-              >
-                Parse CSV
-              </Button>
+              {isNarrowScreen ? (
+                // Mobile: Primary action first, then secondary
+                <>
+                  <Button
+                    mode="contained"
+                    onPress={handleCsvImport}
+                    disabled={!csvText.trim()}
+                  >
+                    Parse CSV
+                  </Button>
+                  <Button mode="outlined" onPress={handleCancelCsvImport}>
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                // Desktop: Cancel first, then primary action (standard pattern)
+                <>
+                  <Button mode="outlined" onPress={handleCancelCsvImport}>
+                    Cancel
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={handleCsvImport}
+                    disabled={!csvText.trim()}
+                  >
+                    Parse CSV
+                  </Button>
+                </>
+              )}
             </View>
           </View>
         </SafeAreaView>

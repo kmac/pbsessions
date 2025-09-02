@@ -272,7 +272,7 @@ export default function GroupsTab() {
             flex: 1,
           }}
         >
-          <Text variant="headlineMedium" style={{ fontWeight: "bold" }}>
+          <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
             Groups ({groups.length})
           </Text>
           {allPlayers.length > 0 && (

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, FlatList, Modal } from "react-native";
+import { View, StyleSheet, FlatList, Modal, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
@@ -10,6 +10,10 @@ import {
   Surface,
   Text,
   useTheme,
+  FAB,
+  Menu,
+  Divider,
+  IconButton,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
@@ -34,10 +38,15 @@ export default function SessionsTab() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
 
+  const { width: screenWidth } = Dimensions.get("window");
+  const isNarrowScreen = screenWidth < 768;
+
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
 
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [sessionMenuVisible, setSessionMenuVisible] = useState<{[key: string]: boolean}>({});
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
@@ -289,6 +298,116 @@ export default function SessionsTab() {
     closeEditSessionModal();
   }
 
+  const toggleSessionMenu = (sessionId: string, visible: boolean) => {
+    setSessionMenuVisible(prev => ({
+      ...prev,
+      [sessionId]: visible
+    }));
+  };
+
+  // Mobile-friendly header component
+  const SessionHeader = () => (
+    <Surface
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+      }}
+      elevation={1}
+    >
+      <View style={{ flex: 1 }}>
+        <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
+          Sessions (
+          {sessions.filter((s) => s.state !== SessionState.Archived).length})
+        </Text>
+      </View>
+
+      <View style={{ marginLeft: 12 }}>
+        {players.length === 0 ? (
+          <Button
+            icon="open-in-new"
+            mode="outlined"
+            onPress={navigateToPlayers}
+            compact={isNarrowScreen}
+          >
+            {isNarrowScreen ? "Add" : "Add Players"}
+          </Button>
+        ) : isNarrowScreen ? (
+          // Mobile: Primary action + menu
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Button
+              icon="plus"
+              mode="contained"
+              onPress={() => setEditSessionModalVisible(true)}
+              compact
+            >
+              New
+            </Button>
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  onPress={() => setMenuVisible(true)}
+                />
+              }
+            >
+              <Menu.Item
+                leadingIcon="archive"
+                onPress={() => {
+                  setMenuVisible(false);
+                  setArchiveModalVisible(true);
+                }}
+                title="Archives"
+              />
+            </Menu>
+          </View>
+        ) : (
+          // Desktop: Show all buttons
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Button
+              icon="plus"
+              mode="contained"
+              onPress={() => setEditSessionModalVisible(true)}
+            >
+              New
+            </Button>
+            <Button
+              icon="archive"
+              mode="elevated"
+              onPress={() => setArchiveModalVisible(true)}
+            >
+              Archives
+            </Button>
+          </View>
+        )}
+      </View>
+    </Surface>
+  );
+
+  // Mobile FAB for primary action
+  const PrimaryFAB = () => {
+    if (!isNarrowScreen || players.length === 0) return null;
+
+    return (
+      <FAB
+        icon="plus"
+        onPress={() => setEditSessionModalVisible(true)}
+        color={theme.colors.onSecondary}
+        style={{
+          position: "absolute",
+          margin: 16,
+          right: 0,
+          bottom: 0,
+          backgroundColor: theme.colors.secondary,
+        }}
+      />
+    );
+  };
+
   const renderSession = ({ item: session }: { item: Session }) => {
     const sessionPlayers = getSessionPlayers(session);
     const activeCourts: Court[] = session.courts
@@ -404,79 +523,154 @@ export default function SessionsTab() {
         </Card.Content>
 
         <Card.Actions style={{ justifyContent: "space-between" }}>
-          {isLive(session) && (
-            <View style={{ flexDirection: "row", gap: 8 }}>
+          {/* Primary actions - always visible */}
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {isLive(session) && (
+              <>
+                <Button
+                  // icon={isNarrowScreen ? undefined : "play"}
+                  icon="play"
+                  mode="contained"
+                  onPress={() => router.navigate("/live-session")}
+                  compact={isNarrowScreen}
+                >
+                  {isNarrowScreen ? "Continue" : "Continue Live Session"}
+                </Button>
+                <Button
+                  // icon={isNarrowScreen ? undefined : "stop"}
+                  icon="stop"
+                  mode="outlined"
+                  onPress={() => handleEndSession(session)}
+                  compact={isNarrowScreen}
+                >
+                  End
+                </Button>
+              </>
+            )}
+            {isUnstarted(session) && (
               <Button
                 icon="play"
                 mode="contained"
-                onPress={() => router.navigate("/live-session")}
+                onPress={() => handleStartLiveSession(session)}
+                compact={isNarrowScreen}
               >
-                Continue Live Session
-              </Button>
-              <Button
-                icon="stop"
-                mode="outlined"
-                onPress={() => handleEndSession(session)}
-              >
-                End Session
-              </Button>
-            </View>
-          )}
-          {isUnstarted(session) && (
-            <Button
-              icon="play"
-              mode="contained"
-              onPress={() => handleStartLiveSession(session)}
-            >
-              Start Session
-            </Button>
-          )}
-          <View style={{ flexDirection: "row", gap: 2 }}>
-            {!isArchived(session) && (
-              <Button
-                icon="archive"
-                mode="text"
-                disabled={false}
-                onPress={() => handleViewSession(session)}
-              >
-                View
-              </Button>
-            )}
-            {!isComplete(session) && (
-              <Button
-                icon="pencil"
-                mode="text"
-                onPress={() => handleEditSession(session)}
-              >
-                Edit
-              </Button>
-            )}
-            {isComplete(session) && (
-              <Button
-                icon="archive"
-                mode="text"
-                onPress={() => handleArchiveSession(session)}
-              >
-                Archive
-              </Button>
-            )}
-            <Button
-              icon="delete"
-              mode="text"
-              onPress={() => handleDeleteSession(session)}
-            >
-              Delete
-            </Button>
-            {!isLive(session) && (
-              <Button
-                icon="content-duplicate"
-                mode="text"
-                onPress={() => handleCloneSession(session)}
-              >
-                Clone
+                Start
               </Button>
             )}
           </View>
+
+          {/* Secondary actions */}
+          {isNarrowScreen ? (
+            // Mobile: Show essential actions + menu
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Button
+                icon="eye"
+                mode="text"
+                onPress={() => handleViewSession(session)}
+                compact
+              >
+                View
+              </Button>
+              <Menu
+                visible={sessionMenuVisible[session.id] || false}
+                onDismiss={() => toggleSessionMenu(session.id, false)}
+                anchor={
+                  <IconButton
+                    icon="dots-vertical"
+                    size={20}
+                    onPress={() => toggleSessionMenu(session.id, true)}
+                  />
+                }
+              >
+                {!isComplete(session) && (
+                  <Menu.Item
+                    leadingIcon="pencil"
+                    onPress={() => {
+                      toggleSessionMenu(session.id, false);
+                      handleEditSession(session);
+                    }}
+                    title="Edit"
+                  />
+                )}
+                {isComplete(session) && (
+                  <Menu.Item
+                    leadingIcon="archive"
+                    onPress={() => {
+                      toggleSessionMenu(session.id, false);
+                      handleArchiveSession(session);
+                    }}
+                    title="Archive"
+                  />
+                )}
+                {!isLive(session) && (
+                  <Menu.Item
+                    leadingIcon="content-duplicate"
+                    onPress={() => {
+                      toggleSessionMenu(session.id, false);
+                      handleCloneSession(session);
+                    }}
+                    title="Clone"
+                  />
+                )}
+                <Divider />
+                <Menu.Item
+                  leadingIcon="delete"
+                  onPress={() => {
+                    toggleSessionMenu(session.id, false);
+                    handleDeleteSession(session);
+                  }}
+                  title="Delete"
+                />
+              </Menu>
+            </View>
+          ) : (
+            // Desktop: Show all actions
+            <View style={{ flexDirection: "row", gap: 2 }}>
+              {!isArchived(session) && (
+                <Button
+                  icon="eye"
+                  mode="text"
+                  onPress={() => handleViewSession(session)}
+                >
+                  View
+                </Button>
+              )}
+              {!isComplete(session) && (
+                <Button
+                  icon="pencil"
+                  mode="text"
+                  onPress={() => handleEditSession(session)}
+                >
+                  Edit
+                </Button>
+              )}
+              {isComplete(session) && (
+                <Button
+                  icon="archive"
+                  mode="text"
+                  onPress={() => handleArchiveSession(session)}
+                >
+                  Archive
+                </Button>
+              )}
+              <Button
+                icon="delete"
+                mode="text"
+                onPress={() => handleDeleteSession(session)}
+              >
+                Delete
+              </Button>
+              {!isLive(session) && (
+                <Button
+                  icon="content-duplicate"
+                  mode="text"
+                  onPress={() => handleCloneSession(session)}
+                >
+                  Clone
+                </Button>
+              )}
+            </View>
+          )}
         </Card.Actions>
       </Card>
     );
@@ -543,63 +737,7 @@ export default function SessionsTab() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <Surface
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-        }}
-        elevation={1}
-      >
-        <View style={{ flex: 1 }}>
-          <Text variant="headlineMedium" style={{ fontWeight: "bold" }}>
-            Sessions (
-            {sessions.filter((s) => s.state !== SessionState.Archived).length})
-          </Text>
-          {allLiveSessionIds.length > 0 && (
-            <Text
-              variant="bodyMedium"
-              style={{
-                marginTop: 2,
-                fontWeight: "500",
-              }}
-            >
-              Live session in progress
-            </Text>
-          )}
-        </View>
-
-        <View style={{ marginLeft: 12 }}>
-          {players.length === 0 ? (
-            <Button
-              icon="open-in-new"
-              mode="outlined"
-              onPress={navigateToPlayers}
-            >
-              Add Players
-            </Button>
-          ) : (
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Button
-                icon="plus"
-                mode="contained"
-                onPress={() => setEditSessionModalVisible(true)}
-              >
-                New Session
-              </Button>
-              <Button
-                icon="archive"
-                mode="elevated"
-                onPress={() => setArchiveModalVisible(true)}
-              >
-                View Archive
-              </Button>
-            </View>
-          )}
-        </View>
-      </Surface>
+      <SessionHeader />
 
       <FlatList
         data={sessions
@@ -609,25 +747,17 @@ export default function SessionsTab() {
           })}
         renderItem={renderSession}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: isNarrowScreen ? 80 : 16, // Extra space for FAB
+        }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={<EmptyState />}
       />
 
-      {/*
-      <FAB
-        icon="plus"
-        label="New Session"
-        style={{
-          position: 'absolute',
-          margin: 16,
-          right: 0,
-          bottom: 0,
-        }}
-        onPress={() => setEditSessionModalVisible(true)}
-      />
-      */}
+      <PrimaryFAB />
 
+      {/* ...existing modals... */}
       <Modal
         visible={modalArchiveVisible}
         animationType="slide"
