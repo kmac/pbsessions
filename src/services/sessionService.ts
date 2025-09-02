@@ -6,12 +6,26 @@ import {
   Results,
   Round,
   RoundAssignment,
-  Score,
   Session,
   SessionState,
 } from "@/src/types";
-import { SessionCoordinator } from "./sessionCoordinator";
-import { getSessionPlayers, logSession } from "@/src/utils/util";
+
+export const getCurrentRoundInfo = (liveData?: {
+  rounds: Round[];
+  playerStats: any[];
+}) => {
+  const safeData = liveData ?? { rounds: [], playerStats: [] };
+  const roundsLength = safeData.rounds.length;
+
+  return {
+    liveData: safeData,
+    roundNumber: roundsLength === 0 ? 1 : roundsLength,
+    currentRound:
+      roundsLength === 0
+        ? ({ games: [], sittingOutIds: [] } as Round)
+        : safeData.rounds[roundsLength - 1],
+  };
+};
 
 export const validateLive = (session?: Session): void => {
   if (!session) {
@@ -22,7 +36,10 @@ export const validateLive = (session?: Session): void => {
   }
 };
 
-export const getCurrentRoundNumber = (session: Session, live: boolean = true): number => {
+export const getCurrentRoundNumber = (
+  session: Session,
+  live: boolean = true,
+): number => {
   if (live) {
     validateLive(session);
   } else if (!session || !session.liveData) {
@@ -42,7 +59,10 @@ export const getCurrentRoundNumber = (session: Session, live: boolean = true): n
   // return length === 0 ? 0 : length - 1;
 };
 
-export const getCurrentRound = (session: Session, live: boolean = true): Round => {
+export const getCurrentRound = (
+  session: Session,
+  live: boolean = true,
+): Round => {
   if (live) {
     validateLive(session);
   } else if (!session || !session.liveData) {
@@ -55,7 +75,10 @@ export const getCurrentRound = (session: Session, live: boolean = true): Round =
   return session.liveData!.rounds[length - 1];
 };
 
-const convertAssignmentToRound = (session: Session, roundAssignment: RoundAssignment): Round => {
+const convertAssignmentToRound = (
+  session: Session,
+  roundAssignment: RoundAssignment,
+): Round => {
   const newGames: Game[] = roundAssignment.gameAssignments.map((ra, index) => ({
     id: `game_${roundAssignment.roundNumber}_${ra.courtId}_${Date.now()}_${index}`,
     sessionId: session!.id,
@@ -67,12 +90,15 @@ const convertAssignmentToRound = (session: Session, roundAssignment: RoundAssign
   }));
   const nextRound = {
     games: newGames,
-    sittingOutIds: roundAssignment.sittingOutIds
+    sittingOutIds: roundAssignment.sittingOutIds,
   };
   return nextRound;
-}
+};
 
-export const convertToRound = (session: Session, assignments: RoundAssignment): Session => {
+export const convertToRound = (
+  session: Session,
+  assignments: RoundAssignment,
+): Session => {
   validateLive(session);
   const nextRound: Round = convertAssignmentToRound(session, assignments);
   session.liveData!.rounds.push(nextRound);
@@ -107,22 +133,10 @@ export const playerStatsToString = (stats: PlayerStats[]): string => {
 
 export class SessionService {
 
-  // static startLiveSession = (session: Session, sessionPlayers: Player[]): Session => {
-  //   const sessionCoordinator = new SessionCoordinator({...session, liveData: { rounds:[], playerStats: []}}, sessionPlayers);
-  //   const roundAssignment = sessionCoordinator.generateRoundAssignment();
-  //   const newRound = convertAssignmentToRound(session, roundAssignment);
-  //   return {
-  //     ...session,
-  //     state: SessionState.Live,
-  //     liveData: {
-  //       rounds: [newRound],
-  //       playerStats: [],
-  //     },
-  //     updatedAt: new Date().toISOString(),
-  //   };
-  // };
-
-  static startLiveSession = (session: Session, sessionPlayers: Player[]): Session => {
+  static startLiveSession = (
+    session: Session,
+    sessionPlayers: Player[],
+  ): Session => {
     return {
       ...session,
       state: SessionState.Live,
@@ -166,9 +180,7 @@ export class SessionService {
     validateLive(session);
     const newRound = convertAssignmentToRound(session, assignment);
     const updatedRounds = session.liveData!.rounds.map((round, index) =>
-      index === session.liveData!.rounds.length - 1
-        ? newRound
-        : round,
+      index === session.liveData!.rounds.length - 1 ? newRound : round,
     );
     return {
       ...session,
@@ -293,10 +305,7 @@ export class SessionService {
     return session;
   };
 
-  static removeCourt = (
-    session: Session,
-    courtId: string,
-  ): Session => {
+  static removeCourt = (session: Session, courtId: string): Session => {
     return {
       ...session,
       courts: session.courts.filter((c) => c.id !== courtId),
@@ -310,7 +319,9 @@ export class SessionService {
     }
     return {
       ...session,
-      courts: session.courts.map(court => court.id === updatedCourt.id ? updatedCourt : court),
+      courts: session.courts.map((court) =>
+        court.id === updatedCourt.id ? updatedCourt : court,
+      ),
       updatedAt: new Date().toISOString(),
     };
   };
@@ -326,10 +337,7 @@ export class SessionService {
     return session;
   };
 
-  static removePlayer = (
-    session: Session,
-    playerId: string,
-  ): Session => {
+  static removePlayer = (session: Session, playerId: string): Session => {
     return {
       ...session,
       playerIds: session.playerIds.filter((id) => id !== playerId),

@@ -781,7 +781,7 @@ export default function PlayersTab() {
             {selectedPlayerIds.length === 1 && (
               <Button
                 icon="pencil"
-                mode="outlined"
+                mode="elevated"
                 onPress={handleBulkEdit}
                 compact
               >
@@ -790,7 +790,7 @@ export default function PlayersTab() {
             )}
             <Button
               icon="account-group"
-              mode="outlined"
+              mode="elevated"
               onPress={handleAddToGroup}
               compact
             >
@@ -798,7 +798,7 @@ export default function PlayersTab() {
             </Button>
             <Button
               icon="delete"
-              mode="outlined"
+              mode="elevated"
               onPress={handleBulkDelete}
               compact
             >
@@ -828,7 +828,7 @@ export default function PlayersTab() {
 
       {isNarrowScreen ? (
         selectedPlayerIds.length > 0 ? (
-          <Button mode="text" onPress={() => clearSelection()} compact>
+          <Button mode="elevated" onPress={() => clearSelection()} compact>
             Cancel
           </Button>
         ) : (
@@ -1135,8 +1135,6 @@ export default function PlayersTab() {
           </View>
         </SafeAreaView>
       </Modal>
-
-      {/* ...existing CSV import modal... */}
 
       <BulkAddPlayersModal
         visible={bulkModalVisible}

@@ -13,7 +13,7 @@ import {
 } from "@/src/types";
 
 export class SessionCoordinator {
-  private courts: Court[];
+  private activeCourts: Court[];
   private players: Player[];
   private playerStats: Map<string, PlayerStats> = new Map();
   private liveData: NonNullable<Session["liveData"]>;
@@ -21,13 +21,14 @@ export class SessionCoordinator {
   private currentRoundNumber : number;
 
   constructor(session: Session, players: Player[]) {
+
     if (!session.liveData) {
       throw new Error(
         `Invalid session: missing required live data. session: ${session}`,
       );
     }
     this.liveData = session.liveData;
-    this.courts = session.courts.filter((c) => c.isActive);
+    this.activeCourts = session.courts.filter((c) => c.isActive);
     this.players = players;
     this.currentRoundNumber = this.liveData.rounds.length;
     this.currentRound = this.liveData.rounds[this.currentRoundNumber - 1];
@@ -54,7 +55,7 @@ export class SessionCoordinator {
   public generateRoundAssignment(sittingOut?: Player[]): RoundAssignment {
     const gameAssignments: GameAssignment[] = [];
     const availablePlayers = [...this.players];
-    const playersPerRound = this.courts.length * 4;
+    const playersPerRound = this.activeCourts.length * 4;
 
     // Step 1: Determine who sits out (Equal playing time - Priority #2)
     if (!sittingOut) {
@@ -73,8 +74,8 @@ export class SessionCoordinator {
 
     // Step 3: Create team assignments for each court (Partner diversity - Priority #3)
     courtAssignments.forEach((courtPlayers, courtIndex) => {
-      if (courtPlayers.length === 4 && courtIndex < this.courts.length) {
-        const court = this.courts[courtIndex];
+      if (courtPlayers.length === 4 && courtIndex < this.activeCourts.length) {
+        const court = this.activeCourts[courtIndex];
         const teams = this.assignTeamsForCourt(courtPlayers, court);
 
         gameAssignments.push({
@@ -205,7 +206,7 @@ export class SessionCoordinator {
   }
 
   private assignPlayersToCourts(playingPlayers: Player[]): Player[][] {
-    const courtAssignments: Player[][] = Array(this.courts.length)
+    const courtAssignments: Player[][] = Array(this.activeCourts.length)
       .fill(null)
       .map(() => []);
     const remainingPlayers = this.shuffleArray(playingPlayers);
@@ -215,7 +216,7 @@ export class SessionCoordinator {
     // courts first.
 
     // Step 1: Assign players to courts with rating requirements first
-    this.courts.forEach((court, courtIndex) => {
+    this.activeCourts.forEach((court, courtIndex) => {
       if (court.minimumRating && remainingPlayers.length >= 4) {
         // Get players who meet the rating requirement
         const eligiblePlayers = remainingPlayers.filter(
@@ -241,7 +242,7 @@ export class SessionCoordinator {
 
     // Step 2: Assign remaining players to unfilled courts
     let playerIndex = 0;
-    this.courts.forEach((court, courtIndex) => {
+    this.activeCourts.forEach((court, courtIndex) => {
       while (
         courtAssignments[courtIndex].length < 4 &&
         playerIndex < remainingPlayers.length

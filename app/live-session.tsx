@@ -496,7 +496,10 @@ export default function LiveSessionScreen() {
                 : `${currentRoundNumber} Games`}
             </Text>
 
-            <RoundComponent editing={false} session={liveSession} />
+            <RoundComponent
+              editing={false}
+              session={liveSession}
+            />
           </View>
         )}
 
@@ -577,7 +580,7 @@ export default function LiveSessionScreen() {
 
       <BetweenRoundsModal
         visible={betweenRoundsVisible}
-        session={liveSession}
+        sessionId={liveSession.id}
         onStartRound={handleStartRound}
         onClose={() => setBetweenRoundsVisible(false)}
       />

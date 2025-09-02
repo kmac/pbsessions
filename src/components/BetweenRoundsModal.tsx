@@ -1,113 +1,149 @@
-import { useRef, useState, useEffect } from "react";
-import { View, Modal, ScrollView, FlatList } from "react-native";
+import { useState, useEffect, useCallback } from "react";
+import { View, Modal, ScrollView, } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
   Button,
   Card,
   Dialog,
+  FAB,
   List,
   useTheme,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-  RoundAssignment,
-  Session,
   SessionState,
   Player,
-  Round,
 } from "@/src/types";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import RoundComponent from "@/src/components/RoundComponent";
 import { SessionCoordinator } from "@/src/services/sessionCoordinator";
-import {
-  getCurrentRound,
-  getCurrentRoundNumber,
-} from "@/src/services/sessionService";
+import { getCurrentRoundInfo } from "@/src/services/sessionService";
 import { getSessionPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 import { updateCurrentRoundThunk } from "@/src/store/actions/sessionActions";
+import {
+  registerCourtUpdateCallback,
+  unregisterCourtUpdateCallback,
+} from "@/src/store/middleware/courtUpdateListener";
 
 interface BetweenRoundsModalProps {
   visible: boolean;
-  session: Session;
+  sessionId: string;
   onStartRound: () => void;
   onClose: () => void;
 }
 
 export default function BetweenRoundsModal({
   visible,
-  session,
+  sessionId,
   onStartRound,
   onClose,
 }: BetweenRoundsModalProps) {
-  const theme = useTheme();
+  // const theme = useTheme();
   const dispatch = useAppDispatch();
   const [selectedPlayers, setSelectedPlayers] = useState(
     new Map<string, Player>(),
   );
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [helpDialogVisible, setHelpDialogVisible] = useState(false);
+  const [canSwapPlayers, setCanSwapPlayers] = useState(false);
+  const [swapPlayersHandler, setSwapPlayersHandler] = useState<(() => void) | null>(null);
 
   const { players } = useAppSelector((state) => state.players);
+  const { sessions } = useAppSelector((state) => state.sessions);
 
-  const liveData = session.liveData
-    ? session.liveData
-    : { rounds: [], playerStats: [] };
-  const roundNumber = liveData.rounds.length === 0 ? 1 : liveData.rounds.length;
-  const currentRound: Round =
-    liveData.rounds.length === 0
-      ? { games: [], sittingOutIds: [] }
-      : liveData.rounds[liveData.rounds.length - 1];
+  const handleSwapPlayersChange = useCallback((canSwap: boolean, handler: () => void) => {
+    setCanSwapPlayers(canSwap);
+    setSwapPlayersHandler(() => handler);
+  }, []);
+
+  // Use useCallback to ensure we always get fresh session data
+  const handleReshufflePlayers = useCallback(
+    (excludeSitting = false) => {
+      // Get fresh session data on each call
+      const currentSession = sessions.find((s) => s.id === sessionId);
+
+      if (!currentSession || currentSession.state !== SessionState.Live) {
+        return;
+      }
+
+      const sessionPlayers: Player[] = getSessionPlayers(
+        currentSession,
+        players,
+      );
+      const { currentRound } = getCurrentRoundInfo(currentSession.liveData);
+
+      let sittingOut = undefined;
+      if (excludeSitting) {
+        const sittingOutPlayers: Player[] = currentRound.sittingOutIds
+          .map((id) => sessionPlayers.find((p) => p.id === id))
+          .filter((p) => p != undefined);
+        sittingOut = sittingOutPlayers;
+      }
+
+      const sessionCoordinator = new SessionCoordinator(
+        currentSession,
+        sessionPlayers,
+      );
+      const roundAssignment =
+        sessionCoordinator.generateRoundAssignment(sittingOut);
+
+      if (roundAssignment.gameAssignments.length === 0) {
+        Alert.alert(
+          "Cannot Generate Round",
+          "Unable to create game assignments. Check player and court availability.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
+
+      dispatch(
+        updateCurrentRoundThunk({
+          sessionId: sessionId,
+          assignment: roundAssignment,
+        }),
+      );
+      setSelectedPlayers(new Map());
+    },
+    [sessionId, sessions, players, dispatch],
+  );
+
+  // Register court update callback when component mounts
+  useEffect(() => {
+    const handleCourtUpdate = () => {
+      console.log("CALLING RESHUFFLE");
+      handleReshufflePlayers(false);
+    };
+
+    registerCourtUpdateCallback(sessionId, handleCourtUpdate);
+
+    // Cleanup on unmount
+    return () => {
+      unregisterCourtUpdateCallback(sessionId);
+    };
+  }, [sessionId, handleReshufflePlayers]);
+
+  // Get current session for rendering
+  const currentSession = sessions.find((s) => s.id === sessionId);
+
+  // Early return if session not found
+  if (!currentSession) {
+    return null;
+  }
+
+  const { liveData, roundNumber, currentRound } = getCurrentRoundInfo(
+    currentSession.liveData,
+  );
 
   const playerStats = liveData.playerStats;
-  const sessionPlayers: Player[] = session
-    ? getSessionPlayers(session, players)
-    : [];
+  const sessionPlayers: Player[] = getSessionPlayers(currentSession, players);
 
-  // TODO use these:
-  const showRating = session ? session.showRatings : false;
-  const scoring = session ? session.scoring : false;
+  const showRating = currentSession.showRatings;
+  const scoring = currentSession.scoring;
 
   const getPlayer = (playerId: string) =>
     sessionPlayers.find((p) => p.id === playerId);
-
-  const sittingOutPlayers: Player[] = currentRound.sittingOutIds
-    .map((id) => getPlayer(id))
-    .filter((p) => p != undefined);
-
-  const isLive = () => {
-    return session.state === SessionState.Live;
-  };
-
-  function handleReshufflePlayers(excludeSitting: boolean) {
-    if (!isLive()) {
-      return;
-    }
-    let sittingOut = undefined;
-    if (excludeSitting) {
-      sittingOut = sittingOutPlayers;
-    }
-    const sessionCoordinator = new SessionCoordinator(session, sessionPlayers);
-    const roundAssignment = sessionCoordinator.generateRoundAssignment();
-    if (roundAssignment.gameAssignments.length === 0) {
-      Alert.alert(
-        "Cannot Generate Round",
-        "Unable to create game assignments. Check player and court availability.",
-        [{ text: "OK" }],
-      );
-      return;
-    }
-    dispatch(
-      updateCurrentRoundThunk({
-        sessionId: session.id,
-        assignment: roundAssignment,
-      }),
-    );
-
-    // Clear selected players after reshuffling since assignments have changed
-    setSelectedPlayers(new Map());
-  }
 
   return (
     <Modal
@@ -130,7 +166,11 @@ export default function BetweenRoundsModal({
           style={{ flex: 1, padding: 16 }}
           showsVerticalScrollIndicator={false}
         >
-          <RoundComponent editing={true} session={session} />
+          <RoundComponent
+            editing={true}
+            session={currentSession}
+            onSwapPlayersChange={handleSwapPlayersChange}
+          />
           <View // Action buttons
             style={{
               flexDirection: "row",
@@ -168,6 +208,22 @@ export default function BetweenRoundsModal({
             </Button>
           </View>
         </ScrollView>
+
+        {canSwapPlayers && (
+          <FAB
+            icon="swap-horizontal-bold"
+            label="Swap Players"
+            size="large"
+            variant="tertiary"
+            style={{
+              position: 'absolute',
+              margin: 16,
+              right: 16,
+              bottom: 100, // Above the action buttons
+            }}
+            onPress={() => swapPlayersHandler && swapPlayersHandler()}
+          />
+        )}
       </SafeAreaView>
 
       <Dialog
@@ -186,16 +242,16 @@ export default function BetweenRoundsModal({
           >
             <Card>
               <List.Item
-                title="Swap"
-                description="Select any two players to enable swap action. You can swap active or sitting-out players."
+                title="Start Round"
+                description="Select the 'Start Round' button to begin playing."
+              />
+              <List.Item
+                title="Swap any Players"
+                description="Select any two players to enable the swap action. You can swap active or sitting-out players."
               />
               <List.Item
                 title="Courts"
-                description="Select any court to modify court parameters."
-              />
-              <List.Item
-                title="Start Round"
-                description="Select the 'Start Round' button to begin playing."
+                description="Select any court to enable/disable/modify the court parameters."
               />
             </Card>
           </View>

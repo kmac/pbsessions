@@ -154,9 +154,23 @@ export class RoundRender {
                 handleCourtSetting && handleCourtSetting(court.id);
               }}
             >
-              <Text variant="titleMedium" style={{ fontWeight: "600" }}>
-                {court.name}
-              </Text>
+              {court.isActive && (
+                <Text variant="titleMedium" style={{ fontWeight: "600" }}>
+                  {court.name}
+                </Text>
+              )}
+              {!court.isActive && (
+                <Text
+                  variant="titleMedium"
+                  style={{
+                    fontWeight: "600",
+                    textDecorationLine: "line-through",
+                  }}
+                >
+                  {court.name}
+                </Text>
+              )}
+              {/* {!court.isActive && <Badge size={22}>Disabled</Badge>} */}
               {court.minimumRating && (
                 <Badge size={22}>{court.minimumRating}</Badge>
               )}

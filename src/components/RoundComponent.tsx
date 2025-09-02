@@ -1,15 +1,17 @@
-import React, { useState } from "react";
-import { View, StyleSheet, FlatList } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  Appbar,
-  Badge,
   Button,
-  Card,
   Checkbox,
+  Badge,
+  Card,
   Chip,
   Dialog,
+  IconButton,
   FAB,
+  HelperText,
+  Portal,
   Surface,
   Switch,
   Text,
@@ -26,21 +28,20 @@ import {
   updateCourtInSessionThunk,
   updateCurrentRoundThunk,
 } from "@/src/store/actions/sessionActions";
-import {
-  PlayerRenderData,
-  RoundRender,
-} from "@/src/components/render/RoundRender";
+import { RoundRender } from "@/src/components/render/RoundRender";
 import { getSessionPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 
 interface RoundComponentProps {
   editing: boolean;
   session: Session;
+  onSwapPlayersChange?: (canSwap: boolean, swapHandler: () => void) => void;
 }
 
 export default function RoundComponent({
   editing,
   session,
+  onSwapPlayersChange,
 }: RoundComponentProps) {
   const dispatch = useAppDispatch();
   const theme = useTheme();
@@ -48,7 +49,6 @@ export default function RoundComponent({
     new Map<string, Player>(),
   );
   const [selectedCourts, setSelectedCourts] = useState(new Set<string>());
-  const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [courtSettingDialogVisible, setCourtSettingDialogVisible] =
     useState(false);
   const [currentCourtId, setCurrentCourtId] = useState<string>("");
@@ -59,6 +59,8 @@ export default function RoundComponent({
   const { players } = useAppSelector((state) => state.players);
 
   const courts = session ? session.courts : [];
+  const disabledCourts = courts.filter((court) => court.isActive === false);
+
   const sessionPlayers: Player[] = session
     ? getSessionPlayers(session, players)
     : [];
@@ -142,35 +144,34 @@ export default function RoundComponent({
 
   const togglePlayerSelected = (player: Player) => {
     if (player) {
+      let newSelectedPlayers: Map<string, Player>;
+
       if (selectedPlayers.has(player.id)) {
-        selectedPlayers.delete(player.id);
-        setSelectedPlayers(new Map(selectedPlayers));
+        const updatedMap = new Map(selectedPlayers);
+        updatedMap.delete(player.id);
+        newSelectedPlayers = updatedMap;
+        setSelectedPlayers(newSelectedPlayers);
       } else {
         if (!playerSelectDisabled(player)) {
-          setSelectedPlayers(new Map(selectedPlayers.set(player.id, player)));
+          newSelectedPlayers = new Map(selectedPlayers.set(player.id, player));
+          setSelectedPlayers(newSelectedPlayers);
+        } else {
+          return;
         }
       }
     }
   };
 
-  const getCourtSelected = (courtId: string | undefined): boolean => {
-    if (!courtId) {
-      return false;
+  // Notify parent about swap state changes
+  useEffect(() => {
+    if (onSwapPlayersChange) {
+      const canSwap = selectedPlayers.size === 2;
+      onSwapPlayersChange(canSwap, handleSwapPlayers);
     }
-    return selectedCourts.has(courtId);
-  };
+  }, [selectedPlayers.size, onSwapPlayersChange]);
 
-  const toggleCourtSelected = (courtId: string) => {
-    if (courtId) {
-      if (selectedCourts.has(courtId)) {
-        selectedCourts.delete(courtId);
-        setSelectedCourts(new Set(selectedCourts));
-      } else {
-        if (!courtSelectDisabled(courtId)) {
-          setSelectedCourts(new Set(selectedCourts.add(courtId)));
-        }
-      }
-    }
+  const clearSelectedPlayers = () => {
+    setSelectedPlayers(new Map());
   };
 
   const courtSelectDisabled = (courtId: string | undefined) => {
@@ -275,33 +276,19 @@ export default function RoundComponent({
         },
       }),
     );
-
-    // Clear selected players
     setSelectedPlayers(new Map());
   };
 
-  const handleSetCourtRating = () => {
-    selectedCourts.forEach((courtId) => {
-      const court = getCourt(courtId);
-      if (court.minimumRating) {
-        setCourtMinimumRating(courtId, undefined);
-      } else {
-        setCourtMinimumRating(courtId, 4.0);
-      }
-    });
-    setSelectedCourts(new Set());
-  };
-
   const handleCourtSetting = (courtId: string) => {
-    const court = getCourt(courtId);
+    const court: Court = getCourt(courtId);
     setCurrentCourtId(courtId);
     setRatingInput(court.minimumRating?.toString() || "");
     setRatingEnabled(court.minimumRating ? true : false);
-    //setCourtDisabled(!!court?.disabled);
+    setCourtDisabled(!court.isActive);
     setCourtSettingDialogVisible(true);
   };
 
-  const handleSaveCourtRating = () => {
+  const handleSaveCourtSetting = async () => {
     const court = getCourt(currentCourtId);
     const rating =
       ratingEnabled && ratingInput.trim() !== ""
@@ -310,23 +297,24 @@ export default function RoundComponent({
     const updatedCourt = {
       ...court,
       minimumRating: rating,
+      isActive: !courtDisabled,
     };
 
-    dispatch(
-      updateCourtInSessionThunk({
-        sessionId: session.id,
-        court: updatedCourt,
-      }),
-    );
-
-    setCourtSettingDialogVisible(false);
-    setCurrentCourtId("");
-    setRatingInput("");
-    setRatingEnabled(false);
-    setCourtDisabled(false);
+    try {
+      await dispatch(
+        updateCourtInSessionThunk({
+          sessionId: session.id,
+          court: updatedCourt,
+        }),
+      ).unwrap(); // unwrap() throws if the thunk rejects
+    } catch (error) {
+      console.error("Failed to update court settings:", error);
+      Alert.alert("Error", "Failed to update court settings");
+    }
+    handleCloseCourtSetting();
   };
 
-  const handleCancelCourtRating = () => {
+  const handleCloseCourtSetting = () => {
     setCourtSettingDialogVisible(false);
     setCurrentCourtId("");
     setRatingInput("");
@@ -339,206 +327,6 @@ export default function RoundComponent({
     if (!enabled) {
       setRatingInput("");
     }
-  };
-
-  const renderSidePlayerScore = (score: number | undefined, side: string) => {
-    return (
-      <View>
-        {score ? (
-          <Chip elevated={true}>
-            <Text variant="titleMedium">{score}</Text>
-          </Chip>
-        ) : (
-          false && (
-            <Text
-              variant="labelMedium"
-              style={{
-                //fontWeight: "bold",
-                marginBottom: 4,
-                color: theme.colors.onPrimaryContainer,
-              }}
-            >
-              {side}
-            </Text>
-          )
-        )}
-      </View>
-    );
-  };
-
-  const renderSidePlayers = (
-    player1: Player,
-    player2: Player,
-    score: number | undefined,
-    side: "Serve" | "Receive",
-  ) => {
-    return (
-      <Surface
-        style={{
-          flexDirection: "row",
-          flex: 1,
-          gap: 10,
-          padding: 12,
-          borderRadius: 8,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: theme.colors.primaryContainer,
-        }}
-      >
-        {side === "Receive" && renderSidePlayerScore(score, side)}
-
-        <View
-          style={{
-            flexDirection: "column",
-            alignItems: "stretch",
-            gap: 5,
-          }}
-        >
-          <Chip
-            mode={chipMode}
-            disabled={playerSelectDisabled(player1)}
-            elevated={!playerSelectDisabled(player1)}
-            selected={getPlayerSelected(player1)}
-            onPress={() => {
-              editing && player1 && togglePlayerSelected(player1);
-            }}
-          >
-            {player1?.name}
-            {showRating &&
-              player1?.rating &&
-              ` (${player1?.rating.toFixed(2)})`}
-          </Chip>
-          <Chip
-            mode={chipMode}
-            disabled={playerSelectDisabled(player2)}
-            elevated={!playerSelectDisabled(player2)}
-            selected={getPlayerSelected(player2)}
-            onPress={() => {
-              editing && player2 && togglePlayerSelected(player2);
-            }}
-          >
-            {player2?.name}
-            {showRating &&
-              player2?.rating &&
-              ` (${player2?.rating.toFixed(2)})`}
-          </Chip>
-        </View>
-
-        {side === "Serve" && renderSidePlayerScore(score, side)}
-      </Surface>
-    );
-  };
-
-  const renderCourtAssignmentOrig = ({ item: game }: { item: Game }) => {
-    const servePlayer1 = getPlayer(game.serveTeam.player1Id);
-    const servePlayer2 = getPlayer(game.serveTeam.player2Id);
-    const receivePlayer1 = getPlayer(game.receiveTeam.player1Id);
-    const receivePlayer2 = getPlayer(game.receiveTeam.player2Id);
-
-    const roundRender = new RoundRender(theme, showRating, chipMode);
-
-    return (
-      <Card style={{ marginBottom: 12 }}>
-        <Card.Content>
-          <View
-            style={{
-              flexDirection: "row",
-              // flexDirection: "column",
-              // alignItems: "center",
-              gap: 8,
-              marginBottom: 12,
-            }}
-          >
-            <Chip // Court
-              mode={chipMode}
-              //disabled={!editing}
-              // selected={getCourtSelected(item.courtId)}
-              // onPress={() => {
-              //   item.courtId && toggleCourtSelected(item.courtId);
-              // }}
-              onPress={() => {
-                editing && game.courtId && handleCourtSetting(game.courtId);
-              }}
-            >
-              <Text variant="titleMedium" style={{ fontWeight: "600" }}>
-                {getCourt(game.courtId).name
-                  ? getCourt(game.courtId).name
-                  : "Court"}
-                {/*getCourtMinimumRating(item.courtId) && ` (${getCourtMinimumRating(item.courtId)})`*/}
-              </Text>
-              {getCourtMinimumRating(game.courtId) && (
-                <Badge size={22}>{getCourtMinimumRating(game.courtId)}</Badge>
-              )}
-            </Chip>
-            {/*
-            <Button icon="tune-variant" mode="outlined"
-              onPress={() => {
-                item.courtId && handleCourtSetting(item.courtId);
-              }}>
-              Court {item.courtId.slice(-1)}{" "}
-            </Button>
-            */}
-          </View>
-
-          <View
-            style={{ flexDirection: "row", alignItems: "center", columnGap: 6 }}
-          >
-            {/*{renderSidePlayers(
-              servePlayer1!,
-              servePlayer2!,
-              game.score?.serveScore,
-              "Serve",
-            )}
-            {renderSidePlayers(
-              receivePlayer1!,
-              receivePlayer2!,
-              game.score?.receiveScore,
-              "Receive",
-            )}*/}
-            {roundRender.renderSide(
-              {
-                player: servePlayer1!,
-                selected: getPlayerSelected(servePlayer1),
-                selectDisabled: playerSelectDisabled(servePlayer1),
-                onSelected: () => {
-                  editing && togglePlayerSelected(servePlayer1);
-                },
-              },
-              {
-                player: servePlayer2!,
-                selected: getPlayerSelected(servePlayer2),
-                selectDisabled: playerSelectDisabled(servePlayer2),
-                onSelected: () => {
-                  editing && togglePlayerSelected(servePlayer2);
-                },
-              },
-              game.score?.serveScore,
-              "Serve",
-            )}
-            {roundRender.renderSide(
-              {
-                player: receivePlayer1!,
-                selected: getPlayerSelected(receivePlayer1),
-                selectDisabled: playerSelectDisabled(receivePlayer1),
-                onSelected: () => {
-                  editing && togglePlayerSelected(receivePlayer1);
-                },
-              },
-              {
-                player: receivePlayer2!,
-                selected: getPlayerSelected(receivePlayer2),
-                selectDisabled: playerSelectDisabled(receivePlayer2),
-                onSelected: () => {
-                  editing && togglePlayerSelected(receivePlayer2);
-                },
-              },
-              game.score?.receiveScore,
-              "Receive",
-            )}
-          </View>
-        </Card.Content>
-      </Card>
-    );
   };
 
   const renderCourtAssignment = ({ item: game }: { item: Game }) => {
@@ -580,48 +368,161 @@ export default function RoundComponent({
     );
   };
 
+  // TODO remove, this isn't working:
+  const SwapActionBar = () => {
+    if (selectedPlayers.size !== 2) {
+      return null;
+    }
+
+    return (
+      <Portal>
+        <Surface
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: 16,
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.outlineVariant,
+            backgroundColor: theme.colors.surface,
+            // zIndex: 1000,
+          }}
+          elevation={4}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text variant="titleMedium" style={{ fontWeight: "600" }}>
+              {selectedPlayers.size} selected
+            </Text>
+            <IconButton
+              icon="close"
+              size={20}
+              onPress={() => clearSelectedPlayers()}
+              style={{ marginLeft: 8 }}
+            />
+          </View>
+
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Button
+              icon="swap-horizontal-bold"
+              mode="elevated"
+              onPress={handleSwapPlayers}
+              compact
+            >
+              Swap Players
+            </Button>
+          </View>
+        </Surface>
+      </Portal>
+    );
+  };
+
   return (
     <SafeAreaView>
       <View style={{ marginBottom: 24 }}>
-        {/*<Text
-          variant="titleMedium"
-          style={{
-            fontWeight: "600",
-            marginBottom: 12,
-          }}
-        >
-          Courts
-        </Text>
-        */}
         <FlatList
           data={currentRound.games ? currentRound.games : []}
           renderItem={renderCourtAssignment}
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
         />
-        {editing && (
-          <FAB
-            icon="swap-horizontal-bold"
-            label="Swap Players"
-            size="large"
-            variant="tertiary"
-            style={{
-              position: "absolute",
-              margin: 16,
-              right: 0,
-              bottom: 30,
-              // position: 'absolute',
-              // margin: 16,
-              // marginTop: 40,
-              // right: 0,
-              // bottom: 0,
-            }}
-            visible={selectedPlayers.size === 2}
-            disabled={selectedPlayers.size != 2}
-            onPress={handleSwapPlayers}
-          />
-        )}
+        {false && editing && <SwapActionBar />}
       </View>
+      {disabledCourts.length > 0 &&
+        disabledCourts.map((court) => {
+          return (
+            <Card key={court.id} style={{ marginBottom: 12 }}>
+              <Card.Content>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    // flexDirection: "column",
+                    // alignItems: "center",
+                    gap: 8,
+                    marginBottom: 12,
+                  }}
+                >
+                  <Chip // Court
+                    mode={chipMode}
+                    disabled={!editing}
+                    onPress={() => {
+                      handleCourtSetting && handleCourtSetting(court.id);
+                    }}
+                  >
+                    {court.isActive && (
+                      <Text variant="titleMedium" style={{ fontWeight: "600" }}>
+                        {court.name}
+                      </Text>
+                    )}
+                    {!court.isActive && (
+                      <Text
+                        variant="titleMedium"
+                        style={{
+                          fontWeight: "600",
+                          textDecorationLine: "line-through",
+                        }}
+                      >
+                        {court.name}
+                      </Text>
+                    )}
+                    {/* {!court.isActive && <Badge size={22}>Disabled</Badge>} */}
+                    {court.minimumRating && (
+                      <Badge size={22}>{court.minimumRating}</Badge>
+                    )}
+                  </Chip>
+                </View>
+              </Card.Content>
+            </Card>
+          );
+        })}
+
+        {editing && (
+          <Portal>
+            <FAB
+              icon="swap-horizontal-bold"
+              label="Swap Players"
+              size="large"
+              variant="tertiary"
+              style={{
+                position: 'absolute',
+                margin: 16,
+                right: 16,
+                bottom: 80, // Adjust based on your bottom navigation/safe area
+                zIndex: 1000,
+              }}
+              visible={selectedPlayers.size === 2}
+              disabled={selectedPlayers.size != 2}
+              onPress={handleSwapPlayers}
+            />
+          </Portal>
+      )}
+
+      {false && editing && (
+        <FAB
+          icon="swap-horizontal-bold"
+          label="Swap Players"
+          size="large"
+          variant="tertiary"
+          style={{
+            position: "absolute",
+            margin: 16,
+            right: 0,
+            //bottom: 30,
+            top: 150,
+            // position: 'absolute',
+            // margin: 16,
+            // marginTop: 40,
+            // right: 0,
+            // bottom: 0,
+          }}
+          visible={selectedPlayers.size === 2}
+          disabled={selectedPlayers.size != 2}
+          onPress={handleSwapPlayers}
+        />
+      )}
 
       {sittingOutPlayers.length > 0 && (
         <View style={{ marginBottom: 24 }}>
@@ -655,27 +556,9 @@ export default function RoundComponent({
         </View>
       )}
 
-      {editing && (
-        <FAB
-          icon="swap-horizontal-bold"
-          label="Assign Court Rating"
-          size="large"
-          variant="tertiary"
-          style={{
-            position: "absolute",
-            margin: 16,
-            right: 0,
-            bottom: 30,
-          }}
-          visible={selectedCourts.size === 1}
-          disabled={selectedCourts.size != 1}
-          onPress={handleSetCourtRating}
-        />
-      )}
-
       <Dialog
         visible={courtSettingDialogVisible}
-        onDismiss={handleCancelCourtRating}
+        onDismiss={handleCloseCourtSetting}
         style={{ alignSelf: "center", width: "80%", maxWidth: 400 }}
       >
         <Dialog.Title>Court Settings</Dialog.Title>
@@ -691,45 +574,57 @@ export default function RoundComponent({
               marginBottom: 16,
             }}
           >
-            <Switch value={courtDisabled} onValueChange={setCourtDisabled} />
+            <Switch
+              value={courtDisabled}
+              onValueChange={(value) => {
+                setCourtDisabled(value);
+              }}
+            />
             <Text variant="bodyMedium" style={{ marginLeft: 8 }}>
               Disable Court
             </Text>
           </View>
-
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 16,
+              flexDirection: "column",
+              alignItems: "flex-start",
+              //marginBottom: 16,
             }}
           >
-            <Checkbox
+            <Checkbox.Item
               status={ratingEnabled ? "checked" : "unchecked"}
-              onPress={() => handleRatingEnabledChange(!ratingEnabled)}
+              onPress={() => {
+                handleRatingEnabledChange(!ratingEnabled);
+              }}
+              label="Enable minimum rating"
+              labelVariant="labelMedium"
             />
-            <Text variant="bodyMedium" style={{ marginLeft: 8 }}>
-              Enable minimum rating requirement
+            <Text variant="labelMedium" style={{ marginLeft: 16 }}>
+              Limits this court to players at or above the assigned rating.
             </Text>
+            <TextInput
+              value={ratingInput}
+              onChangeText={(value) => {
+                setRatingInput(value);
+              }}
+              keyboardType="numeric"
+              mode="outlined"
+              placeholder="e.g. 4.0"
+              disabled={!ratingEnabled}
+              style={{
+                marginLeft: 16,
+                opacity: ratingEnabled ? 1 : 0.5,
+                width: 150,
+              }}
+            />
+            <HelperText type="error" visible={ratingEnabled && !ratingInput}>
+              Rating is required
+            </HelperText>
           </View>
-
-          <TextInput
-            label="Minimum Rating"
-            value={ratingInput}
-            onChangeText={setRatingInput}
-            keyboardType="numeric"
-            mode="outlined"
-            placeholder="e.g. 4.0"
-            disabled={!ratingEnabled}
-            style={{
-              opacity: ratingEnabled ? 1 : 0.5,
-              width: 150,
-            }}
-          />
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={handleCancelCourtRating}>Cancel</Button>
-          <Button onPress={handleSaveCourtRating}>Save</Button>
+          <Button onPress={handleCloseCourtSetting}>Cancel</Button>
+          <Button onPress={handleSaveCourtSetting}>Save</Button>
         </Dialog.Actions>
       </Dialog>
     </SafeAreaView>
