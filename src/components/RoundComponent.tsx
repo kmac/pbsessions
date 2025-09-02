@@ -11,6 +11,7 @@ import {
   Dialog,
   FAB,
   Surface,
+  Switch,
   Text,
   TextInput,
   useTheme,
@@ -683,17 +684,18 @@ export default function RoundComponent({
             Configure settings for Court {currentCourtId.slice(-1)}
           </Text>
 
-          {/*
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
-                <Switch
-                  value={courtDisabled}
-                  onValueChange={setCourtDisabled}
-                />
-                <Text variant="bodyMedium" style={{ marginLeft: 8 }}>
-                  Disable Court
-                </Text>
-              </View>
-              */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 16,
+            }}
+          >
+            <Switch value={courtDisabled} onValueChange={setCourtDisabled} />
+            <Text variant="bodyMedium" style={{ marginLeft: 8 }}>
+              Disable Court
+            </Text>
+          </View>
 
           <View
             style={{
