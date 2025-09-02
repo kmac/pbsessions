@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   View,
   FlatList,
-  TouchableOpacity,
   Modal,
   Platform,
   ScrollView,
@@ -12,7 +11,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Avatar,
   Button,
-  Card,
   Chip,
   Icon,
   IconButton,
@@ -20,10 +18,11 @@ import {
   Searchbar,
   Surface,
   Text,
-  TextInput,
   FAB,
   Menu,
   Divider,
+  Portal,
+  Checkbox,
 } from "react-native-paper";
 import { useSelector, useDispatch } from "react-redux";
 import { Users } from "lucide-react-native";
@@ -34,6 +33,7 @@ import {
   removePlayer,
   selectAllPlayers,
 } from "@/src/store/slices/playersSlice";
+import { updateGroup } from "@/src/store/slices/groupsSlice";
 import { getShortGender } from "@/src/utils/util";
 import { Group, Player } from "@/src/types";
 import PlayerForm from "@/src/components/PlayerForm";
@@ -50,13 +50,11 @@ import { useTheme } from "react-native-paper";
 export default function PlayersTab() {
   const theme = useTheme();
   const dispatch = useDispatch();
-  // const { players, loading } = useSelector((state: RootState) => state.players);
   const allPlayers = useSelector(selectAllPlayers);
   const groups = useSelector((state: RootState) => state.groups.groups);
 
-  // Get screen dimensions for responsive design
   const { width: screenWidth } = Dimensions.get("window");
-  const isNarrowScreen = screenWidth < 768;
+  const isNarrowScreen = screenWidth < 7680;
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -64,6 +62,10 @@ export default function PlayersTab() {
   const [csvImportModalVisible, setCsvImportModalVisible] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [groupSelectionModalVisible, setGroupSelectionModalVisible] =
+    useState(false);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredPlayers = allPlayers.filter(
@@ -271,59 +273,6 @@ export default function PlayersTab() {
     setCsvImportModalVisible(true);
   };
 
-  const handleCsvImport = () => {
-    if (!csvText.trim()) {
-      Alert.alert("No Data", "Please paste CSV data to import.");
-      return;
-    }
-
-    const { importedPlayers, errors } = parsePlayersFromCsv(csvText);
-
-    // Show errors if any
-    if (errors.length > 0) {
-      Alert.alert(
-        "Import Warnings",
-        `${errors.length} error(s) occurred:\n${errors.slice(0, 5).join("\n")}${errors.length > 5 ? "\n..." : ""}`,
-        [{ text: "OK" }],
-      );
-    }
-
-    if (importedPlayers.length === 0) {
-      Alert.alert("Import Failed", "No valid players found to import.");
-      return;
-    }
-
-    // Close modal first
-    setCsvImportModalVisible(false);
-    setCsvText("");
-
-    // Confirm import
-    Alert.alert(
-      "Confirm Import",
-      `Import ${importedPlayers.length} player(s)?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Import",
-          onPress: () => {
-            importedPlayers.forEach((playerData) => {
-              dispatch(addPlayer(playerData));
-            });
-            Alert.alert(
-              "Success",
-              `Imported ${importedPlayers.length} player(s).`,
-            );
-          },
-        },
-      ],
-    );
-  };
-
-  const handleCancelCsvImport = () => {
-    setCsvImportModalVisible(false);
-    setCsvText("");
-  };
-
   const parsePlayersFromCsv = (
     csvContent: string,
   ): {
@@ -481,125 +430,385 @@ export default function PlayersTab() {
     );
   }
 
-  const renderPlayerList = ({ item }: { item: Player }) => (
-    <Surface style={{ margin: 0 }}>
-      <List.Item
-        title={() => (
-          <Text
-            variant="titleMedium"
-            style={{
-              fontWeight: "600",
-              marginBottom: 4,
-            }}
-          >
-            {item.name}
-          </Text>
-        )}
-        description={() => (
-          <View>
-            <View
+  const handlePlayerSelection = (playerId: string) => {
+    if (!isNarrowScreen) {
+      return;
+    }
+
+    setSelectedPlayerIds((prev) => {
+      if (prev.includes(playerId)) {
+        return prev.filter((id) => id !== playerId);
+      } else {
+        return [...prev, playerId];
+      }
+    });
+  };
+
+  const clearSelection = (playerIds?: string[]): number => {
+    if (!playerIds || playerIds.length === selectedPlayerIds.length) {
+      setSelectedPlayerIds([]);
+      return 0;
+    } else {
+      setSelectedPlayerIds(
+        selectedPlayerIds.filter((playerId) => !playerIds.includes(playerId)),
+      );
+      return selectedPlayerIds.length;
+    }
+  };
+
+  const handleBulkEdit = () => {
+    if (selectedPlayerIds.length === 1) {
+      const player = allPlayers.find((p) => p.id === selectedPlayerIds[0]);
+      if (player) {
+        handleEditPlayer(player);
+        clearSelection();
+      }
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedPlayerIds.length === 0) return;
+
+    const selectedPlayers = allPlayers.filter((p) =>
+      selectedPlayerIds.includes(p.id),
+    );
+    const playerNames = selectedPlayers.map((p) => p.name).join(", ");
+
+    Alert.alert(
+      "Delete Players",
+      `Are you sure you want to delete ${selectedPlayerIds.length} player(s)?\n\n${playerNames}`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            const deletedPlayerIds: string[] = [];
+            selectedPlayers.forEach((player) => {
+              // Check if player is in any groups
+              const playerGroups = groups.filter((group) =>
+                group.playerIds.includes(player.id),
+              );
+              if (playerGroups.length === 0) {
+                deletedPlayerIds.push(player.id);
+                dispatch(removePlayer(player.id));
+              }
+            });
+            const numUndeleted = clearSelection(deletedPlayerIds);
+            if (numUndeleted > 0) {
+              Alert.alert(
+                `Cannot delete ${numUndeleted} player(s). Remove players from all groups first.}`,
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleAddToGroup = () => {
+    if (selectedPlayerIds.length === 0) return;
+
+    // Reset selected groups and show modal
+    setSelectedGroupIds([]);
+    setGroupSelectionModalVisible(true);
+  };
+
+  const handleGroupSelection = (groupId: string) => {
+    setSelectedGroupIds((prev) => {
+      if (prev.includes(groupId)) {
+        return prev.filter((id) => id !== groupId);
+      } else {
+        return [...prev, groupId];
+      }
+    });
+  };
+
+  const handleConfirmAddToGroups = (showSuccess = false) => {
+    if (selectedGroupIds.length === 0) {
+      Alert.alert("No Groups Selected", "Please select at least one group.");
+      return;
+    }
+
+    // Add selected players to selected groups
+    selectedGroupIds.forEach((groupId) => {
+      const group = groups.find((g) => g.id === groupId);
+      if (group) {
+        // Get unique player IDs to avoid duplicates
+        const newPlayerIds = [
+          ...new Set([...group.playerIds, ...selectedPlayerIds]),
+        ];
+        dispatch(
+          updateGroup({
+            ...group,
+            playerIds: newPlayerIds,
+          }),
+        );
+      }
+    });
+
+    if (showSuccess) {
+      const groupNames = groups
+        .filter((g) => selectedGroupIds.includes(g.id))
+        .map((g) => g.name)
+        .join(", ");
+
+      Alert.alert(
+        "Success",
+        `Added ${selectedPlayerIds.length} player(s) to ${selectedGroupIds.length} group(s): ${groupNames}`,
+      );
+    }
+
+    // Clean up
+    setGroupSelectionModalVisible(false);
+    setSelectedGroupIds([]);
+    clearSelection();
+  };
+
+  const handleCancelGroupSelection = () => {
+    setGroupSelectionModalVisible(false);
+    setSelectedGroupIds([]);
+  };
+
+  const renderPlayerList = ({ item }: { item: Player }) => {
+    const isSelected = isNarrowScreen && selectedPlayerIds.includes(item.id);
+
+    return (
+      <Surface
+        style={{
+          margin: 0,
+          backgroundColor: isSelected
+            ? theme.colors.secondaryContainer
+            : theme.colors.surface,
+        }}
+      >
+        <List.Item
+          title={() => (
+            <Text
+              variant="titleMedium"
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginRight: 20,
+                fontWeight: "600",
+                marginBottom: 4,
+                color: isSelected
+                  ? theme.colors.onSecondaryContainer
+                  : theme.colors.onSurface,
               }}
             >
-              <View style={{ flexDirection: "row", flex: 3 }}>
-                {item.gender && (
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      marginRight: 4,
+              {item.name}
+            </Text>
+          )}
+          description={() => (
+            <View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginRight: 20,
+                }}
+              >
+                <View style={{ flexDirection: "row", flex: 3 }}>
+                  {item.gender && (
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        marginRight: 4,
+                        color: isSelected
+                          ? theme.colors.onSecondaryContainer
+                          : theme.colors.onSurfaceVariant,
+                      }}
+                    >
+                      {getShortGender(item.gender)}
+                    </Text>
+                  )}
+                  {item.email && (
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        marginRight: 4,
+                        color: isSelected
+                          ? theme.colors.onSecondaryContainer
+                          : theme.colors.onSurfaceVariant,
+                      }}
+                    >
+                      {item.email}
+                    </Text>
+                  )}
+                  {item.phone && (
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        marginRight: 4,
+                        color: isSelected
+                          ? theme.colors.onSecondaryContainer
+                          : theme.colors.onSurfaceVariant,
+                      }}
+                    >
+                      {item.phone}
+                    </Text>
+                  )}
+                </View>
+                {item.rating && (
+                  <Chip
+                    icon="star-outline"
+                    elevated={true}
+                    compact={true}
+                    textStyle={{
+                      fontSize: 10,
+                      flexDirection: "row",
+                      alignItems: "center",
                     }}
                   >
-                    {getShortGender(item.gender)}
-                  </Text>
-                )}
-                {item.email && (
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      marginRight: 4,
-                    }}
-                  >
-                    {item.email}
-                  </Text>
-                )}
-                {item.phone && (
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      marginRight: 4,
-                    }}
-                  >
-                    {item.phone}
-                  </Text>
+                    {item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}
+                  </Chip>
                 )}
               </View>
-              {item.rating && (
-                <Chip
-                  icon="star-outline"
-                  elevated={true}
-                  compact={true}
-                  textStyle={{
-                    fontSize: 10,
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                >
-                  {item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}
-                </Chip>
-              )}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginRight: 20,
+                }}
+              >
+                {getPlayerGroupNames(item.id).length > 0 && (
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Icon
+                      source="account-group"
+                      size={20}
+                      color={
+                        isSelected
+                          ? theme.colors.onSecondaryContainer
+                          : theme.colors.onSurfaceVariant
+                      }
+                    />
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "400",
+                        marginLeft: 5,
+                        color: isSelected
+                          ? theme.colors.onSecondaryContainer
+                          : theme.colors.onSurfaceVariant,
+                      }}
+                    >
+                      {getPlayerGroupNames(item.id)}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginRight: 20,
-              }}
-            >
-              {getPlayerGroupNames(item.id).length > 0 && (
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Icon source="account-group" size={20} />
-                  <Text
+          )}
+          left={
+            isNarrowScreen
+              ? isSelected
+                ? () => (
+                    <Icon
+                      source="check-circle"
+                      size={24}
+                      color={theme.colors.primary}
+                    />
+                  )
+                : undefined
+              : (props) => getAvatarName(item.name, props)
+          }
+          right={
+            isNarrowScreen
+              ? undefined
+              : (props) => (
+                  <View
+                    {...props}
                     style={{
-                      fontSize: 12,
-                      fontWeight: "400",
-                      //flex: 3,
-                      marginLeft: 5,
+                      flexDirection: "row",
+                      alignItems: "center",
                     }}
                   >
-                    {getPlayerGroupNames(item.id)}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
-        left={isNarrowScreen ? undefined : (props) => getAvatarName(item.name, props)}
-        right={(props) => (
-          <View
-            {...props}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
+                    <IconButton
+                      icon="pencil"
+                      onPress={() => handleEditPlayer(item)}
+                    />
+                    <IconButton
+                      icon="delete"
+                      onPress={() => handleDeletePlayer(item)}
+                    />
+                  </View>
+                )
+          }
+          onPress={
+            isNarrowScreen ? () => handlePlayerSelection(item.id) : undefined
+          }
+          style={{
+            borderRadius: isSelected ? 8 : 0,
+          }}
+        />
+      </Surface>
+    );
+  };
+
+  // Mobile selection action bar
+  const SelectionActionBar = () => {
+    if (!isNarrowScreen || selectedPlayerIds.length === 0) return null;
+
+    return (
+      <Portal>
+        <Surface
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: 16,
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.outlineVariant,
+            backgroundColor: theme.colors.surface,
+          }}
+          elevation={4}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text variant="titleMedium" style={{ fontWeight: "600" }}>
+              {selectedPlayerIds.length} selected
+            </Text>
             <IconButton
-              icon="pencil"
-              // size={20}
-              onPress={() => handleEditPlayer(item)}
+              icon="close"
+              size={20}
+              onPress={() => clearSelection()}
+              style={{ marginLeft: 8 }}
             />
-            <IconButton
+          </View>
+
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {selectedPlayerIds.length === 1 && (
+              <Button
+                icon="pencil"
+                mode="outlined"
+                onPress={handleBulkEdit}
+                compact
+              >
+                Edit
+              </Button>
+            )}
+            <Button
+              icon="account-group"
+              mode="outlined"
+              onPress={handleAddToGroup}
+              compact
+            >
+              Add to Group
+            </Button>
+            <Button
               icon="delete"
-              // size={20}
-              onPress={() => handleDeletePlayer(item)}
-            />
+              mode="outlined"
+              onPress={handleBulkDelete}
+              compact
+            >
+              Delete
+            </Button>
           </View>
-        )}
-      />
-    </Surface>
-  );
+        </Surface>
+      </Portal>
+    );
+  };
 
   const PlayerHeader = () => (
     <View
@@ -618,55 +827,59 @@ export default function PlayersTab() {
       </Text>
 
       {isNarrowScreen ? (
-        // Mobile: Show only primary action + menu
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Button
-            icon="account-plus-outline"
-            mode="contained-tonal"
-            onPress={() => setModalVisible(true)}
-            compact
-          >
-            Add
+        selectedPlayerIds.length > 0 ? (
+          <Button mode="text" onPress={() => clearSelection()} compact>
+            Cancel
           </Button>
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                icon="dots-vertical"
-                onPress={() => setMenuVisible(true)}
+        ) : (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Button
+              icon="account-multiple-plus-outline"
+              mode="contained"
+              onPress={() => setBulkModalVisible(true)}
+              compact={false}
+            >
+              Add
+            </Button>
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  onPress={() => setMenuVisible(true)}
+                />
+              }
+            >
+                {/*<Menu.Item
+                leadingIcon="account-multiple-plus-outline"
+                onPress={() => {
+                  setMenuVisible(false);
+                  setBulkModalVisible(true);
+                }}
+                title="Bulk Add"
               />
-            }
-          >
-            <Menu.Item
-              leadingIcon="account-multiple-plus-outline"
-              onPress={() => {
-                setMenuVisible(false);
-                setBulkModalVisible(true);
-              }}
-              title="Bulk Add"
-            />
-            <Divider />
-            <Menu.Item
-              leadingIcon="export"
-              onPress={() => {
-                setMenuVisible(false);
-                handleExportPlayers();
-              }}
-              title="Export"
-            />
-            <Menu.Item
-              leadingIcon="import"
-              onPress={() => {
-                setMenuVisible(false);
-                handleImportPlayers();
-              }}
-              title="Import"
-            />
-          </Menu>
-        </View>
+              <Divider />*/}
+              <Menu.Item
+                leadingIcon="export"
+                onPress={() => {
+                  setMenuVisible(false);
+                  handleExportPlayers();
+                }}
+                title="Export"
+              />
+              <Menu.Item
+                leadingIcon="import"
+                onPress={() => {
+                  setMenuVisible(false);
+                  handleImportPlayers();
+                }}
+                title="Import"
+              />
+            </Menu>
+          </View>
+        )
       ) : (
-        // Desktop: Show all buttons
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Button
             icon="account-multiple-plus-outline"
@@ -695,7 +908,7 @@ export default function PlayersTab() {
 
   // Mobile FAB for quick access to primary action
   const PrimaryFAB = () => {
-    if (!isNarrowScreen) {
+    if (!isNarrowScreen || selectedPlayerIds.length > 0) {
       return null;
     }
     return (
@@ -732,7 +945,11 @@ export default function PlayersTab() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           padding: 16,
-          paddingBottom: isNarrowScreen ? 80 : 16, // Extra space for FAB
+          paddingBottom: isNarrowScreen
+            ? selectedPlayerIds.length > 0
+              ? 100
+              : 80
+            : 16,
         }}
         showsVerticalScrollIndicator={true}
         ListEmptyComponent={
@@ -766,8 +983,8 @@ export default function PlayersTab() {
       />
 
       <PrimaryFAB />
+      <SelectionActionBar />
 
-      {/* ...existing modals... */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -783,9 +1000,8 @@ export default function PlayersTab() {
         />
       </Modal>
 
-      {/* CSV Import Modal */}
       <Modal
-        visible={csvImportModalVisible}
+        visible={groupSelectionModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
       >
@@ -800,36 +1016,81 @@ export default function PlayersTab() {
               }}
             >
               <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
-                Import Players from CSV
+                Add to Group(s)
               </Text>
               <IconButton
                 icon="close"
                 size={24}
-                onPress={handleCancelCsvImport}
+                onPress={handleCancelGroupSelection}
               />
             </View>
 
             <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
-              Paste your CSV data below. Expected format:
-              {"\n"}name,email,phone,gender,rating,notes
+              Adding {selectedPlayerIds.length} player(s) to selected groups:
             </Text>
 
-            <ScrollView style={{ flex: 1 }}>
-              <TextInput
-                mode="outlined"
-                multiline
-                numberOfLines={15}
-                value={csvText}
-                onChangeText={setCsvText}
-                placeholder="Paste CSV data here..."
-                style={{ minHeight: 300 }}
-                contentStyle={{
-                  fontFamily:
-                    Platform.OS === "ios" ? "Courier New" : "monospace",
-                  fontSize: 14,
-                }}
-              />
-            </ScrollView>
+            {groups.length === 0 ? (
+              <View style={{ alignItems: "center", paddingVertical: 32 }}>
+                <Icon
+                  source="account-group"
+                  size={48}
+                  color={theme.colors.onSurfaceVariant}
+                />
+                <Text
+                  variant="titleMedium"
+                  style={{ marginTop: 16, textAlign: "center" }}
+                >
+                  No Groups Available
+                </Text>
+                <Text
+                  variant="bodyMedium"
+                  style={{ marginTop: 8, textAlign: "center" }}
+                >
+                  Create groups first to add players to them.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView style={{ flex: 1 }}>
+                {groups.map((group) => (
+                  <Surface
+                    key={group.id}
+                    style={{
+                      marginBottom: 8,
+                      borderRadius: 8,
+                    }}
+                  >
+                    <List.Item
+                      title={group.name}
+                      description={`${group.playerIds.length} player(s)`}
+                      left={(props) => (
+                        <Checkbox
+                          status={
+                            selectedGroupIds.includes(group.id)
+                              ? "checked"
+                              : "unchecked"
+                          }
+                          onPress={() => handleGroupSelection(group.id)}
+                        />
+                      )}
+                      right={(props) => (
+                        <Icon
+                          source="account-group"
+                          size={24}
+                          color={theme.colors.onSurfaceVariant}
+                        />
+                      )}
+                      onPress={() => handleGroupSelection(group.id)}
+                      style={{
+                        backgroundColor: selectedGroupIds.includes(group.id)
+                          ? theme.colors.secondaryContainer
+                          : theme.colors.surface,
+                        borderRadius: 8,
+                      }}
+                    />
+                  </Surface>
+                ))}
+              </ScrollView>
+            )}
 
             <View
               style={{
@@ -840,31 +1101,33 @@ export default function PlayersTab() {
               }}
             >
               {isNarrowScreen ? (
-                // Mobile: Primary action first, then secondary
                 <>
                   <Button
                     mode="contained"
-                    onPress={handleCsvImport}
-                    disabled={!csvText.trim()}
+                    onPress={() => handleConfirmAddToGroups()}
+                    disabled={
+                      selectedGroupIds.length === 0 || groups.length === 0
+                    }
                   >
-                    Parse CSV
+                    Add to Groups
                   </Button>
-                  <Button mode="outlined" onPress={handleCancelCsvImport}>
+                  <Button mode="outlined" onPress={handleCancelGroupSelection}>
                     Cancel
                   </Button>
                 </>
               ) : (
-                // Desktop: Cancel first, then primary action (standard pattern)
                 <>
-                  <Button mode="outlined" onPress={handleCancelCsvImport}>
+                  <Button mode="outlined" onPress={handleCancelGroupSelection}>
                     Cancel
                   </Button>
                   <Button
                     mode="contained"
-                    onPress={handleCsvImport}
-                    disabled={!csvText.trim()}
+                    onPress={() => handleConfirmAddToGroups()}
+                    disabled={
+                      selectedGroupIds.length === 0 || groups.length === 0
+                    }
                   >
-                    Parse CSV
+                    Add to Groups
                   </Button>
                 </>
               )}
@@ -872,6 +1135,8 @@ export default function PlayersTab() {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* ...existing CSV import modal... */}
 
       <BulkAddPlayersModal
         visible={bulkModalVisible}

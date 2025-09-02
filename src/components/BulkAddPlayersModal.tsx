@@ -110,7 +110,7 @@ export default function BulkAddPlayersModal({ visible, onClose }: BulkAddPlayers
         <Appbar.Header>
           <Appbar.BackAction onPress={handleCancel} />
           <Appbar.Content
-            title="Bulk Add Players"
+            title="Add Players"
             titleStyle={{ fontWeight: '600' }}
           />
           <Button
@@ -142,7 +142,7 @@ export default function BulkAddPlayersModal({ visible, onClose }: BulkAddPlayers
                 textAlign: 'center'
               }}
             >
-              Add multiple players at once. Only name is required.
+              Add players. Only the name is required.
             </Text>
           </Surface>
 
@@ -257,7 +257,7 @@ export default function BulkAddPlayersModal({ visible, onClose }: BulkAddPlayers
                         onValueChange={(value) => updatePlayer(player.id, 'gender', value)}
                         style={{ height: 40 }}
                       >
-                        <Picker.Item label="Select" value="" />
+                        <Picker.Item label="Select (optional)" value="" />
                         <Picker.Item label="Male" value="male" />
                         <Picker.Item label="Female" value="female" />
                         <Picker.Item label="Other" value="other" />
@@ -278,7 +278,7 @@ export default function BulkAddPlayersModal({ visible, onClose }: BulkAddPlayers
                       mode="outlined"
                       value={player.rating}
                       onChangeText={(text) => updatePlayer(player.id, 'rating', text)}
-                      placeholder="0.0"
+                      placeholder="0.0 (optional)"
                       keyboardType="decimal-pad"
                       dense
                     />

@@ -130,7 +130,7 @@ const RootLayoutNav = () => {
                 <Appbar.Content
                   title={
                     <Text
-                      variant="titleLarge"
+                      variant="titleMedium"
                       style={{
                         alignItems: "center",
                         fontWeight: "600",
@@ -142,7 +142,7 @@ const RootLayoutNav = () => {
                 />
                 <Tooltip title="Settings">
                   <Appbar.Action
-                    icon="cogs"
+                    icon="dots-vertical"
                     onPress={() => router.navigate("/settings")}
                   />
                 </Tooltip>
