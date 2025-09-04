@@ -74,9 +74,11 @@ export default function RoundComponent({
   const getPlayer = (playerId: string): Player => {
     const player = sessionPlayers.find((p) => p.id === playerId);
     if (!player) {
-      throw new Error(
+      console.warn(
         `Player with ID "${playerId}" not found in session players`,
       );
+      const now = new Date().toISOString();
+      return { id: playerId, name: "UNKNOWN", createdAt: now, updatedAt: now };
     }
     return player;
   };
@@ -423,12 +425,17 @@ export default function RoundComponent({
   return (
     <SafeAreaView>
       <View style={{ marginBottom: 24 }}>
-        <FlatList
+        {/*<FlatList
           data={currentRound.games ? currentRound.games : []}
           renderItem={renderCourtAssignment}
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
-        />
+        />*/}
+        {(currentRound.games || []).map((game) => (
+          <View key={game.id}>
+            {renderCourtAssignment({ item: game })}
+          </View>
+        ))}
         {false && editing && <SwapActionBar />}
       </View>
       {disabledCourts.length > 0 &&
@@ -479,25 +486,25 @@ export default function RoundComponent({
           );
         })}
 
-        {editing && (
-          <Portal>
-            <FAB
-              icon="swap-horizontal-bold"
-              label="Swap Players"
-              size="large"
-              variant="tertiary"
-              style={{
-                position: 'absolute',
-                margin: 16,
-                right: 16,
-                bottom: 80, // Adjust based on your bottom navigation/safe area
-                zIndex: 1000,
-              }}
-              visible={selectedPlayers.size === 2}
-              disabled={selectedPlayers.size != 2}
-              onPress={handleSwapPlayers}
-            />
-          </Portal>
+      {editing && (
+        <Portal>
+          <FAB
+            icon="swap-horizontal-bold"
+            label="Swap Players"
+            size="large"
+            variant="tertiary"
+            style={{
+              position: "absolute",
+              margin: 16,
+              right: 16,
+              bottom: 80, // Adjust based on your bottom navigation/safe area
+              zIndex: 1000,
+            }}
+            visible={selectedPlayers.size === 2}
+            disabled={selectedPlayers.size != 2}
+            onPress={handleSwapPlayers}
+          />
+        </Portal>
       )}
 
       {false && editing && (

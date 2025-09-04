@@ -5,8 +5,7 @@ import {
   DefaultTheme as NavLightTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { useEffect } from "react";
 import {
   Provider as StoreProvider,
   useDispatch,
@@ -28,8 +27,7 @@ import { setPlayers } from "@/src/store/slices/playersSlice";
 import { setGroups } from "@/src/store/slices/groupsSlice";
 import { setSessions } from "@/src/store/slices/sessionsSlice";
 import { setAppSettings } from "@/src/store/slices/appSettingsSlice";
-import { Colors, Themes } from "@/src/ui/styles";
-import { StackHeader } from "@/src/components/StackHeader";
+import { Themes } from "@/src/ui/styles";
 import { Settings } from "@/src/types";
 import { Alert } from "@/src/utils/alert";
 

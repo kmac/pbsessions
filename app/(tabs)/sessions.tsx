@@ -25,7 +25,7 @@ import {
 } from "@/src/store/slices/sessionsSlice";
 import { Court, Session, SessionState } from "@/src/types";
 import ArchivedSessions from "@/src/components/ArchivedSessions";
-import SessionFormModal from "@/src/components/SessionFormModal";
+import EditSessionModal from "@/src/components/EditSessionModal";
 import ViewSessionModal from "@/src/components/ViewSessionModal";
 import { Alert } from "@/src/utils/alert";
 import {
@@ -46,7 +46,9 @@ export default function SessionsTab() {
   const { groups } = useAppSelector((state) => state.groups);
 
   const [menuVisible, setMenuVisible] = useState(false);
-  const [sessionMenuVisible, setSessionMenuVisible] = useState<{[key: string]: boolean}>({});
+  const [sessionMenuVisible, setSessionMenuVisible] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
@@ -299,9 +301,9 @@ export default function SessionsTab() {
   }
 
   const toggleSessionMenu = (sessionId: string, visible: boolean) => {
-    setSessionMenuVisible(prev => ({
+    setSessionMenuVisible((prev) => ({
       ...prev,
-      [sessionId]: visible
+      [sessionId]: visible,
     }));
   };
 
@@ -757,41 +759,25 @@ export default function SessionsTab() {
 
       <PrimaryFAB />
 
-      {/* ...existing modals... */}
-      <Modal
+      <ArchivedSessions
         visible={modalArchiveVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <ArchivedSessions
-          onCancel={() => {
-            setArchiveModalVisible(false);
-          }}
-        />
-      </Modal>
+        onCancel={() => {
+          setArchiveModalVisible(false);
+        }}
+      />
 
-      <Modal
+      <EditSessionModal
         visible={editSessionModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SessionFormModal
-          session={editingSession}
-          onSave={handleSaveSession}
-          onCancel={closeEditSessionModal}
-        />
-      </Modal>
+        session={editingSession}
+        onSave={handleSaveSession}
+        onCancel={closeEditSessionModal}
+      />
 
-      <Modal
+      <ViewSessionModal
         visible={viewSessionModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <ViewSessionModal
-          session={viewingSession}
-          onCancel={closeViewSessionModal}
-        />
-      </Modal>
+        session={viewingSession}
+        onCancel={closeViewSessionModal}
+      />
     </SafeAreaView>
   );
 }

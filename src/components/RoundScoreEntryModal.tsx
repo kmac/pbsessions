@@ -11,7 +11,6 @@ import {
   Button,
   Card,
   Chip,
-  Icon,
   IconButton,
   Surface,
   Switch,
@@ -395,16 +394,15 @@ export default function RoundScoreEntryModal({
           <Appbar.BackAction onPress={onClose} />
           <Appbar.Content
             title="Round Scores"
-            subtitle={`${courtsWithScores} of ${totalCourts} courts with scores`}
           />
-          <Button
+          {/*<Button
             icon="content-save"
             mode="contained"
             onPress={handleSave}
             style={{ marginRight: 8 }}
           >
             Complete
-          </Button>
+          </Button>*/}
         </Appbar.Header>
 
         <ScrollView
@@ -428,10 +426,10 @@ export default function RoundScoreEntryModal({
           {courtScores.map(renderCourtScore)}
 
           <Button
-            icon="trophy"
+            icon="content-save"
             mode="contained"
             onPress={handleSave}
-            contentStyle={{ paddingVertical: 8 }}
+            contentStyle={{ paddingVertical: 2 }}
             style={{ marginTop: 16, marginBottom: 32 }}
           >
             Complete Round

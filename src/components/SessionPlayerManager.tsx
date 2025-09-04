@@ -1,4 +1,3 @@
-// src/components/SessionPlayerManager.tsx
 import { useMemo, useState } from "react";
 import {
   View,
@@ -20,12 +19,8 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppSelector } from "../store";
-import { X, Check } from "lucide-react-native";
-import { Alert } from "@/src/utils/alert";
-import { playerDetailsToString } from "@/src/utils/util";
 import PlayerCard from "./PlayerCard";
 import { Player, Group } from "../types";
-//import { colors } from "../theme";
 
 const useStyles = () => {
   const theme = useTheme();
@@ -343,12 +338,9 @@ export default function SessionPlayerManager({
   onSelectionChange,
   onClose,
 }: SessionPlayerManagerProps) {
-  const theme = useTheme();
   const styles = useStyles();
-
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
-
   const [viewMode, setViewMode] = useState<ViewMode>("groups");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -495,46 +487,6 @@ export default function SessionPlayerManager({
       </TouchableOpacity>
     );
   };
-
-  const ViewModeSelector = () => (
-    <View style={styles.viewModeSelector}>
-      <TouchableOpacity
-        style={[
-          styles.viewModeButton,
-          viewMode === "groups" && styles.viewModeButtonActive,
-        ]}
-        onPress={() => setViewMode("groups")}
-      >
-        <IconButton icon="account-multiple-outline" />
-        <Text
-          style={[
-            styles.viewModeButtonText,
-            viewMode === "groups" && styles.viewModeButtonTextActive,
-          ]}
-        >
-          Groups ({groups.length})
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.viewModeButton,
-          viewMode === "players" && styles.viewModeButtonActive,
-        ]}
-        onPress={() => setViewMode("players")}
-      >
-        <IconButton icon="account-outline" />
-        <Text
-          style={[
-            styles.viewModeButtonText,
-            viewMode === "players" && styles.viewModeButtonTextActive,
-          ]}
-        >
-          Individual ({players.length})
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
 
   return (
     <Modal

@@ -1,17 +1,12 @@
 import { View } from "react-native";
 import {
   Badge,
-  Button,
   Card,
-  Checkbox,
   Chip,
-  Dialog,
-  FAB,
   Surface,
   Text,
-  TextInput,
 } from "react-native-paper";
-import { Court, Player, Score } from "@/src/types";
+import { Court, Player, PlayerStats, Score } from "@/src/types";
 
 export type PlayerRenderData = {
   player: Player;

@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, Modal, ScrollView, } from "react-native";
+import {
+  View,
+  Modal,
+  ScrollView,
+  useWindowDimensions
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
@@ -8,13 +13,12 @@ import {
   Dialog,
   FAB,
   List,
+  Surface,
+  Text,
   useTheme,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import {
-  SessionState,
-  Player,
-} from "@/src/types";
+import { SessionState, Player } from "@/src/types";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import RoundComponent from "@/src/components/RoundComponent";
 import { SessionCoordinator } from "@/src/services/sessionCoordinator";
@@ -32,6 +36,7 @@ interface BetweenRoundsModalProps {
   sessionId: string;
   onStartRound: () => void;
   onClose: () => void;
+  onEditSession?: () => void; // Add new prop for edit session callback
 }
 
 export default function BetweenRoundsModal({
@@ -39,24 +44,32 @@ export default function BetweenRoundsModal({
   sessionId,
   onStartRound,
   onClose,
+  onEditSession,
 }: BetweenRoundsModalProps) {
-  // const theme = useTheme();
+  const theme = useTheme();
   const dispatch = useAppDispatch();
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 768;
   const [selectedPlayers, setSelectedPlayers] = useState(
     new Map<string, Player>(),
   );
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [helpDialogVisible, setHelpDialogVisible] = useState(false);
   const [canSwapPlayers, setCanSwapPlayers] = useState(false);
-  const [swapPlayersHandler, setSwapPlayersHandler] = useState<(() => void) | null>(null);
+  const [swapPlayersHandler, setSwapPlayersHandler] = useState<
+    (() => void) | null
+  >(null);
 
   const { players } = useAppSelector((state) => state.players);
   const { sessions } = useAppSelector((state) => state.sessions);
 
-  const handleSwapPlayersChange = useCallback((canSwap: boolean, handler: () => void) => {
-    setCanSwapPlayers(canSwap);
-    setSwapPlayersHandler(() => handler);
-  }, []);
+  const handleSwapPlayersChange = useCallback(
+    (canSwap: boolean, handler: () => void) => {
+      setCanSwapPlayers(canSwap);
+      setSwapPlayersHandler(() => handler);
+    },
+    [],
+  );
 
   // Use useCallback to ensure we always get fresh session data
   const handleReshufflePlayers = useCallback(
@@ -153,7 +166,10 @@ export default function BetweenRoundsModal({
     >
       <Appbar.Header>
         <Appbar.BackAction onPress={onClose} />
-        <Appbar.Content title={`New Games: Round ${roundNumber}`} />
+        <Appbar.Content title={`New Round: ${roundNumber}`} />
+        {onEditSession && (
+          <Appbar.Action icon="pencil" onPress={onEditSession} />
+        )}
         <Appbar.Action
           icon="help-circle"
           onPress={() => {
@@ -161,21 +177,37 @@ export default function BetweenRoundsModal({
           }}
         />
       </Appbar.Header>
+
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
           style={{ flex: 1, padding: 16 }}
           showsVerticalScrollIndicator={false}
         >
+          <Surface style={{
+            padding: 12,
+            borderRadius: 8,
+            marginBottom: 20,
+            backgroundColor: theme.colors.primaryContainer
+          }}>
+            <Text variant="bodyMedium" style={{
+              color: theme.colors.onPrimaryContainer,
+              textAlign: 'center'
+            }}>
+              Configure players and court settings for this round.
+            </Text>
+          </Surface>
+
           <RoundComponent
             editing={true}
             session={currentSession}
             onSwapPlayersChange={handleSwapPlayersChange}
           />
+
           <View // Action buttons
             style={{
-              flexDirection: "row",
+              flexDirection: isSmallScreen ? "column" : "row",
               alignContent: "space-between",
-              columnGap: 12,
+              gap: 12,
             }}
           >
             <Button
@@ -183,8 +215,9 @@ export default function BetweenRoundsModal({
               mode="contained"
               onPress={onStartRound}
               contentStyle={{ padding: 2 }}
+              style={isSmallScreen ? { flex: 1 } : undefined}
             >
-              Start Round {roundNumber}
+              Start
             </Button>
             <Button
               icon="refresh"
@@ -193,6 +226,7 @@ export default function BetweenRoundsModal({
                 handleReshufflePlayers(false);
               }}
               contentStyle={{ padding: 2 }}
+              style={isSmallScreen ? { flex: 1 } : undefined}
             >
               Reshuffle
             </Button>
@@ -203,9 +237,22 @@ export default function BetweenRoundsModal({
                 setStatsModalVisible(true);
               }}
               contentStyle={{ padding: 2 }}
+              style={isSmallScreen ? { flex: 1 } : undefined}
             >
-              Show Player Stats
+              {isSmallScreen ? "Stats" : "Player Stats"}
             </Button>
+
+            {onEditSession && (
+              <Button
+                icon="pencil"
+                mode="outlined"
+                onPress={onEditSession}
+                contentStyle={{ padding: 2 }}
+                style={isSmallScreen ? { flex: 1 } : undefined}
+              >
+                Edit Session
+              </Button>
+            )}
           </View>
         </ScrollView>
 
@@ -216,7 +263,7 @@ export default function BetweenRoundsModal({
             size="large"
             variant="tertiary"
             style={{
-              position: 'absolute',
+              position: "absolute",
               margin: 16,
               right: 16,
               bottom: 100, // Above the action buttons
@@ -252,6 +299,10 @@ export default function BetweenRoundsModal({
               <List.Item
                 title="Courts"
                 description="Select any court to enable/disable/modify the court parameters."
+              />
+              <List.Item
+                title="Edit Session"
+                description="Modify session settings like courts, players, or session details."
               />
             </Card>
           </View>

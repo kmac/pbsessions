@@ -8,20 +8,23 @@ import {
   Card,
   Chip,
   Icon,
+  Menu,
   Surface,
   Text,
   useTheme,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
+import { updateSession } from "@/src/store/slices/sessionsSlice";
 import { SessionCoordinator } from "@/src/services/sessionCoordinator";
 import RoundComponent from "@/src/components/RoundComponent";
 import RoundScoreEntryModal from "@/src/components/RoundScoreEntryModal";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import BetweenRoundsModal from "@/src/components/BetweenRoundsModal";
+import EditSessionModal from "@/src/components/EditSessionModal";
 import RoundTimer from "@/src/components/RoundTimer";
 import { getSessionPlayers, logSession } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
-import { Player, Results, SessionState } from "@/src/types";
+import { Player, Results, Session, SessionState } from "@/src/types";
 
 import {
   applyNextRoundThunk,
@@ -47,7 +50,9 @@ export default function LiveSessionScreen() {
   const [scoreModalVisible, setScoreModalVisible] = useState(false);
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [betweenRoundsVisible, setBetweenRoundsVisible] = useState(false);
+  const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [roundStartTime, setRoundStartTime] = useState<Date | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
 
@@ -124,6 +129,25 @@ export default function LiveSessionScreen() {
 
   const showRatings = liveSession.showRatings;
   const scoring = liveSession.scoring;
+
+  // Session editing functions
+  const openEditSessionModal = () => {
+    setEditSessionModalVisible(true);
+  };
+
+  const closeEditSessionModal = () => {
+    setEditSessionModalVisible(false);
+  };
+
+  const handleSaveSession = (
+    sessionData:
+      | Session
+      | Omit<Session, "id" | "state" | "createdAt" | "updatedAt">,
+  ) => {
+    const data = sessionData as Session;
+    dispatch(updateSession(data));
+    closeEditSessionModal();
+  };
 
   const handleGenerateNewRound = () => {
     const sessionCoordinator = new SessionCoordinator(
@@ -227,8 +251,8 @@ export default function LiveSessionScreen() {
           icon="play"
           mode="contained"
           onPress={handleGenerateNewRound}
-          contentStyle={{ paddingVertical: 8 }}
-          style={{ marginBottom: 12 }}
+          contentStyle={{ paddingVertical: 2 }}
+          // style={{ marginBottom: 12 }}
         >
           {numCompletedRounds <= 0
             ? "Generate First Round"
@@ -258,7 +282,7 @@ export default function LiveSessionScreen() {
             icon="play"
             mode="contained"
             onPress={handleGenerateNewRound}
-            contentStyle={{ paddingVertical: 8 }}
+            contentStyle={{ paddingVertical: 2 }}
           >
             Generate Next Round
           </Button>
@@ -272,9 +296,9 @@ export default function LiveSessionScreen() {
           icon="stop"
           mode="contained"
           onPress={handleCompleteRound}
-          buttonColor={theme.colors.tertiary}
-          contentStyle={{ paddingVertical: 8 }}
-          style={{ marginBottom: 12 }}
+          // buttonColor={theme.colors.tertiary}
+          contentStyle={{ paddingVertical: 2 }}
+          // style={{ marginBottom: 12 }}
         >
           Complete Round
         </Button>
@@ -284,31 +308,31 @@ export default function LiveSessionScreen() {
     return (
       <View
         style={{
-          flexDirection: "column",
+          flexDirection: "row",
           columnGap: 12,
         }}
       >
         <Button
-          icon="pencil-box"
-          mode="contained"
-          onPress={() => {
-            setBetweenRoundsVisible(true);
-          }}
-          buttonColor={theme.colors.secondary}
-          contentStyle={{ paddingVertical: 8 }}
-          style={{ marginBottom: 12 }}
-        >
-          Edit Round {currentRoundNumber}
-        </Button>
-        <Button
           icon="play"
           mode="contained"
           onPress={handleStartRound}
-          buttonColor={theme.colors.secondary}
-          contentStyle={{ paddingVertical: 8 }}
-          style={{ marginBottom: 12 }}
+          //buttonColor={theme.colors.secondary}
+          contentStyle={{ paddingVertical: 2 }}
+          //style={{ marginBottom: 12 }}
         >
-          Start Round {currentRoundNumber}
+          Start Round
+        </Button>
+        <Button
+          icon="pencil"
+          mode="outlined"
+          onPress={() => {
+            setBetweenRoundsVisible(true);
+          }}
+          //buttonColor={theme.colors.secondary}
+          contentStyle={{ paddingVertical: 2 }}
+          //style={{ marginBottom: 12 }}
+        >
+          Edit Round
         </Button>
       </View>
     );
@@ -316,16 +340,54 @@ export default function LiveSessionScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      {/* TODO remove this?  it must be in the uppper level */}
       <Appbar.Header>
         <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title={`Live Session: ${liveSession.name}`} />
+        <Appbar.Content
+          title={
+            <Text
+              variant="titleMedium"
+              style={{
+                fontWeight: "400",
+              }}
+            >
+              Session: {liveSession.name}
+            </Text>
+          }
+        />
+        <Menu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          anchor={
+            <Appbar.Action
+              icon="dots-vertical"
+              onPress={() => setMenuVisible(true)}
+            />
+          }
+        >
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              openEditSessionModal();
+            }}
+            title="Edit Session"
+            leadingIcon="account-edit"
+          />
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              endSession();
+            }}
+            title="End Session"
+            leadingIcon="stop"
+          />
+        </Menu>
+      </Appbar.Header>
+
+      {/*<View style={{ flexDirection: "row" }}>
         <Button
           mode="contained-tonal"
           icon="account-edit"
-          onPress={() => {
-            /* TODO */
-          }}
+          onPress={openEditSessionModal}
           style={{ marginRight: 8 }}
         >
           Edit Session
@@ -337,7 +399,7 @@ export default function LiveSessionScreen() {
         >
           End Session
         </Button>
-      </Appbar.Header>
+      </View>*/}
 
       <ScrollView
         style={{ flex: 1, padding: 16 }}
@@ -476,10 +538,6 @@ export default function LiveSessionScreen() {
             </Card.Content>
           </Card>
         )}*/}
-
-        {/* Round Action Button */}
-        <View style={{ marginBottom: 24 }}>{getRoundActionButton()}</View>
-
         {/* Current Round Games */}
         {hasActiveRound && (
           <View style={{ marginBottom: 24 }}>
@@ -490,18 +548,17 @@ export default function LiveSessionScreen() {
                 marginBottom: 12,
               }}
             >
-              Round{" "}
               {isRoundCompleted
-                ? `${currentRoundNumber} (Complete)`
-                : `${currentRoundNumber} Games`}
+                ? `Round ${currentRoundNumber} (Complete)`
+                : `Round ${currentRoundNumber} Games`}
             </Text>
 
-            <RoundComponent
-              editing={false}
-              session={liveSession}
-            />
+            <RoundComponent editing={false} session={liveSession} />
           </View>
         )}
+
+        {/* Round Action Button */}
+        <View style={{ marginBottom: 24 }}>{getRoundActionButton()}</View>
 
         {/* Previous Rounds Summary */}
         {numCompletedRounds > 0 && (
@@ -583,6 +640,14 @@ export default function LiveSessionScreen() {
         sessionId={liveSession.id}
         onStartRound={handleStartRound}
         onClose={() => setBetweenRoundsVisible(false)}
+        onEditSession={openEditSessionModal}
+      />
+
+      <EditSessionModal
+        visible={editSessionModalVisible}
+        session={liveSession}
+        onSave={handleSaveSession}
+        onCancel={closeEditSessionModal}
       />
 
       <PlayerStatsModal

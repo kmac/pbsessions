@@ -18,6 +18,7 @@ import {
   Searchbar,
   Surface,
   Text,
+  TextInput,
   FAB,
   Menu,
   Divider,
@@ -54,7 +55,7 @@ export default function PlayersTab() {
   const groups = useSelector((state: RootState) => state.groups.groups);
 
   const { width: screenWidth } = Dimensions.get("window");
-  const isNarrowScreen = screenWidth < 7680;
+  const isNarrowScreen = screenWidth < 768;
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -271,6 +272,59 @@ export default function PlayersTab() {
   const handleImportPlayersWeb = async () => {
     setCsvText("");
     setCsvImportModalVisible(true);
+  };
+
+  const handleCsvImport = () => {
+    if (!csvText.trim()) {
+      Alert.alert("No Data", "Please paste CSV data to import.");
+      return;
+    }
+
+    const { importedPlayers, errors } = parsePlayersFromCsv(csvText);
+
+    // Show errors if any
+    if (errors.length > 0) {
+      Alert.alert(
+        "Import Warnings",
+        `${errors.length} error(s) occurred:\n${errors.slice(0, 5).join("\n")}${errors.length > 5 ? "\n..." : ""}`,
+        [{ text: "OK" }],
+      );
+    }
+
+    if (importedPlayers.length === 0) {
+      Alert.alert("Import Failed", "No valid players found to import.");
+      return;
+    }
+
+    // Close modal first
+    setCsvImportModalVisible(false);
+    setCsvText("");
+
+    // Confirm import
+    Alert.alert(
+      "Confirm Import",
+      `Import ${importedPlayers.length} player(s)?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Import",
+          onPress: () => {
+            importedPlayers.forEach((playerData) => {
+              dispatch(addPlayer(playerData));
+            });
+            Alert.alert(
+              "Success",
+              `Imported ${importedPlayers.length} player(s).`,
+            );
+          },
+        },
+      ],
+    );
+  };
+
+  const handleCancelCsvImport = () => {
+    setCsvImportModalVisible(false);
+    setCsvText("");
   };
 
   const parsePlayersFromCsv = (
@@ -779,31 +833,25 @@ export default function PlayersTab() {
 
           <View style={{ flexDirection: "row", gap: 8 }}>
             {selectedPlayerIds.length === 1 && (
-              <Button
+              <IconButton
                 icon="pencil"
-                mode="elevated"
+                mode="contained"
                 onPress={handleBulkEdit}
-                compact
-              >
-                Edit
-              </Button>
+              />
             )}
             <Button
               icon="account-group"
-              mode="elevated"
+              mode="contained-tonal"
               onPress={handleAddToGroup}
               compact
             >
-              Add to Group
+              Group
             </Button>
-            <Button
+            <IconButton
               icon="delete"
-              mode="elevated"
+              mode="contained"
               onPress={handleBulkDelete}
-              compact
-            >
-              Delete
-            </Button>
+            />
           </View>
         </Surface>
       </Portal>
@@ -861,20 +909,20 @@ export default function PlayersTab() {
               />
               <Divider />*/}
               <Menu.Item
-                leadingIcon="export"
-                onPress={() => {
-                  setMenuVisible(false);
-                  handleExportPlayers();
-                }}
-                title="Export"
-              />
-              <Menu.Item
                 leadingIcon="import"
                 onPress={() => {
                   setMenuVisible(false);
                   handleImportPlayers();
                 }}
                 title="Import"
+              />
+              <Menu.Item
+                leadingIcon="export"
+                onPress={() => {
+                  setMenuVisible(false);
+                  handleExportPlayers();
+                }}
+                title="Export"
               />
             </Menu>
           </View>
@@ -888,11 +936,11 @@ export default function PlayersTab() {
           >
             Bulk Add
           </Button>
-          <Button icon="export" mode="elevated" onPress={handleExportPlayers}>
-            Export
-          </Button>
           <Button icon="import" mode="elevated" onPress={handleImportPlayers}>
             Import
+          </Button>
+          <Button icon="export" mode="elevated" onPress={handleExportPlayers}>
+            Export
           </Button>
           <Button
             icon="account-plus-outline"
@@ -998,6 +1046,96 @@ export default function PlayersTab() {
             setEditingPlayer(null);
           }}
         />
+      </Modal>
+
+      {/* CSV Import Modal */}
+      <Modal
+        visible={csvImportModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={{ flex: 1, padding: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
+                Import Players from CSV
+              </Text>
+              <IconButton
+                icon="close"
+                size={24}
+                onPress={handleCancelCsvImport}
+              />
+            </View>
+
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+              Paste your CSV data below. Expected format:
+              {"\n"}name,email,phone,gender,rating,notes
+            </Text>
+
+            <ScrollView style={{ flex: 1 }}>
+              <TextInput
+                mode="outlined"
+                multiline
+                numberOfLines={15}
+                value={csvText}
+                onChangeText={setCsvText}
+                placeholder="Paste CSV data here..."
+                style={{ minHeight: 300 }}
+                contentStyle={{
+                  fontFamily:
+                    Platform.OS === "ios" ? "Courier New" : "monospace",
+                  fontSize: 14,
+                }}
+              />
+            </ScrollView>
+
+            <View
+              style={{
+                flexDirection: isNarrowScreen ? "column" : "row",
+                justifyContent: "flex-end",
+                gap: 12,
+                marginTop: 16,
+              }}
+            >
+              {isNarrowScreen ? (
+                // Mobile: Primary action first, then secondary
+                <>
+                  <Button
+                    mode="contained"
+                    onPress={handleCsvImport}
+                    disabled={!csvText.trim()}
+                  >
+                    Parse CSV
+                  </Button>
+                  <Button mode="outlined" onPress={handleCancelCsvImport}>
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                // Desktop: Cancel first, then primary action (standard pattern)
+                <>
+                  <Button mode="outlined" onPress={handleCancelCsvImport}>
+                    Cancel
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={handleCsvImport}
+                    disabled={!csvText.trim()}
+                  >
+                    Parse CSV
+                  </Button>
+                </>
+              )}
+            </View>
+          </View>
+        </SafeAreaView>
       </Modal>
 
       <Modal
