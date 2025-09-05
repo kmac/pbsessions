@@ -21,6 +21,7 @@ import { useAppDispatch, useAppSelector } from "@/src/store";
 import { SessionState, Player } from "@/src/types";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import RoundComponent from "@/src/components/RoundComponent";
+import TopDescription from "@/src/components/TopDescription";
 import { SessionCoordinator } from "@/src/services/sessionCoordinator";
 import { getCurrentRoundInfo } from "@/src/services/sessionService";
 import { getSessionPlayers } from "@/src/utils/util";
@@ -183,19 +184,10 @@ export default function BetweenRoundsModal({
           style={{ flex: 1, padding: 16 }}
           showsVerticalScrollIndicator={false}
         >
-          <Surface style={{
-            padding: 12,
-            borderRadius: 8,
-            marginBottom: 20,
-            backgroundColor: theme.colors.primaryContainer
-          }}>
-            <Text variant="bodyMedium" style={{
-              color: theme.colors.onPrimaryContainer,
-              textAlign: 'center'
-            }}>
-              Configure players and court settings for this round.
-            </Text>
-          </Surface>
+          <TopDescription
+            visible={true}
+            description="Configure players and court settings for this round."
+          />
 
           <RoundComponent
             editing={true}

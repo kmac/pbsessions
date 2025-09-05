@@ -1,11 +1,5 @@
 import { View } from "react-native";
-import {
-  Badge,
-  Card,
-  Chip,
-  Surface,
-  Text,
-} from "react-native-paper";
+import { Badge, Card, Chip, Surface, Text } from "react-native-paper";
 import { Court, Player, PlayerStats, Score } from "@/src/types";
 
 export type PlayerRenderData = {
@@ -96,9 +90,17 @@ export class RoundRender {
             }}
           >
             {player1.name}
-            {this.showRating &&
+            {/* {this.showRating &&
               player1.rating &&
-              ` (${player1.rating.toFixed(2)})`}
+              ` (${player1.rating.toFixed(2)})`} */}
+            {this.showRating && player1.rating && (
+              <Badge
+                size={22}
+                style={{ backgroundColor: this.theme.colors.primary, marginLeft: 6 }}
+              >
+                {player1.rating!.toFixed(2)}
+              </Badge>
+            )}
           </Chip>
           <Chip
             mode={this.chipMode}
@@ -110,9 +112,14 @@ export class RoundRender {
             }}
           >
             {player2.name}
-            {this.showRating &&
-              player2.rating &&
-              ` (${player2.rating.toFixed(2)})`}
+            {this.showRating && player2.rating && (
+              <Badge
+                size={22}
+                style={{ backgroundColor: this.theme.colors.primary, marginLeft: 6 }}
+              >
+                {player2.rating!.toFixed(2)}
+              </Badge>
+            )}
           </Chip>
         </View>
 
@@ -167,7 +174,12 @@ export class RoundRender {
               )}
               {/* {!court.isActive && <Badge size={22}>Disabled</Badge>} */}
               {court.minimumRating && (
-                <Badge size={22}>{court.minimumRating}</Badge>
+                <Badge
+                  size={22}
+                  style={{ backgroundColor: this.theme.colors.tertiary, marginLeft: 6 }}
+                >
+                  {court.minimumRating.toFixed(2)}
+                </Badge>
               )}
             </Chip>
           </View>

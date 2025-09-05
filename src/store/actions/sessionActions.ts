@@ -141,11 +141,10 @@ export const updateCurrentRoundThunk = createAsyncThunkForSession<{
 
 export const startLiveSessionThunk = createAsyncThunkForSession<{
   sessionId: string;
-  sessionPlayers: Player[];
 }>(
   "sessions/startLiveSession",
-  (session, { sessionPlayers }) => {
-  return SessionService.startLiveSession(session, sessionPlayers);
+  (session) => {
+  return SessionService.startLiveSession(session);
 });
 
 export const endSessionThunk = createAsyncThunkForSession<{

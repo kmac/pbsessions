@@ -28,7 +28,7 @@ const sessionsSlice = createSlice({
       const newSession: Session = {
         ...action.payload,
         id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-        state: SessionState.Unstarted,
+        state: SessionState.New,
         createdAt: now,
         updatedAt: now,
       };
@@ -46,7 +46,7 @@ const sessionsSlice = createSlice({
         name: `${action.payload.name} (clone)`,
         // name: `${new Date().toDateString()}`,
         id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-        state: SessionState.Unstarted,
+        state: SessionState.New,
         //courts: {...action.payload.courts},
         //liveData: undefined,
         createdAt: now,

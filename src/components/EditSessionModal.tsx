@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { View, Modal, ScrollView, } from "react-native";
+import { View, Modal, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
   Button,
   Card,
-  Checkbox,
   Chip,
   Icon,
   IconButton,
   Surface,
+  Switch,
   Text,
   TextInput,
   useTheme,
 } from "react-native-paper";
-import { DatePickerInput, TimePickerModal } from "react-native-paper-dates";
 import { useAppSelector } from "../store";
 import {
   createCourt,
@@ -25,12 +24,13 @@ import {
   Group,
 } from "../types";
 import { validateSessionSize } from "../utils/validation";
-import SessionPlayerManager from "./SessionPlayerManager";
 import CourtManager from "./CourtManager";
+import SessionPlayerManager from "./SessionPlayerManager";
+import TopDescription from "./TopDescription";
 import { Alert } from "../utils/alert";
 
 interface EditSessionModalProps {
-  visible: boolean,
+  visible: boolean;
   session?: Session | null;
   onSave: (
     session:
@@ -58,8 +58,8 @@ export default function EditSessionModal({
     dateTime: new Date().toISOString(),
     playerIds: [] as string[],
     courts: [] as Court[],
-    scoring: appSettings.defaultUseScoring,
-    showRatings: appSettings.defaultUseRatings,
+    scoring: scoring,
+    showRatings: useRatings,
   });
 
   const [showPlayerManager, setShowPlayerManager] = useState(false);
@@ -84,7 +84,7 @@ export default function EditSessionModal({
       }
     },
     // Dependency array: effect function runs whenever any dependency changes
-    [ session, ]
+    [session],
   );
 
   const handleSave = () => {
@@ -202,6 +202,11 @@ export default function EditSessionModal({
           style={{ flex: 1, padding: 16 }}
           showsVerticalScrollIndicator={false}
         >
+          <TopDescription
+            visible={true}
+            description="Configure session parameters."
+          />
+
           <Surface
             style={{
               padding: 16,
@@ -247,63 +252,40 @@ export default function EditSessionModal({
             <View
               style={{
                 flexDirection: "row",
-                //alignItems: 'flex-start',
-                //alignContent: 'space-evenly',
-                padding: 12,
-                borderWidth: 1,
-                borderColor: theme.colors.outline,
-                borderRadius: 4,
-                gap: 8,
+                flex: 2,
+                justifyContent: "space-between",
               }}
             >
-              <DatePickerInput
-                locale="en"
-                label="Date"
-                value={new Date(formData.dateTime)}
-                //onChange={(d) => setInputDate(d)}
-                onChange={(d) => {}}
-                inputMode="start"
+              <View
                 style={{
-                  flex: 1,
-                  //width: 200,
+                  flexDirection: "row",
+                  alignItems: "center",
                 }}
-                mode="outlined"
-              />
-              {/*<TimePickerModal
-              visible={false}
-              onDismiss={() => {}}
-              onConfirm={() => {}}
-              hours={12}
-              minutes={14}
-            />*/}
-              <View style={{ flexDirection: "row", flex: 2 }}>
-                {/*<Text>Scoring Enabled:</Text>
-              <Switch value={scoring} onValueChange={() => setScoring(!scoring)} />
-              <RadioButton
-                value="Scoring Enabled"
-                status={scoring ? 'checked' : 'unchecked'}
-                onPress={() => setScoring(!scoring)}
-              />*/}
-                <Checkbox.Item
-                  label="Scoring Enabled"
-                  status={scoring ? "checked" : "unchecked"}
-                  onPress={() => {
-                    setScoring(!scoring);
-                  }}
+              >
+                <Text variant="bodyMedium" style={{ marginRight: 8 }}>
+                  Scoring
+                </Text>
+                <Switch
+                  value={formData.scoring}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, scoring: value })
+                  }
                 />
-                {/*<Text>Use Ratings:</Text>
-              <Switch value={useRatings} onValueChange={() => setUseRatings(!useRatings)} />
-              <RadioButton
-                value="Use Ratings"
-                status={useRatings ? 'checked' : 'unchecked'}
-                onPress={() => setUseRatings(!useRatings)}
-              />*/}
-                <Checkbox.Item
-                  label="Use Ratings"
-                  status={useRatings ? "checked" : "unchecked"}
-                  onPress={() => {
-                    setUseRatings(!useRatings);
-                  }}
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Text variant="bodyMedium" style={{ marginRight: 8 }}>
+                  Use Ratings
+                </Text>
+                <Switch
+                  value={formData.showRatings}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, showRatings: value })
+                  }
                 />
               </View>
             </View>

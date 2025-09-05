@@ -50,7 +50,7 @@ export const getCurrentRoundNumber = (
   // if (session.state === SessionState.Live) {
   //   return length - 1;
   // }
-  // if (session.state === SessionState.Unstarted) {
+  // if (session.state === SessionState.New) {
   //   return 0;
   // }
   // if (session.state === SessionState.Complete) {
@@ -135,7 +135,6 @@ export class SessionService {
 
   static startLiveSession = (
     session: Session,
-    sessionPlayers: Player[],
   ): Session => {
     return {
       ...session,

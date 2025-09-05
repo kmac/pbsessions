@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { View, ScrollView, Modal } from "react-native";
+import React, { useState } from "react";
+import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
@@ -21,7 +21,6 @@ import RoundScoreEntryModal from "@/src/components/RoundScoreEntryModal";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import BetweenRoundsModal from "@/src/components/BetweenRoundsModal";
 import EditSessionModal from "@/src/components/EditSessionModal";
-import RoundTimer from "@/src/components/RoundTimer";
 import { getSessionPlayers, logSession } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 import { Player, Results, Session, SessionState } from "@/src/types";
@@ -42,7 +41,6 @@ export default function LiveSessionScreen() {
   const dispatch = useAppDispatch();
 
   // useAppSelector, useAppDispatch is redux
-  // const { liveSession: currentSession } = useAppSelector((state) => state.liveSession);
   const { sessions } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
 
@@ -53,8 +51,6 @@ export default function LiveSessionScreen() {
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [roundStartTime, setRoundStartTime] = useState<Date | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
-
-  const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
 
   // TODO we should have a way to look this up - probably need to use redux since it will be global
   const liveSession = sessions.find((s) => s.state === SessionState.Live);
@@ -182,12 +178,15 @@ export default function LiveSessionScreen() {
     if (!isRoundInProgress) {
       return;
     }
-    setScoreModalVisible(true);
-    // if (scoring) {
-    //   setScoreModalVisible(true);
-    // } else {
-    //   handleRoundScoresSubmitted(null);
-    // }
+    if (scoring) {
+      setScoreModalVisible(true);
+    } else {
+      const results: Results = { scores: {} };
+      currentRound.games.forEach((game) => {
+        results.scores[game.id] = null;
+      });
+      handleRoundScoresSubmitted(results);
+    }
   };
 
   const handleRoundScoresSubmitted = (results: Results) => {
@@ -214,7 +213,6 @@ export default function LiveSessionScreen() {
     const handleEndSession = () => {
       logSession(liveSession, "Ending session");
       dispatch(endSessionThunk({ sessionId: liveSession.id }));
-      setLiveSessionId(null);
       router.navigate("/sessions");
     };
     if (isRoundInProgress) {
@@ -530,14 +528,6 @@ export default function LiveSessionScreen() {
           </Surface>
         </View>
 
-        {/* Timer Display */}
-        {/*{isRoundInProgress && roundStartTime && (
-          <Card style={{ marginBottom: 16 }}>
-            <Card.Content>
-              <RoundTimer startTime={roundStartTime} />
-            </Card.Content>
-          </Card>
-        )}*/}
         {/* Current Round Games */}
         {hasActiveRound && (
           <View style={{ marginBottom: 24 }}>

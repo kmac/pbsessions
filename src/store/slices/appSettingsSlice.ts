@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Settings } from '@/src/types';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { Settings } from "@/src/types";
 
 interface AppSettingsState {
   appSettings: Settings;
@@ -8,13 +8,18 @@ interface AppSettingsState {
 }
 
 const initialState: AppSettingsState = {
-  appSettings: { color: 'default', theme: 'light', defaultUseScoring: true, defaultUseRatings: true },
+  appSettings: {
+    color: "default",
+    theme: "light",
+    defaultUseScoring: false,
+    defaultUseRatings: false,
+  },
   loading: false,
   error: null,
 };
 
 const appSettingsSlice = createSlice({
-  name: 'appSettings',
+  name: "appSettings",
   initialState,
   reducers: {
     setAppSettings: (state, action: PayloadAction<Settings>) => {
@@ -30,10 +35,7 @@ const appSettingsSlice = createSlice({
   },
 });
 
-export const {
-  setAppSettings,
-  setLoading,
-  setError,
-} = appSettingsSlice.actions;
+export const { setAppSettings, setLoading, setError } =
+  appSettingsSlice.actions;
 
 export default appSettingsSlice.reducer;

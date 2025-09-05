@@ -19,7 +19,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import { Court, Game, Session, Player, PlayerStats } from "@/src/types";
+import { Court, Game, Session, Player, PlayerStats, SessionState } from "@/src/types";
 import {
   getCurrentRound,
   getCurrentRoundNumber,
@@ -74,9 +74,7 @@ export default function RoundComponent({
   const getPlayer = (playerId: string): Player => {
     const player = sessionPlayers.find((p) => p.id === playerId);
     if (!player) {
-      console.warn(
-        `Player with ID "${playerId}" not found in session players`,
-      );
+      console.warn(`Player with ID "${playerId}" not found in session players`);
       const now = new Date().toISOString();
       return { id: playerId, name: "UNKNOWN", createdAt: now, updatedAt: now };
     }
@@ -370,58 +368,6 @@ export default function RoundComponent({
     );
   };
 
-  // TODO remove, this isn't working:
-  const SwapActionBar = () => {
-    if (selectedPlayers.size !== 2) {
-      return null;
-    }
-
-    return (
-      <Portal>
-        <Surface
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: 16,
-            borderTopWidth: 1,
-            borderTopColor: theme.colors.outlineVariant,
-            backgroundColor: theme.colors.surface,
-            // zIndex: 1000,
-          }}
-          elevation={4}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text variant="titleMedium" style={{ fontWeight: "600" }}>
-              {selectedPlayers.size} selected
-            </Text>
-            <IconButton
-              icon="close"
-              size={20}
-              onPress={() => clearSelectedPlayers()}
-              style={{ marginLeft: 8 }}
-            />
-          </View>
-
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Button
-              icon="swap-horizontal-bold"
-              mode="elevated"
-              onPress={handleSwapPlayers}
-              compact
-            >
-              Swap Players
-            </Button>
-          </View>
-        </Surface>
-      </Portal>
-    );
-  };
-
   return (
     <SafeAreaView>
       <View style={{ marginBottom: 24 }}>
@@ -432,11 +378,8 @@ export default function RoundComponent({
           scrollEnabled={false}
         />*/}
         {(currentRound.games || []).map((game) => (
-          <View key={game.id}>
-            {renderCourtAssignment({ item: game })}
-          </View>
+          <View key={game.id}>{renderCourtAssignment({ item: game })}</View>
         ))}
-        {false && editing && <SwapActionBar />}
       </View>
       {disabledCourts.length > 0 &&
         disabledCourts.map((court) => {
@@ -477,7 +420,15 @@ export default function RoundComponent({
                     )}
                     {/* {!court.isActive && <Badge size={22}>Disabled</Badge>} */}
                     {court.minimumRating && (
-                      <Badge size={22}>{court.minimumRating}</Badge>
+                      <Badge
+                        size={22}
+                        style={{
+                          backgroundColor: theme.colors.primary,
+                          marginLeft: 6,
+                        }}
+                      >
+                        {court.minimumRating}
+                      </Badge>
                     )}
                   </Chip>
                 </View>
@@ -552,11 +503,19 @@ export default function RoundComponent({
                   editing && player && togglePlayerSelected(player);
                 }}
               >
-                {player.name} (
-                {getPlayerStats(session, player.id)?.gamesSatOut || 0})
-                {showRating &&
-                  player.rating &&
-                  ` (${player.rating.toFixed(2)})`}
+                {player.name}
+                ({getPlayerStats(session, player.id)?.gamesSatOut || 0})
+                {showRating && player.rating && (
+                  <Badge
+                    size={22}
+                    style={{
+                      backgroundColor: theme.colors.primary,
+                      marginLeft: 6,
+                    }}
+                  >
+                    {player.rating!.toFixed(2)}
+                  </Badge>
+                )}
               </Chip>
             ))}
           </View>

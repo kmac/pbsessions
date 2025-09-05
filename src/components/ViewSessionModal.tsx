@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, FlatList, Modal, StyleSheet } from "react-native";
+import { Dimensions, View, FlatList, Modal, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
@@ -106,7 +106,7 @@ const useStyles = () => {
         },
         statItem: {
           alignItems: "center",
-          minWidth: 80,
+          minWidth: 50,
         },
         statLabel: {
           marginBottom: 4,
@@ -151,26 +151,29 @@ export default function ViewSessionModal({
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState("rounds");
 
+  // Get screen dimensions for responsive design
+  const { width: screenWidth } = Dimensions.get("window");
+  const isNarrowScreen = screenWidth < 768;
+
   const { players } = useAppSelector((state) => state.players);
 
-  if (!session) return null;
+  if (!session) {
+    return null;
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
+    const dateStr = date.toLocaleDateString("en-US", {
+      month: "short",
       day: "numeric",
       year: "numeric",
     });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
+    const timeStr = date.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
+      hour12: true,
     });
+    return `${dateStr} : ${timeStr}`;
   };
 
   const getPlayerName = (playerId: string) => {
@@ -285,28 +288,28 @@ export default function ViewSessionModal({
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
             <Text variant="bodySmall" style={styles.statLabel}>
-              Games Played
+              Games
             </Text>
             <Text variant="titleMedium">{item.gamesPlayed}</Text>
           </View>
 
           <View style={styles.statItem}>
             <Text variant="bodySmall" style={styles.statLabel}>
-              Games Sat Out
+              Sat Out
             </Text>
             <Text variant="titleMedium">{item.gamesSatOut}</Text>
           </View>
 
           <View style={styles.statItem}>
             <Text variant="bodySmall" style={styles.statLabel}>
-              Total Points (for)
+              {isNarrowScreen ? "Points" : "Points For"}
             </Text>
             <Text variant="titleMedium">{item.totalScore}</Text>
           </View>
 
           <View style={styles.statItem}>
             <Text variant="bodySmall" style={styles.statLabel}>
-              Total Points (against)
+              {isNarrowScreen ? "Against" : "Points Against"}
             </Text>
             <Text variant="titleMedium">{item.totalScoreAgainst}</Text>
           </View>
@@ -329,7 +332,9 @@ export default function ViewSessionModal({
             <View style={styles.partnersChips}>
               {Object.entries(item.partners).map(([partnerId, count]) => (
                 <Chip key={partnerId} compact style={styles.partnerChip}>
-                  {getPlayerName(partnerId)} ({count})
+                  <Text variant="bodySmall" style={{ fontWeight: "bold" }}>
+                    {getPlayerName(partnerId)} ({count})
+                  </Text>
                 </Chip>
               ))}
             </View>
@@ -355,9 +360,14 @@ export default function ViewSessionModal({
 
       <SafeAreaView style={{ flex: 1 }}>
         <Surface style={styles.headerContainer}>
-          <Text variant="headlineSmall" style={styles.sessionName}>
-            {session.name}
-          </Text>
+          <View style={{ flexDirection: "column", marginBottom: 16 }}>
+            <Text variant="headlineSmall" style={styles.sessionName}>
+              {session.name}
+            </Text>
+            <Text variant="bodyMedium">
+              Date: {formatDate(session.dateTime)}
+            </Text>
+          </View>
 
           <View style={styles.sessionInfo}>
             <View style={styles.sessionMetrics}>
@@ -373,9 +383,7 @@ export default function ViewSessionModal({
                 </Chip>
               )}
             </View>
-            <Text variant="bodyMedium">
-              {formatDate(session.dateTime)} at {formatTime(session.dateTime)}
-            </Text>
+
             <Chip compact style={styles.stateChip}>
               {session.state}
             </Chip>

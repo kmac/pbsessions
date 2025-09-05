@@ -831,7 +831,17 @@ export default function PlayersTab() {
             />
           </View>
 
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          {/*<View style={{ flexDirection: "row", align: "center", gap: 8 }}>*/}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+               paddingVertical: 4,
+              // borderBottomWidth: 1,
+              // borderBottomColor: theme.colors.surfaceVariant,
+            }}
+          >
             {selectedPlayerIds.length === 1 && (
               <IconButton
                 icon="pencil"
@@ -899,7 +909,7 @@ export default function PlayersTab() {
                 />
               }
             >
-                {/*<Menu.Item
+              {/*<Menu.Item
                 leadingIcon="account-multiple-plus-outline"
                 onPress={() => {
                   setMenuVisible(false);

@@ -278,21 +278,6 @@ export default function RoundScoreEntryModal({
                   alignItems: 'center',
                   backgroundColor: theme.colors.secondaryContainer
                 }}>
-                  {/*<View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                    marginBottom: 8,
-                  }}>
-                    <Text variant="titleMedium" style={{
-                      fontWeight: '600',
-                      color: theme.colors.onSecondaryContainer
-                    }}>
-                      Receive Team
-                    </Text>
-                    {winner === 'receive' && <Icon source="trophy" size={16} />}
-                  </View>*/}
-
                   <View style={{ alignItems: 'center', marginBottom: 16 }}>
                     <Text variant="bodyMedium" style={{
                       fontWeight: '600',
@@ -395,14 +380,6 @@ export default function RoundScoreEntryModal({
           <Appbar.Content
             title="Round Scores"
           />
-          {/*<Button
-            icon="content-save"
-            mode="contained"
-            onPress={handleSave}
-            style={{ marginRight: 8 }}
-          >
-            Complete
-          </Button>*/}
         </Appbar.Header>
 
         <ScrollView

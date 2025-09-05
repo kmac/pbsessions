@@ -47,7 +47,7 @@ export const createCourt = (
 };
 
 export enum SessionState {
-  Unstarted = "Unstarted",
+  New = "New",
   Live = "Live",
   Complete = "Complete",
   Archived = "Archived",

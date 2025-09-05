@@ -72,8 +72,8 @@ export default function SessionsTab() {
     return session ? isLive(session) : false;
   };
 
-  const isUnstarted = (session: Session) => {
-    return session.state === SessionState.Unstarted;
+  const isNew = (session: Session) => {
+    return session.state === SessionState.New;
   };
 
   const isLive = (session: Session) => {
@@ -222,7 +222,6 @@ export default function SessionsTab() {
     dispatch(
       startLiveSessionThunk({
         sessionId: session.id,
-        sessionPlayers: getSessionPlayers(session),
       }),
     );
 
@@ -549,7 +548,7 @@ export default function SessionsTab() {
                 </Button>
               </>
             )}
-            {isUnstarted(session) && (
+            {isNew(session) && (
               <Button
                 icon="play"
                 mode="contained"
