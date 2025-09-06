@@ -21,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppSelector } from "../store";
 import PlayerCard from "./PlayerCard";
 import { Player, Group } from "../types";
+import TopDescription from "./TopDescription";
 
 const useStyles = () => {
   const theme = useTheme();
@@ -497,28 +498,41 @@ export default function SessionPlayerManager({
       <SafeAreaView style={styles.container}>
         <Appbar.Header>
           <Appbar.BackAction onPress={onClose} />
-          <Appbar.Content title="Select Players for Session">
-          </Appbar.Content>
+          <Appbar.Content
+            title={
+              <Text
+                variant="titleLarge"
+                style={{
+                  alignItems: "center",
+                  fontWeight: "600",
+                }}
+              >
+                Session Players
+              </Text>
+            }
+          />
         </Appbar.Header>
-
+        <TopDescription
+          visible={true}
+          description="Select Players for Session"
+        />
         <SegmentedButtons
           value={viewMode}
           onValueChange={(value) => setViewMode(value as ViewMode)}
           buttons={[
             {
-              value: 'groups',
+              value: "groups",
               label: `Groups (${groups.length})`,
-              icon: 'account-multiple-outline'
+              icon: "account-multiple-outline",
             },
             {
-              value: 'players',
+              value: "players",
               label: `Individual (${players.length})`,
-              icon: 'account-outline'
-            }
+              icon: "account-outline",
+            },
           ]}
           style={{ margin: 16 }}
         />
-
 
         {viewMode === "players" && (
           <View style={styles.searchContainer}>

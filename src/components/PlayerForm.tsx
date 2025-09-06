@@ -83,8 +83,17 @@ export default function PlayerForm({
       <Appbar.Header>
         <Appbar.BackAction onPress={onCancel} />
         <Appbar.Content
-          title={player ? "Edit Player" : "Add Player"}
-          titleStyle={{ fontWeight: "600" }}
+          title={
+            <Text
+              variant="titleLarge"
+              style={{
+                alignItems: "center",
+                fontWeight: "600",
+              }}
+            >
+              {player ? "Edit Player" : "Add Player"}
+            </Text>
+          }
         />
         <Button
           icon="content-save"
@@ -124,10 +133,7 @@ export default function PlayerForm({
               placeholder="Enter player name"
               autoFocus={!player}
             />
-            <HelperText
-              type="error"
-              visible={!formData.name}
-            >
+            <HelperText type="error" visible={!formData.name}>
               Name is required
             </HelperText>
           </View>

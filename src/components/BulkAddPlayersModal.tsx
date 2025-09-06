@@ -110,8 +110,17 @@ export default function BulkAddPlayersModal({ visible, onClose }: BulkAddPlayers
         <Appbar.Header>
           <Appbar.BackAction onPress={handleCancel} />
           <Appbar.Content
-            title="Add Players"
-            titleStyle={{ fontWeight: '600' }}
+            title={
+              <Text
+                variant="titleLarge"
+                style={{
+                  alignItems: "center",
+                  fontWeight: "600",
+                }}
+              >
+                Add Players
+              </Text>
+            }
           />
           <Button
             icon="account-multiple-plus"

@@ -27,6 +27,7 @@ import { Court, Session, SessionState } from "@/src/types";
 import ArchivedSessions from "@/src/components/ArchivedSessions";
 import EditSessionModal from "@/src/components/EditSessionModal";
 import ViewSessionModal from "@/src/components/ViewSessionModal";
+import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
 import {
   endSessionThunk,
@@ -38,8 +39,7 @@ export default function SessionsTab() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
 
-  const { width: screenWidth } = Dimensions.get("window");
-  const isNarrowScreen = screenWidth < 768;
+  const narrowScreen = isNarrowScreen();
 
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
@@ -331,11 +331,11 @@ export default function SessionsTab() {
             icon="open-in-new"
             mode="outlined"
             onPress={navigateToPlayers}
-            compact={isNarrowScreen}
+            compact={narrowScreen}
           >
-            {isNarrowScreen ? "Add" : "Add Players"}
+            {narrowScreen ? "Add" : "Add Players"}
           </Button>
-        ) : isNarrowScreen ? (
+        ) : narrowScreen ? (
           // Mobile: Primary action + menu
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Button
@@ -391,7 +391,7 @@ export default function SessionsTab() {
 
   // Mobile FAB for primary action
   const PrimaryFAB = () => {
-    if (!isNarrowScreen || players.length === 0) return null;
+    if (!narrowScreen || players.length === 0) return null;
 
     return (
       <FAB
@@ -426,21 +426,6 @@ export default function SessionsTab() {
         ]}
       >
         <Card.Content>
-          {isSessionLive(session.id) && (
-            <Chip
-              icon="record"
-              style={{
-                alignSelf: "flex-start",
-                marginBottom: 12,
-                backgroundColor: theme.colors.inversePrimary,
-              }}
-              textStyle={{ color: theme.colors.primary, fontWeight: "bold" }}
-              compact={true}
-            >
-              LIVE
-            </Chip>
-          )}
-
           <View style={{ marginBottom: 12 }}>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 16 }}
@@ -451,12 +436,39 @@ export default function SessionsTab() {
               >
                 {session.name}
               </Text>
-              <Text
-                variant="titleSmall"
-                style={{ fontWeight: "400", marginBottom: 8 }}
-              >
-                {session.state}
-              </Text>
+              {isSessionLive(session.id) && (
+                <Chip
+                  icon="record"
+                  style={{
+                    alignSelf: "flex-start",
+                    marginBottom: 12,
+                    backgroundColor: theme.colors.inversePrimary,
+                  }}
+                  textStyle={{
+                    color: theme.colors.primary,
+                    fontWeight: "bold",
+                  }}
+                  compact={true}
+                >
+                  LIVE
+                </Chip>
+              )}
+              {!isSessionLive(session.id) && (
+                <Chip
+                  style={{
+                    alignSelf: "flex-start",
+                    marginBottom: 12,
+                    backgroundColor: theme.colors.inverseOnSurface,
+                  }}
+                  textStyle={{
+                    color: theme.colors.primary,
+                    //fontWeight: "bold",
+                  }}
+                  compact={true}
+                >
+                  {session.state}
+                </Chip>
+              )}
             </View>
             <View style={{ flexDirection: "row", gap: 16 }}>
               <View
@@ -491,8 +503,15 @@ export default function SessionsTab() {
             <Chip icon="map-marker-outline" compact={true}>
               {activeCourts.length} courts
             </Chip>
+          </View>
+          <View style={{ flexDirection: "row", marginBottom: 12, gap: 8 }}>
+            {session.scoring && (
+              <Chip icon="scoreboard-outline" compact={true}>
+                Scoring
+              </Chip>
+            )}
             {activeCourts.some((c) => c.minimumRating) && (
-              <Chip icon="cog-outline" compact={true}>
+              <Chip icon="star-outline" compact={true}>
                 Rated
               </Chip>
             )}
@@ -533,16 +552,16 @@ export default function SessionsTab() {
                   icon="play"
                   mode="contained"
                   onPress={() => router.navigate("/live-session")}
-                  compact={isNarrowScreen}
+                  compact={narrowScreen}
                 >
-                  {isNarrowScreen ? "Continue" : "Continue Live Session"}
+                  {narrowScreen ? "Continue" : "Continue Live Session"}
                 </Button>
                 <Button
                   // icon={isNarrowScreen ? undefined : "stop"}
                   icon="stop"
                   mode="outlined"
                   onPress={() => handleEndSession(session)}
-                  compact={isNarrowScreen}
+                  compact={narrowScreen}
                 >
                   End
                 </Button>
@@ -553,7 +572,7 @@ export default function SessionsTab() {
                 icon="play"
                 mode="contained"
                 onPress={() => handleStartLiveSession(session)}
-                compact={isNarrowScreen}
+                compact={narrowScreen}
               >
                 Start
               </Button>
@@ -561,17 +580,9 @@ export default function SessionsTab() {
           </View>
 
           {/* Secondary actions */}
-          {isNarrowScreen ? (
+          {narrowScreen ? (
             // Mobile: Show essential actions + menu
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Button
-                icon="eye"
-                mode="text"
-                onPress={() => handleViewSession(session)}
-                compact
-              >
-                View
-              </Button>
               <Menu
                 visible={sessionMenuVisible[session.id] || false}
                 onDismiss={() => toggleSessionMenu(session.id, false)}
@@ -593,6 +604,14 @@ export default function SessionsTab() {
                     title="Edit"
                   />
                 )}
+                <Menu.Item
+                  leadingIcon="eye"
+                  onPress={() => {
+                    toggleSessionMenu(session.id, false);
+                    handleViewSession(session);
+                  }}
+                  title="View"
+                />
                 {isComplete(session) && (
                   <Menu.Item
                     leadingIcon="archive"
@@ -627,15 +646,6 @@ export default function SessionsTab() {
           ) : (
             // Desktop: Show all actions
             <View style={{ flexDirection: "row", gap: 2 }}>
-              {!isArchived(session) && (
-                <Button
-                  icon="eye"
-                  mode="text"
-                  onPress={() => handleViewSession(session)}
-                >
-                  View
-                </Button>
-              )}
               {!isComplete(session) && (
                 <Button
                   icon="pencil"
@@ -643,6 +653,15 @@ export default function SessionsTab() {
                   onPress={() => handleEditSession(session)}
                 >
                   Edit
+                </Button>
+              )}
+              {!isArchived(session) && (
+                <Button
+                  icon="eye"
+                  mode="text"
+                  onPress={() => handleViewSession(session)}
+                >
+                  View
                 </Button>
               )}
               {isComplete(session) && (
@@ -750,13 +769,13 @@ export default function SessionsTab() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           padding: 16,
-          paddingBottom: isNarrowScreen ? 80 : 16, // Extra space for FAB
+          paddingBottom: narrowScreen ? 80 : 16, // Extra space for FAB
         }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={<EmptyState />}
       />
 
-      <PrimaryFAB />
+      {false && <PrimaryFAB />}
 
       <ArchivedSessions
         visible={modalArchiveVisible}

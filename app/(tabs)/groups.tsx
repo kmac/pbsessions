@@ -8,20 +8,11 @@ import {
   Chip,
   Icon,
   IconButton,
-  List,
   Surface,
   Text,
   useTheme,
 } from "react-native-paper";
 import { router } from "expo-router";
-import {
-  Plus,
-  Edit2,
-  Trash2,
-  Users,
-  UserPlus,
-  ExternalLink,
-} from "lucide-react-native";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
   addGroup,

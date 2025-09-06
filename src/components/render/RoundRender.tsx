@@ -1,6 +1,7 @@
 import { View } from "react-native";
-import { Badge, Card, Chip, Surface, Text } from "react-native-paper";
+import { Badge, Card, Chip, Divider, Surface, Text } from "react-native-paper";
 import { Court, Player, PlayerStats, Score } from "@/src/types";
+import { isNarrowScreen } from "@/src/utils/screenUtil";
 
 export type PlayerRenderData = {
   player: Player;
@@ -24,36 +25,137 @@ export class RoundRender {
     this.chipMode = chipMode;
   }
 
-  private renderSideScore(score: number | undefined, side: string) {
+  private renderScore(
+    serveScore: number | undefined,
+    receiveScore: number | undefined,
+  ) {
+    if (!serveScore || !receiveScore) {
+      return (
+        <View style={{ alignItems: "center" }}>
+          <Text variant="titleMedium">vs.</Text>
+        </View>
+      );
+    }
     return (
-      <View>
-        {score ? (
-          <Chip elevated={true}>
-            <Text variant="titleMedium">{score}</Text>
-          </Chip>
-        ) : (
-          false && (
-            <Text
-              variant="labelMedium"
-              style={{
-                //fontWeight: "bold",
-                marginBottom: 4,
-                color: this.theme.colors.onPrimaryContainer,
-              }}
-            >
-              {side}
-            </Text>
-          )
-        )}
+      <View
+        style={{
+          alignItems: "center",
+          marginVertical: 8,
+        }}
+      >
+        <Chip
+          style={{ backgroundColor: this.theme.colors.tertiaryContainer }}
+          elevated={true}
+        >
+          <Text variant="titleSmall">
+            {serveScore} - {receiveScore}
+          </Text>
+        </Chip>
       </View>
     );
   }
 
+  public renderSideWithScore(
+    player1Data: PlayerRenderData,
+    player2Data: PlayerRenderData,
+    side: "Serve" | "Receive",
+    score: number | undefined,
+  ) {
+    const player1 = player1Data.player;
+    const player2 = player2Data.player;
+
+    return (
+      <Surface
+        style={{
+          flexDirection: "row",
+          flex: 1,
+          gap: 10,
+          padding: 12,
+          borderRadius: 8,
+          alignItems: "center",
+          backgroundColor: this.theme.colors.surfaceVariant,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: 5,
+            flex: 1,
+          }}
+        >
+          <Chip
+            mode={this.chipMode}
+            disabled={player1Data.selectDisabled}
+            elevated={!player1Data.selectDisabled}
+            selected={player1Data.selected}
+            onPress={() => {
+              player1Data.onSelected && player1Data.onSelected();
+            }}
+          >
+            {player1.name}
+            {this.showRating && player1.rating && (
+              <Badge
+                size={22}
+                style={{
+                  backgroundColor: this.theme.colors.primary,
+                  marginLeft: 6,
+                }}
+              >
+                {player1.rating!.toFixed(2)}
+              </Badge>
+            )}
+          </Chip>
+          <Chip
+            mode={this.chipMode}
+            disabled={player2Data.selectDisabled}
+            elevated={!player2Data.selectDisabled}
+            selected={player2Data.selected}
+            onPress={() => {
+              player2Data.onSelected && player2Data.onSelected();
+            }}
+          >
+            {player2.name}
+            {this.showRating && player2.rating && (
+              <Badge
+                size={22}
+                style={{
+                  backgroundColor: this.theme.colors.primary,
+                  marginLeft: 6,
+                }}
+              >
+                {player2.rating!.toFixed(2)}
+              </Badge>
+            )}
+          </Chip>
+        </View>
+
+        <View
+          style={{
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: 40,
+          }}
+        >
+          {score !== undefined ? (
+            <Text variant="titleLarge" style={{ fontWeight: "bold" }}>
+              {score}
+            </Text>
+          ) : (
+            <Text
+              variant="bodySmall"
+              style={{ color: this.theme.colors.outline }}
+            >
+              --
+            </Text>
+          )}
+        </View>
+      </Surface>
+    );
+  }
   public renderSide(
     player1Data: PlayerRenderData,
     player2Data: PlayerRenderData,
-    score: number | undefined,
-    side: "Serve" | "Receive",
   ) {
     const player1 = player1Data.player;
     const player2 = player2Data.player;
@@ -68,11 +170,9 @@ export class RoundRender {
           borderRadius: 8,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: this.theme.colors.primaryContainer,
+          backgroundColor: this.theme.colors.surfaceVariant,
         }}
       >
-        {side === "Receive" && this.renderSideScore(score, side)}
-
         <View
           style={{
             flexDirection: "column",
@@ -96,7 +196,10 @@ export class RoundRender {
             {this.showRating && player1.rating && (
               <Badge
                 size={22}
-                style={{ backgroundColor: this.theme.colors.primary, marginLeft: 6 }}
+                style={{
+                  backgroundColor: this.theme.colors.primary,
+                  marginLeft: 6,
+                }}
               >
                 {player1.rating!.toFixed(2)}
               </Badge>
@@ -115,15 +218,16 @@ export class RoundRender {
             {this.showRating && player2.rating && (
               <Badge
                 size={22}
-                style={{ backgroundColor: this.theme.colors.primary, marginLeft: 6 }}
+                style={{
+                  backgroundColor: this.theme.colors.primary,
+                  marginLeft: 6,
+                }}
               >
                 {player2.rating!.toFixed(2)}
               </Badge>
             )}
           </Chip>
         </View>
-
-        {side === "Serve" && this.renderSideScore(score, side)}
       </Surface>
     );
   }
@@ -176,7 +280,10 @@ export class RoundRender {
               {court.minimumRating && (
                 <Badge
                   size={22}
-                  style={{ backgroundColor: this.theme.colors.tertiary, marginLeft: 6 }}
+                  style={{
+                    backgroundColor: this.theme.colors.tertiary,
+                    marginLeft: 6,
+                  }}
                 >
                   {court.minimumRating.toFixed(2)}
                 </Badge>
@@ -185,20 +292,35 @@ export class RoundRender {
           </View>
 
           <View
-            style={{ flexDirection: "row", alignItems: "center", columnGap: 6 }}
+            style={{
+              flexDirection: isNarrowScreen() ? "column" : "row",
+              alignItems: "stretch",
+              columnGap: 6,
+            }}
           >
             {this.renderSide(
               servePlayer1Data,
               servePlayer2Data,
-              score?.serveScore,
-              "Serve",
             )}
+            {this.renderScore(score?.serveScore, score?.receiveScore)}
+            {this.renderSide(
+              receivePlayer1Data,
+              receivePlayer2Data,
+            )}
+            {/*
+            {this.renderSide(
+              servePlayer1Data,
+              servePlayer2Data,
+              score?.serveScore,
+            )}
+            <Divider />
+            {false && this.renderScore(score?.serveScore, score?.receiveScore)}
             {this.renderSide(
               receivePlayer1Data,
               receivePlayer2Data,
               score?.receiveScore,
-              "Receive",
             )}
+            */}
           </View>
         </Card.Content>
       </Card>

@@ -1,25 +1,45 @@
-// app/(tabs)/configuration.tsx
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import { Settings, Download, Upload, Trash2 } from 'lucide-react-native';
-import { RootState } from '@/src/store';
+import React, { useState } from 'react';
+import { View, ScrollView, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Button,
+  Card,
+  Surface,
+  Text,
+  useTheme,
+  Icon,
+  Divider,
+  Switch,
+  SegmentedButtons,
+  Menu,
+  TouchableRipple,
+} from 'react-native-paper';
+import { useAppDispatch, useAppSelector } from '@/src/store';
 import { StorageManager, StoredData } from '@/src/store/storage';
-import { colors } from '@/src/theme';
-import { Alert } from '@/src/utils/alert'
+import { Alert } from '@/src/utils/alert';
+import TopDescription from '@/src/components/TopDescription';
+import { setAppSettings } from '@/src/store/slices/appSettingsSlice';
+import { Settings, Color } from '@/src/types';
+import Colors from '@/src/ui/styles/colors';
 
 export default function SettingsTab() {
-  const dispatch = useDispatch();
-  const { players } = useSelector((state: RootState) => state.players);
-  const { groups } = useSelector((state: RootState) => state.groups);
-  const { sessions } = useSelector((state: RootState) => state.sessions);
+  const theme = useTheme();
+  const dispatch = useAppDispatch();
+  const { width: screenWidth } = Dimensions.get('window');
+  const isNarrowScreen = screenWidth < 768;
+
+  const { players } = useAppSelector((state) => state.players);
+  const { groups } = useAppSelector((state) => state.groups);
+  const { sessions } = useAppSelector((state) => state.sessions);
+  const { appSettings } = useAppSelector((state) => state.appSettings);
+
+  const [colorMenuVisible, setColorMenuVisible] = useState(false);
 
   const handleExportData = async () => {
     try {
       const storage = StorageManager.getInstance();
-      const data : StoredData = await storage.exportAllData();
+      const data: StoredData = await storage.exportAllData();
 
-      // In a real app, this would trigger a download or share
       Alert.alert(
         'Export Data',
         `TODO: Ready to export:\n• ${data.players.length} players\n• ${data.groups.length} groups\n• ${data.sessions.length} sessions.`,
@@ -43,7 +63,6 @@ export default function SettingsTab() {
             try {
               const storage = StorageManager.getInstance();
               await storage.clearAllData();
-              // TODO? In a real app, you'd dispatch actions to clear Redux state too
               Alert.alert('Success', 'All data cleared');
             } catch (error) {
               Alert.alert('Error', 'Failed to clear data');
@@ -54,130 +73,320 @@ export default function SettingsTab() {
     );
   };
 
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        {/*<Settings size={32} color={colors.primary} />*/}
-        <Text style={styles.title}>Settings</Text>
-      </View>
+  const updateSettings = (updates: Partial<Settings>) => {
+    const newSettings = { ...appSettings, ...updates };
+    dispatch(setAppSettings(newSettings));
+  };
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Data Management</Text>
+  const colorOptions = Object.keys(Colors.light) as Color[];
 
-        <View style={styles.statsContainer}>
-          <View style={styles.stat}>
-            <Text style={styles.statNumber}>{players.length}</Text>
-            <Text style={styles.statLabel}>Players</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statNumber}>{groups.length}</Text>
-            <Text style={styles.statLabel}>Groups</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statNumber}>{sessions.length}</Text>
-            <Text style={styles.statLabel}>Sessions</Text>
-          </View>
+  const formatColorName = (color: Color) => {
+    return color.charAt(0).toUpperCase() + color.slice(1);
+  };
+
+  const SettingsHeader = () => (
+    <Surface
+      style={{
+        paddingHorizontal: 16,
+        paddingVertical: 24,
+      }}
+    >
+      <Text
+        variant="titleLarge"
+        style={{
+          marginBottom: 8,
+          color: theme.colors.onSurface,
+        }}
+      >
+        Pickleball Sessions
+      </Text>
+      <TopDescription
+        visible={true}
+        description="Configure application settings and defaults"
+      />
+    </Surface>
+  );
+
+  const AppearanceCard = () => (
+    <Card style={{ marginBottom: 16 }}>
+      <Card.Title title="Appearance" />
+      <Card.Content>
+
+        {/* Theme Selection */}
+        <View style={{ marginBottom: 16 }}>
+          <Text variant="titleSmall" style={{ marginBottom: 8 }}>
+            Theme
+          </Text>
+          <SegmentedButtons
+            value={appSettings.theme}
+            onValueChange={(value) => updateSettings({ theme: value as 'light' | 'dark' | 'auto' })}
+            buttons={[
+              { value: 'light', label: 'Light', icon: 'white-balance-sunny' },
+              { value: 'dark', label: 'Dark', icon: 'moon-waning-crescent' },
+              { value: 'auto', label: 'Auto', icon: 'brightness-auto' },
+            ]}
+          />
         </View>
 
-        <TouchableOpacity style={styles.actionButton} onPress={handleExportData}>
-          <Download size={20} color={colors.primary} />
-          <Text style={styles.actionButtonText}>Export Data</Text>
-        </TouchableOpacity>
+        <Divider style={{ marginVertical: 8 }} />
 
-        <TouchableOpacity style={[styles.actionButton, styles.dangerButton]} onPress={handleClearData}>
-          <Trash2 size={20} color={colors.red} />
-          <Text style={[styles.actionButtonText, styles.dangerButtonText]}>Clear All Data</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Color Selection */}
+        <View>
+          <Text variant="titleSmall" style={{ marginBottom: 8 }}>
+            Color Theme
+          </Text>
+          <Menu
+            visible={colorMenuVisible}
+            onDismiss={() => setColorMenuVisible(false)}
+            anchor={
+              <TouchableRipple
+                onPress={() => setColorMenuVisible(true)}
+                style={{
+                  padding: 12,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: theme.colors.outline,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: theme.colors.primary,
+                        marginRight: 12,
+                      }}
+                    />
+                    <Text variant="bodyMedium">{formatColorName(appSettings.color)}</Text>
+                  </View>
+                  <Icon source="chevron-down" size={20} />
+                </View>
+              </TouchableRipple>
+            }
+          >
+            {colorOptions.map((color) => (
+              <Menu.Item
+                key={color}
+                onPress={() => {
+                  updateSettings({ color });
+                  setColorMenuVisible(false);
+                }}
+                title={formatColorName(color)}
+                leadingIcon={() => (
+                  <View
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      backgroundColor: Colors.light[color].primary,
+                    }}
+                  />
+                )}
+                trailingIcon={appSettings.color === color ? "check" : undefined}
+              />
+            ))}
+          </Menu>
+        </View>
+      </Card.Content>
+    </Card>
+  );
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About</Text>
-        <Text style={styles.aboutText}>
+  const DefaultsCard = () => (
+    <Card style={{ marginBottom: 16 }}>
+      <Card.Title title="Session Defaults" />
+      <Card.Content>
+        <View style={{ marginBottom: 16 }}>
+          <TouchableRipple
+            onPress={() => updateSettings({ defaultUseScoring: !appSettings.defaultUseScoring })}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: 8,
+            }}
+          >
+            <>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyMedium" style={{ marginBottom: 4 }}>
+                  Enable Scoring by Default
+                </Text>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  New sessions will have scoring enabled by default
+                </Text>
+              </View>
+              <Switch
+                value={appSettings.defaultUseScoring}
+                onValueChange={(value) => updateSettings({ defaultUseScoring: value })}
+              />
+            </>
+          </TouchableRipple>
+        </View>
+
+        <TouchableRipple
+          onPress={() => updateSettings({ defaultUseRatings: !appSettings.defaultUseRatings })}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingVertical: 8,
+          }}
+        >
+          <>
+            <View style={{ flex: 1 }}>
+              <Text variant="bodyMedium" style={{ marginBottom: 4 }}>
+                Show Ratings by Default
+              </Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                New sessions will show player ratings by default
+              </Text>
+            </View>
+            <Switch
+              value={appSettings.defaultUseRatings}
+              onValueChange={(value) => updateSettings({ defaultUseRatings: value })}
+            />
+          </>
+        </TouchableRipple>
+      </Card.Content>
+    </Card>
+  );
+
+  const DataStatsCard = () => (
+    <Card style={{ marginBottom: 16 }}>
+      <Card.Title title="Data Overview" />
+      <Card.Content>
+        <Surface
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-around',
+            paddingVertical: 8,
+            borderRadius: 8,
+          }}
+          elevation={0}
+        >
+          <View style={{ alignItems: 'center' }}>
+            <Text
+              variant="titleLarge"
+              style={{
+                fontWeight: 'bold',
+                color: theme.colors.primary,
+                marginBottom: 4,
+              }}
+            >
+              {players.length}
+            </Text>
+            <Text
+              variant="bodyMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              Players
+            </Text>
+          </View>
+          <View style={{ alignItems: 'center' }}>
+            <Text
+              variant="titleLarge"
+              style={{
+                fontWeight: 'bold',
+                color: theme.colors.primary,
+                marginBottom: 4,
+              }}
+            >
+              {groups.length}
+            </Text>
+            <Text
+              variant="bodyMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              Groups
+            </Text>
+          </View>
+          <View style={{ alignItems: 'center' }}>
+            <Text
+              variant="titleLarge"
+              style={{
+                fontWeight: 'bold',
+                color: theme.colors.primary,
+                marginBottom: 4,
+              }}
+            >
+              {sessions.length}
+            </Text>
+            <Text
+              variant="bodyMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              Sessions
+            </Text>
+          </View>
+        </Surface>
+      </Card.Content>
+    </Card>
+  );
+
+  const DataManagementCard = () => (
+    <Card style={{ marginBottom: 16 }}>
+      <Card.Title title="Data Management" />
+      <Card.Content>
+        <Button
+          icon="download"
+          mode="outlined"
+          onPress={handleExportData}
+          style={{ marginBottom: 12 }}
+          contentStyle={{ justifyContent: 'flex-start' }}
+        >
+          Export Data
+        </Button>
+
+        <Button
+          icon="delete"
+          mode="outlined"
+          buttonColor={theme.colors.errorContainer}
+          textColor={theme.colors.error}
+          onPress={handleClearData}
+          contentStyle={{ justifyContent: 'flex-start' }}
+        >
+          Clear All Data
+        </Button>
+      </Card.Content>
+    </Card>
+  );
+
+  const AboutCard = () => (
+    <Card>
+      <Card.Title title="About" />
+      <Card.Content>
+        <Text
+          variant="bodyMedium"
+          style={{
+            lineHeight: 20,
+            color: theme.colors.onSurfaceVariant,
+          }}
+        >
           Pickleball Sessions v1.0.0{'\n'}
-          Organize and manage pickleball sessions with fair player rotation and team balancing.
+          Organize and manage pickleball sessions with fair player rotation and
+          team balancing.
         </Text>
-      </View>
-    </ScrollView>
+      </Card.Content>
+    </Card>
+  );
+
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      <SettingsHeader />
+
+      <ScrollView
+        contentContainerStyle={{
+          padding: 16,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <AppearanceCard />
+        <DefaultsCard />
+        <DataStatsCard />
+        <DataManagementCard />
+        <AboutCard />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginTop: 8,
-  },
-  section: {
-    backgroundColor: 'white',
-    marginTop: 16,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 24,
-    paddingVertical: 16,
-    backgroundColor: colors.grayLight,
-    borderRadius: 8,
-  },
-  stat: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 12,
-    gap: 12,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.text,
-  },
-  dangerButton: {
-    borderColor: colors.red,
-    backgroundColor: colors.redLight,
-  },
-  dangerButtonText: {
-    color: colors.red,
-  },
-  aboutText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textSecondary,
-  },
-});

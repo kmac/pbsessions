@@ -378,7 +378,17 @@ export default function RoundScoreEntryModal({
         <Appbar.Header>
           <Appbar.BackAction onPress={onClose} />
           <Appbar.Content
-            title="Round Scores"
+            title={
+              <Text
+                variant="titleLarge"
+                style={{
+                  alignItems: "center",
+                  fontWeight: "600",
+                }}
+              >
+                Round Scores
+              </Text>
+            }
           />
         </Appbar.Header>
 

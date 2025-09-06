@@ -1,16 +1,16 @@
-import React, { useState } from "react";
-import { View, Modal, FlatList, ScrollView, Dimensions } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Modal, FlatList, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
   Button,
   Card,
   Icon,
+  List,
   SegmentedButtons,
   Searchbar,
   Surface,
   Text,
-  TextInput,
   useTheme,
   FAB,
 } from "react-native-paper";
@@ -20,6 +20,7 @@ import { Group, Player } from "@/src/types";
 import PlayerCard from "./PlayerCard";
 import QuickPlayerForm from "./QuickPlayerForm";
 import { Alert } from "@/src/utils/alert";
+import { isNarrowScreen } from "@/src/utils/screenUtil";
 
 interface GroupPlayerManagerProps {
   visible: boolean;
@@ -42,12 +43,16 @@ export default function GroupPlayerManager({
   const dispatch = useAppDispatch();
   const { players: allPlayers } = useAppSelector((state) => state.players);
 
-  // Get screen dimensions for responsive design
-  const { width: screenWidth } = Dimensions.get("window");
-  const isNarrowScreen = screenWidth < 768;
-
   const [selectedPlayers, setSelectedPlayers] =
     useState<Player[]>(groupPlayers);
+
+  const narrowScreen = isNarrowScreen();
+
+  // Sync selectedPlayers with groupPlayers when props change
+  useEffect(() => {
+    setSelectedPlayers(groupPlayers);
+  }, [groupPlayers]);
+
   const selectedPlayerIds = selectedPlayers.map((item) => item.id);
 
   const [viewMode, setViewMode] = useState<ViewMode>("select");
@@ -129,8 +134,7 @@ export default function GroupPlayerManager({
 
   const SelectExistingView = () => (
     <>
-      {/*
-      <List.Section title="Group">
+      {/*<List.Section title="Group">
         <List.Accordion
           title={groupName}
           left={props => <List.Icon {...props} icon="folder" />}>
@@ -142,8 +146,7 @@ export default function GroupPlayerManager({
             />
           ))}
         </List.Accordion>
-      </List.Section>
-      */}
+      </List.Section>*/}
 
       {selectedPlayers.length > 0 && (
         <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
@@ -156,14 +159,19 @@ export default function GroupPlayerManager({
           >
             Selected Players ({selectedPlayers.length})
           </Text>
-          <FlatList
-            data={[...filteredSelectedPlayers].sort((a, b) =>
-              a.name.localeCompare(b.name),
-            )}
-            renderItem={({ item }) => renderPlayer({ item })}
-            keyExtractor={(item) => `selected-${item.id}`}
-            scrollEnabled={false}
-          />
+          <View>
+            {[...filteredSelectedPlayers]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((item) => (
+                <PlayerCard
+                  key={`selected-${item.id}`}
+                  player={item}
+                  isSelected={selectedPlayerIds.includes(item.id)}
+                  onToggle={handleTogglePlayer}
+                  showActions={true}
+                />
+              ))}
+          </View>
         </View>
       )}
 
@@ -217,14 +225,19 @@ export default function GroupPlayerManager({
             )}
           </Surface>
         ) : (
-          <FlatList
-            data={[...availablePlayers].sort((a, b) =>
-              a.name.localeCompare(b.name),
-            )}
-            renderItem={({ item }) => renderPlayer({ item })}
-            keyExtractor={(item) => `available-${item.id}`}
-            scrollEnabled={false}
-          />
+          <View>
+            {[...availablePlayers]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((item) => (
+                <PlayerCard
+                  key={`available-${item.id}`}
+                  player={item}
+                  isSelected={selectedPlayerIds.includes(item.id)}
+                  onToggle={handleTogglePlayer}
+                  showActions={true}
+                />
+              ))}
+          </View>
         )}
       </View>
     </>
@@ -326,16 +339,16 @@ export default function GroupPlayerManager({
   const BottomActionBar = () => (
     <Surface
       style={{
-        flexDirection: isNarrowScreen ? "column" : "row",
+        flexDirection: narrowScreen ? "column" : "row",
         padding: 16,
-        gap: isNarrowScreen ? 12 : 16,
+        gap: narrowScreen ? 12 : 16,
         borderTopWidth: 1,
         borderTopColor: theme.colors.outlineVariant,
         backgroundColor: theme.colors.surface,
       }}
       elevation={3}
     >
-      {isNarrowScreen ? (
+      {narrowScreen ? (
         // Stack buttons vertically on narrow screens
         <>
           <Button
@@ -381,28 +394,6 @@ export default function GroupPlayerManager({
     </Surface>
   );
 
-  // Floating Action Button for primary action on mobile
-  const PrimaryFAB = () => {
-    if (!isNarrowScreen) {
-      return null;
-    }
-    return (
-      <FAB
-        icon="content-save"
-        onPress={handleSave}
-        color={theme.colors.onPrimary}
-        size="medium"
-        style={{
-          position: "absolute",
-          margin: 16,
-          right: 0,
-          bottom: 20, // Above the bottom action bar
-          backgroundColor: theme.colors.primary,
-        }}
-      />
-    );
-  };
-
   return (
     <Modal
       visible={visible}
@@ -412,16 +403,28 @@ export default function GroupPlayerManager({
       <SafeAreaView style={{ flex: 1 }}>
         <Appbar.Header>
           <Appbar.BackAction onPress={onCancel} />
-          <Appbar.Content title={groupName} />
+          <Appbar.Content
+            title={
+              <Text
+                variant="titleLarge"
+                style={{
+                  alignItems: "center",
+                  fontWeight: "600",
+                }}
+              >
+                {groupName}
+              </Text>
+            }
+          />
           {/* Keep one action button on wider screens */}
-          {!isNarrowScreen && (
+          {!narrowScreen && (
             <Appbar.Action icon="content-save" onPress={handleSave} />
           )}
         </Appbar.Header>
         <ScrollView
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: isNarrowScreen ? 160 : 100 }}
+          contentContainerStyle={{ paddingBottom: narrowScreen ? 160 : 100 }}
         >
           <SegmentedButtons
             value={viewMode}
@@ -452,8 +455,23 @@ export default function GroupPlayerManager({
           {viewMode === "select" ? <SelectExistingView /> : <AddNewView />}
         </ScrollView>
 
-        {isNarrowScreen && <PrimaryFAB />}
-        {!isNarrowScreen && <BottomActionBar />}
+        {false && narrowScreen && (
+          <FAB
+            icon="content-save"
+            onPress={handleSave}
+            color={theme.colors.onPrimary}
+            size="medium"
+            style={{
+              position: "absolute",
+              margin: 16,
+              right: 0,
+              bottom: 100, // Above the bottom action bar
+              backgroundColor: theme.colors.primary,
+            }}
+          />
+        )}
+
+        <BottomActionBar />
 
         <Modal
           visible={showQuickAdd}

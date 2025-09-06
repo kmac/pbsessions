@@ -33,13 +33,27 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
     playerIds: group?.playerIds || [],
   });
 
+  // Track original player IDs to detect changes
+  const [originalPlayerIds, setOriginalPlayerIds] = useState<string[]>(
+    group?.playerIds || []
+  );
+
   useEffect(() => {
-    setFormData({
+    const newFormData = {
       name: group?.name || "",
       description: group?.description || "",
       playerIds: group?.playerIds || [],
-    });
+    };
+    setFormData(newFormData);
+    setOriginalPlayerIds(group?.playerIds || []);
   }, [group]);
+
+  // Check if there are unsaved changes to players
+  const hasUnsavedPlayerChanges = () => {
+    const currentIds = [...formData.playerIds].sort();
+    const originalIds = [...originalPlayerIds].sort();
+    return JSON.stringify(currentIds) !== JSON.stringify(originalIds);
+  };
 
   const currentGroupPlayers = allPlayers.filter((player) =>
     formData.playerIds.includes(player.id),
@@ -64,11 +78,29 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
     }
   };
 
+  const handleCancel = () => {
+    if (hasUnsavedPlayerChanges()) {
+      Alert.alert(
+        "Unsaved Changes",
+        "You have unsaved changes to the player list. Are you sure you want to cancel?",
+        [
+          {
+            text: "Keep Editing",
+            style: "cancel",
+          },
+          {
+            text: "Discard Changes",
+            style: "destructive",
+            onPress: onCancel,
+          },
+        ]
+      );
+    } else {
+      onCancel();
+    }
+  };
+
   const handleSaveGroupPlayers = (gp: Player[]) => {
-    // if (!players || !Array.isArray(players)) {
-    //   console.error('Players is not an array:', players);
-    //   return;
-    // }
     const newPlayerIds: string[] = gp.map((p) => p.id);
     setFormData({ ...formData, playerIds: newPlayerIds });
     setPlayerManagerVisible(false);
@@ -81,11 +113,19 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Appbar.Header>
-        <Appbar.BackAction onPress={onCancel} />
+        <Appbar.BackAction onPress={handleCancel} />
         <Appbar.Content
           title={group ? "Edit Group" : "Add Group"}
           titleStyle={{ fontWeight: "600" }}
         />
+        <Button
+          mode="text"
+          onPress={handleCancel}
+          style={{ marginRight: 8 }}
+          textColor={theme.colors.onSurface}
+        >
+          Cancel
+        </Button>
         <Button
           icon="content-save"
           mode="contained"
@@ -130,7 +170,6 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
               autoFocus={!group}
               style={{ marginBottom: 16 }}
             />
-
             <Text
               variant="labelLarge"
               style={{
@@ -151,6 +190,25 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
               numberOfLines={4}
               contentStyle={{ minHeight: 100 }}
             />
+            <View
+              style={{
+                flexDirection: "row",
+                marginTop: 16,
+                marginBottom: 12,
+              }}
+            >
+              <Button
+                icon="account-multiple-plus-outline"
+                mode="contained-tonal"
+                compact={true}
+                onPress={() => handleManagePlayers()}
+                contentStyle={{ paddingHorizontal: 12 }}
+              >
+                {formData.playerIds.length > 0
+                  ? "Manage Players"
+                  : "Add Players"}
+              </Button>
+            </View>
             {formData.playerIds && (
               <View style={{ marginVertical: 12 }}>
                 <Text
@@ -164,7 +222,6 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
                 </Text>
                 <Text
                   variant="bodyMedium"
-                  // numberOfLines={2}
                   style={{
                     color: theme.colors.onSurfaceVariant,
                   }}
@@ -199,30 +256,12 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
                 )}
               </View>
             )}
-            <View
-              style={{
-                flexDirection: "row",
-              }}
-            >
-              <Button
-                icon="account-multiple-plus-outline"
-                mode="contained-tonal"
-                compact={true}
-                onPress={() => handleManagePlayers()}
-                contentStyle={{ paddingHorizontal: 12 }}
-              >
-                {formData.playerIds.length > 0
-                  ? "Manage Players"
-                  : "Add Players"}
-              </Button>
-            </View>
           </View>
         </Surface>
       </ScrollView>
 
       <GroupPlayerManager
         visible={playerManagerVisible}
-        //groupName={group ? group.name : ""}
         groupName={formData.name || "New Group"}
         groupPlayers={currentGroupPlayers}
         onSave={(gp) => {

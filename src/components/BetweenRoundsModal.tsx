@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Modal,
-  ScrollView,
-  useWindowDimensions
-} from "react-native";
+import { View, Modal, ScrollView, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
@@ -167,7 +162,19 @@ export default function BetweenRoundsModal({
     >
       <Appbar.Header>
         <Appbar.BackAction onPress={onClose} />
-        <Appbar.Content title={`New Round: ${roundNumber}`} />
+        <Appbar.Content
+          title={
+            <Text
+              variant="titleLarge"
+              style={{
+                alignItems: "center",
+                fontWeight: "600",
+              }}
+            >
+              New Round {roundNumber}
+            </Text>
+          }
+        />
         {onEditSession && (
           <Appbar.Action icon="pencil" onPress={onEditSession} />
         )}

@@ -36,6 +36,7 @@ import {
 } from "@/src/store/slices/playersSlice";
 import { updateGroup } from "@/src/store/slices/groupsSlice";
 import { getShortGender } from "@/src/utils/util";
+import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Group, Player } from "@/src/types";
 import PlayerForm from "@/src/components/PlayerForm";
 import BulkAddPlayersModal from "@/src/components/BulkAddPlayersModal";
@@ -54,8 +55,7 @@ export default function PlayersTab() {
   const allPlayers = useSelector(selectAllPlayers);
   const groups = useSelector((state: RootState) => state.groups.groups);
 
-  const { width: screenWidth } = Dimensions.get("window");
-  const isNarrowScreen = screenWidth < 768;
+  const narrowScreen = true; // isNarrowScreen();
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -485,7 +485,7 @@ export default function PlayersTab() {
   }
 
   const handlePlayerSelection = (playerId: string) => {
-    if (!isNarrowScreen) {
+    if (!narrowScreen) {
       return;
     }
 
@@ -625,7 +625,7 @@ export default function PlayersTab() {
   };
 
   const renderPlayerList = ({ item }: { item: Player }) => {
-    const isSelected = isNarrowScreen && selectedPlayerIds.includes(item.id);
+    const isSelected = narrowScreen && selectedPlayerIds.includes(item.id);
 
     return (
       <Surface
@@ -752,7 +752,7 @@ export default function PlayersTab() {
             </View>
           )}
           left={
-            isNarrowScreen
+            narrowScreen
               ? isSelected
                 ? () => (
                     <Icon
@@ -765,7 +765,7 @@ export default function PlayersTab() {
               : (props) => getAvatarName(item.name, props)
           }
           right={
-            isNarrowScreen
+            narrowScreen
               ? undefined
               : (props) => (
                   <View
@@ -787,7 +787,7 @@ export default function PlayersTab() {
                 )
           }
           onPress={
-            isNarrowScreen ? () => handlePlayerSelection(item.id) : undefined
+            narrowScreen ? () => handlePlayerSelection(item.id) : undefined
           }
           style={{
             borderRadius: isSelected ? 8 : 0,
@@ -799,7 +799,7 @@ export default function PlayersTab() {
 
   // Mobile selection action bar
   const SelectionActionBar = () => {
-    if (!isNarrowScreen || selectedPlayerIds.length === 0) return null;
+    if (!narrowScreen || selectedPlayerIds.length === 0) return null;
 
     return (
       <Portal>
@@ -837,7 +837,7 @@ export default function PlayersTab() {
               flexDirection: "row",
               justifyContent: "space-between",
               alignItems: "center",
-               paddingVertical: 4,
+              paddingVertical: 4,
               // borderBottomWidth: 1,
               // borderBottomColor: theme.colors.surfaceVariant,
             }}
@@ -880,11 +880,13 @@ export default function PlayersTab() {
         borderBottomColor: theme.colors.surfaceVariant,
       }}
     >
-      <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
+      <Text
+        variant="titleLarge"
+        style={{ fontWeight: "bold" }}>
         Players ({filteredPlayers.length})
       </Text>
 
-      {isNarrowScreen ? (
+      {narrowScreen ? (
         selectedPlayerIds.length > 0 ? (
           <Button mode="elevated" onPress={() => clearSelection()} compact>
             Cancel
@@ -966,7 +968,7 @@ export default function PlayersTab() {
 
   // Mobile FAB for quick access to primary action
   const PrimaryFAB = () => {
-    if (!isNarrowScreen || selectedPlayerIds.length > 0) {
+    if (!narrowScreen || selectedPlayerIds.length > 0) {
       return null;
     }
     return (
@@ -1003,7 +1005,7 @@ export default function PlayersTab() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           padding: 16,
-          paddingBottom: isNarrowScreen
+          paddingBottom: narrowScreen
             ? selectedPlayerIds.length > 0
               ? 100
               : 80
@@ -1108,13 +1110,13 @@ export default function PlayersTab() {
 
             <View
               style={{
-                flexDirection: isNarrowScreen ? "column" : "row",
+                flexDirection: narrowScreen ? "column" : "row",
                 justifyContent: "flex-end",
                 gap: 12,
                 marginTop: 16,
               }}
             >
-              {isNarrowScreen ? (
+              {narrowScreen ? (
                 // Mobile: Primary action first, then secondary
                 <>
                   <Button
@@ -1242,13 +1244,13 @@ export default function PlayersTab() {
 
             <View
               style={{
-                flexDirection: isNarrowScreen ? "column" : "row",
+                flexDirection: narrowScreen ? "column" : "row",
                 justifyContent: "flex-end",
                 gap: 12,
                 marginTop: 16,
               }}
             >
-              {isNarrowScreen ? (
+              {narrowScreen ? (
                 <>
                   <Button
                     mode="contained"

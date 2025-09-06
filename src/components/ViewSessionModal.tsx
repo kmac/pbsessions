@@ -1,18 +1,24 @@
 import React, { useMemo, useState } from "react";
-import { Dimensions, View, FlatList, Modal, StyleSheet } from "react-native";
+import { View, FlatList, Modal, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
+  Button,
   Card,
   Chip,
   List,
-  SegmentedButtons,
   Surface,
   Text,
   useTheme,
 } from "react-native-paper";
 import { useAppSelector } from "@/src/store";
-import { Session, Game, PlayerStats, Round } from "@/src/types";
+import PlayerStatsModal from "@/src/components/PlayerStatsModal";
+import { Session, SessionState, Game, Round } from "@/src/types";
+import {
+  getPlayerName,
+  getCourtName,
+  getSessionPlayers,
+} from "@/src/utils/util";
 
 const useStyles = () => {
   const theme = useTheme();
@@ -23,6 +29,7 @@ const useStyles = () => {
         headerContainer: {
           padding: 16,
           elevation: 1,
+          marginBottom: 2,
         },
         sessionName: {
           fontWeight: "bold",
@@ -32,7 +39,7 @@ const useStyles = () => {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 12,
+          marginBottom: 8,
         },
         stateChip: {
           alignSelf: "flex-start",
@@ -41,10 +48,6 @@ const useStyles = () => {
           flexDirection: "row",
           gap: 8,
           flexWrap: "wrap",
-        },
-        tabContainer: {
-          padding: 16,
-          paddingBottom: 8,
         },
         listContainer: {
           padding: 16,
@@ -62,20 +65,12 @@ const useStyles = () => {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
-          gap: 16,
+          gap: 4,
         },
         team: {
           flexDirection: "column",
           alignItems: "center",
           minWidth: 80,
-        },
-        teamLabel: {
-          fontWeight: "600",
-          marginBottom: 2,
-        },
-        scoreContainer: {
-          alignItems: "center",
-          marginVertical: 8,
         },
         statusChip: {
           alignSelf: "center",
@@ -84,44 +79,11 @@ const useStyles = () => {
         sittingOutContainer: {
           margin: 16,
           padding: 12,
-          //backgroundColor: theme.colors.secondaryContainer,
           borderRadius: 8,
         },
         sittingOutLabel: {
           fontWeight: "600",
           marginBottom: 4,
-        },
-        playerStatsCard: {
-          marginBottom: 12,
-        },
-        playerName: {
-          fontWeight: "bold",
-          marginBottom: 12,
-        },
-        statsGrid: {
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: 16,
-          marginBottom: 12,
-        },
-        statItem: {
-          alignItems: "center",
-          minWidth: 50,
-        },
-        statLabel: {
-          marginBottom: 4,
-          textAlign: "center",
-        },
-        partnersContainer: {
-          marginTop: 8,
-        },
-        partnersLabel: {
-          marginBottom: 8,
-        },
-        partnersChips: {
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: 4,
         },
         partnerChip: {
           marginBottom: 4,
@@ -149,11 +111,7 @@ export default function ViewSessionModal({
 }: ViewSessionModalProps) {
   const styles = useStyles();
   const theme = useTheme();
-  const [activeTab, setActiveTab] = useState("rounds");
-
-  // Get screen dimensions for responsive design
-  const { width: screenWidth } = Dimensions.get("window");
-  const isNarrowScreen = screenWidth < 768;
+  const [statsModalVisible, setStatsModalVisible] = useState(false);
 
   const { players } = useAppSelector((state) => state.players);
 
@@ -176,19 +134,7 @@ export default function ViewSessionModal({
     return `${dateStr} : ${timeStr}`;
   };
 
-  const getPlayerName = (playerId: string) => {
-    const player = players.find((p) => p.id === playerId);
-    return player?.name || "Unknown Player";
-  };
-
-  const getCourtName = (courtId: string) => {
-    const court = session.courts.find((c) => c.id === courtId);
-    return court?.name || "Unknown Court";
-  };
-
-  const getSessionPlayers = () => {
-    return players.filter((player) => session.playerIds.includes(player.id));
-  };
+  const sessionPlayers = getSessionPlayers(session, players);
 
   const renderGame = (game: Game) => (
     <Card key={game.id} style={styles.gameCard}>
@@ -198,17 +144,17 @@ export default function ViewSessionModal({
             compact
             style={{ backgroundColor: theme.colors.tertiaryContainer }}
           >
-            {getCourtName(game.courtId)}
+            {getCourtName(session.courts, game.courtId)}
           </Chip>
         </View>
 
         <View style={styles.teamsContainer}>
           <View style={styles.team}>
             <Chip compact style={styles.partnerChip}>
-              {getPlayerName(game.serveTeam.player1Id)}
+              {getPlayerName(players, game.serveTeam.player1Id)}
             </Chip>
             <Chip compact style={styles.partnerChip}>
-              {getPlayerName(game.serveTeam.player2Id)}
+              {getPlayerName(players, game.serveTeam.player2Id)}
             </Chip>
           </View>
 
@@ -226,10 +172,10 @@ export default function ViewSessionModal({
 
           <View style={styles.team}>
             <Chip compact style={styles.partnerChip}>
-              {getPlayerName(game.receiveTeam.player1Id)}
+              {getPlayerName(players, game.receiveTeam.player1Id)}
             </Chip>
             <Chip compact style={styles.partnerChip}>
-              {getPlayerName(game.receiveTeam.player2Id)}
+              {getPlayerName(players, game.receiveTeam.player2Id)}
             </Chip>
           </View>
         </View>
@@ -253,7 +199,6 @@ export default function ViewSessionModal({
   const renderRound = ({ item, index }: { item: Round; index: number }) => (
     <List.Accordion
       title={`Round ${index + 1}`}
-      //description={`${item.games.length} games`}
       right={(props) => (
         <View style={{ flexDirection: "row" }}>
           <Text style={{ marginRight: 10 }}>{item.games.length} games</Text>
@@ -271,146 +216,123 @@ export default function ViewSessionModal({
             Sat Out:
           </Text>
           <Text variant="bodySmall">
-            {item.sittingOutIds.map(getPlayerName).join(", ")}
+            {item.sittingOutIds
+              .map((id) => getPlayerName(players, id))
+              .join(", ")}
           </Text>
         </View>
       )}
     </List.Accordion>
   );
 
-  const renderPlayerStats = ({ item }: { item: PlayerStats }) => (
-    <Card style={styles.playerStatsCard}>
-      <Card.Content>
-        <Text variant="titleMedium" style={styles.playerName}>
-          {getPlayerName(item.playerId)}
-        </Text>
-
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Text variant="bodySmall" style={styles.statLabel}>
-              Games
-            </Text>
-            <Text variant="titleMedium">{item.gamesPlayed}</Text>
-          </View>
-
-          <View style={styles.statItem}>
-            <Text variant="bodySmall" style={styles.statLabel}>
-              Sat Out
-            </Text>
-            <Text variant="titleMedium">{item.gamesSatOut}</Text>
-          </View>
-
-          <View style={styles.statItem}>
-            <Text variant="bodySmall" style={styles.statLabel}>
-              {isNarrowScreen ? "Points" : "Points For"}
-            </Text>
-            <Text variant="titleMedium">{item.totalScore}</Text>
-          </View>
-
-          <View style={styles.statItem}>
-            <Text variant="bodySmall" style={styles.statLabel}>
-              {isNarrowScreen ? "Against" : "Points Against"}
-            </Text>
-            <Text variant="titleMedium">{item.totalScoreAgainst}</Text>
-          </View>
-
-          {item.averageRating && (
-            <View style={styles.statItem}>
-              <Text variant="bodySmall" style={styles.statLabel}>
-                Avg Rating
-              </Text>
-              <Text variant="titleMedium">{item.averageRating.toFixed(1)}</Text>
-            </View>
-          )}
-        </View>
-
-        {Object.keys(item.partners).length > 0 && (
-          <View style={styles.partnersContainer}>
-            <Text variant="labelMedium" style={styles.partnersLabel}>
-              Partners:
-            </Text>
-            <View style={styles.partnersChips}>
-              {Object.entries(item.partners).map(([partnerId, count]) => (
-                <Chip key={partnerId} compact style={styles.partnerChip}>
-                  <Text variant="bodySmall" style={{ fontWeight: "bold" }}>
-                    {getPlayerName(partnerId)} ({count})
-                  </Text>
-                </Chip>
-              ))}
-            </View>
-          </View>
-        )}
-      </Card.Content>
-    </Card>
-  );
-
   const rounds = session.liveData?.rounds || [];
   const playerStats = session.liveData?.playerStats || [];
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
-      <Appbar.Header>
-        <Appbar.BackAction onPress={onCancel} />
-        <Appbar.Content title="Session Details" />
-      </Appbar.Header>
+    <>
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <Appbar.Header>
+          <Appbar.BackAction onPress={onCancel} />
+          <Appbar.Content title="Session Details" />
+        </Appbar.Header>
 
-      <SafeAreaView style={{ flex: 1 }}>
-        <Surface style={styles.headerContainer}>
-          <View style={{ flexDirection: "column", marginBottom: 16 }}>
-            <Text variant="headlineSmall" style={styles.sessionName}>
-              {session.name}
-            </Text>
-            <Text variant="bodyMedium">
-              Date: {formatDate(session.dateTime)}
-            </Text>
-          </View>
-
-          <View style={styles.sessionInfo}>
-            <View style={styles.sessionMetrics}>
-              <Chip icon="account-group" compact>
-                {session.playerIds.length} players
-              </Chip>
-              <Chip icon="map-marker-outline" compact>
-                {session.courts.filter((c) => c.isActive).length} courts
-              </Chip>
-              {session.scoring && (
-                <Chip icon="scoreboard" compact>
-                  Scoring
-                </Chip>
-              )}
+        <SafeAreaView style={{ flex: 1 }}>
+          <Surface style={styles.headerContainer}>
+            <View style={{ flexDirection: "column", marginBottom: 8 }}>
+              <Text variant="titleMedium" style={styles.sessionName}>
+                {session.name}
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignContent: "center",
+                  gap: 10,
+                  marginBottom: 1,
+                }}
+              >
+                <Text variant="bodyMedium" style={{ marginBottom: 8 }}>
+                  {formatDate(session.dateTime)}
+                </Text>
+                <Text variant="bodyMedium" style={{ marginBottom: 8 }}>
+                  {session.scoring ? "( Scoring, " : "( No Scoring, "}
+                  {session.showRatings ? "Ratings )" : "No Ratings )"}
+                </Text>
+              </View>
+              <View style={styles.sessionInfo}>
+                <View style={styles.sessionMetrics}>
+                  <Chip icon="account-group" compact>
+                    {session.playerIds.length} players
+                  </Chip>
+                  <Chip icon="map-marker-outline" compact>
+                    {session.courts.filter((c) => c.isActive).length} courts
+                  </Chip>
+                  {session.state === SessionState.Live ? (
+                    <Chip
+                      icon="record"
+                      style={{
+                        alignSelf: "flex-start",
+                        backgroundColor: theme.colors.inversePrimary,
+                      }}
+                      textStyle={{
+                        color: theme.colors.primary,
+                        fontWeight: "bold",
+                      }}
+                      compact={true}
+                    >
+                      LIVE
+                    </Chip>
+                  ) : (
+                    <Chip compact style={styles.stateChip}>
+                      {session.state}
+                    </Chip>
+                  )}
+                </View>
+              </View>
+              {/*
+              <View style={{ flexDirection: "row", marginBottom: 12, gap: 8 }}>
+                {session.scoring && (
+                  <Chip
+                    icon="scoreboard-outline"
+                    compact
+                    textStyle={{ fontSize: 9 }}
+                  >
+                    Scoring
+                  </Chip>
+                )}
+                {session.showRatings && (
+                  <Chip icon="star-outline" compact textStyle={{ fontSize: 9 }}>
+                    Ratings
+                  </Chip>
+                )}
+              </View>
+              */}
             </View>
+            {playerStats.length > 0 && (
+              <Button
+                icon="chart-box"
+                mode="outlined"
+                onPress={() => setStatsModalVisible(true)}
+                style={{
+                  marginBottom: 2,
+                  //maxWidth: 200,
+                }}
+              >
+                Player Stats
+              </Button>
+            )}
+          </Surface>
 
-            <Chip compact style={styles.stateChip}>
-              {session.state}
-            </Chip>
-          </View>
-        </Surface>
+          {rounds.length === 0 && (
+            <View style={styles.emptyContainer}>
+              <Text variant="bodyMedium">No rounds available</Text>
+            </View>
+          )}
 
-        <View style={styles.tabContainer}>
-          <SegmentedButtons
-            value={activeTab}
-            onValueChange={setActiveTab}
-            buttons={[
-              {
-                value: "rounds",
-                label: "Rounds",
-                icon: "view-list",
-              },
-              {
-                value: "stats",
-                label: "Player Stats",
-                icon: "chart-line",
-              },
-            ]}
-          />
-        </View>
-
-        {activeTab === "rounds" ? (
-          rounds.length > 0 ? (
+          {rounds.length > 0 && (
             <List.AccordionGroup>
               <FlatList
                 data={rounds}
@@ -429,13 +351,8 @@ export default function ViewSessionModal({
                     >
                       Players:
                     </Text>
-                    <Text
-                      variant="bodySmall"
-                      //numberOfLines={2}
-                      //style={{ color: theme.colors.onSurfaceVariant, margin: 16 }}
-                      style={{ marginHorizontal: 22 }}
-                    >
-                      {getSessionPlayers()
+                    <Text variant="bodySmall" style={{ marginHorizontal: 22 }}>
+                      {sessionPlayers
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .map((p) => p.name)
                         .join(", ")}
@@ -444,24 +361,16 @@ export default function ViewSessionModal({
                 }
               />
             </List.AccordionGroup>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Text variant="bodyMedium">No rounds available</Text>
-            </View>
-          )
-        ) : playerStats.length > 0 ? (
-          <FlatList
-            data={playerStats}
-            renderItem={renderPlayerStats}
-            keyExtractor={(item) => item.playerId}
-            contentContainerStyle={styles.listContainer}
-          />
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Text variant="bodyMedium">No player stats available</Text>
-          </View>
-        )}
-      </SafeAreaView>
-    </Modal>
+          )}
+        </SafeAreaView>
+      </Modal>
+
+      <PlayerStatsModal
+        visible={statsModalVisible}
+        players={sessionPlayers}
+        stats={playerStats}
+        onClose={() => setStatsModalVisible(false)}
+      />
+    </>
   );
 }

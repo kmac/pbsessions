@@ -29,7 +29,6 @@ import { setSessions } from "@/src/store/slices/sessionsSlice";
 import { setAppSettings } from "@/src/store/slices/appSettingsSlice";
 import { Themes } from "@/src/ui/styles";
 import { Settings } from "@/src/types";
-import { Alert } from "@/src/utils/alert";
 
 import { router } from "expo-router";
 
@@ -105,6 +104,37 @@ const RootLayoutNav = () => {
     materialLight: Themes.light[settings.color],
   });
 
+  const stackHeader = () => {
+    return (
+      <Appbar.Header mode="center-aligned">
+        {/*<Appbar.BackAction
+                  onPress={() => {
+                    router.navigate("/sessions");
+                  }}
+                />*/}
+        <Appbar.Content
+          title={
+            <Text
+              variant="titleMedium"
+              style={{
+                alignItems: "center",
+                fontWeight: "600",
+              }}
+            >
+              Pickleball Sessions
+            </Text>
+          }
+        />
+        <Tooltip title="Settings">
+          <Appbar.Action
+            icon="dots-vertical"
+            onPress={() => router.navigate("/settings")}
+          />
+        </Tooltip>
+      </Appbar.Header>
+    );
+  };
+
   return (
     <ThemeProvider
       value={
@@ -116,39 +146,14 @@ const RootLayoutNav = () => {
       <PaperProvider theme={theme}>
         <StorageLoader />
         <Stack
-          screenOptions={{
-            // animation: 'slide_from_bottom',
-            header: (props) => (
-              <Appbar.Header mode="center-aligned">
-                {/*<Appbar.BackAction
-                  onPress={() => {
-                    router.navigate("/sessions");
-                  }}
-                />*/}
-                <Appbar.Content
-                  title={
-                    <Text
-                      variant="titleMedium"
-                      style={{
-                        alignItems: "center",
-                        fontWeight: "600",
-                      }}
-                    >
-                      Pickleball Sessions
-                    </Text>
-                  }
-                />
-                <Tooltip title="Settings">
-                  <Appbar.Action
-                    icon="dots-vertical"
-                    onPress={() => router.navigate("/settings")}
-                  />
-                </Tooltip>
-              </Appbar.Header>
-            ),
-          }}
+          screenOptions={
+            {
+              // animation: 'slide_from_bottom',
+              //header: (props) => stackHeader()
+            }
+          }
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: true }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
           <Stack.Screen
             name="live-session"

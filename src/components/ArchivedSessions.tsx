@@ -224,8 +224,17 @@ export default function ArchivedSessions({
       <Appbar.Header>
         <Appbar.BackAction onPress={onCancel} />
         <Appbar.Content
-          title="Archived Sessions"
-          titleStyle={{ fontWeight: "600" }}
+          title={
+            <Text
+              variant="titleLarge"
+              style={{
+                alignItems: "center",
+                fontWeight: "600",
+              }}
+            >
+              Archived Sessions
+            </Text>
+          }
         />
       </Appbar.Header>
       <SafeAreaView style={{ flex: 1 }}>

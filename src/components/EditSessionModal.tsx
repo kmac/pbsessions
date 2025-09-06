@@ -15,14 +15,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { useAppSelector } from "../store";
-import {
-  createCourt,
-  Session,
-  SessionState,
-  Court,
-  Player,
-  Group,
-} from "../types";
+import { createCourt, Session, Court } from "../types";
 import { validateSessionSize } from "../utils/validation";
 import CourtManager from "./CourtManager";
 import SessionPlayerManager from "./SessionPlayerManager";
@@ -185,8 +178,17 @@ export default function EditSessionModal({
       <Appbar.Header>
         <Appbar.BackAction onPress={onCancel} />
         <Appbar.Content
-          title={session ? "Edit Session" : "New Session"}
-          titleStyle={{ fontWeight: "600" }}
+          title={
+            <Text
+              variant="titleLarge"
+              style={{
+                alignItems: "center",
+                fontWeight: "600",
+              }}
+            >
+              {session ? "Edit Session" : "New Session"}
+            </Text>
+          }
         />
         <Button
           icon="content-save"

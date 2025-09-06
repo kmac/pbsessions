@@ -41,10 +41,10 @@ export default function TabLayout() {
       // headerTitleStyle: {
       //   fontWeight: 'bold',
       // },
-      screenOptions={{
-        tabBarHideOnKeyboard: true,
-        header: (props) => <TabsHeader navProps={props} children={undefined} />,
-      }}
+      // screenOptions={{
+      //   tabBarHideOnKeyboard: true,
+      //   header: (props) => <TabsHeader navProps={props} children={undefined} />,
+      // }}
     >
       <Tabs.Screen
         name="index"
@@ -57,7 +57,6 @@ export default function TabLayout() {
         options={{
           headerShown: false,
           title: "Players",
-          //tabBarIcon: ({ color, size }) => <Users color={color} size={size || 24} />,
           tabBarIcon: ({ color, size }) => (
             <Icon
               source="account-multiple-plus"
@@ -72,21 +71,21 @@ export default function TabLayout() {
           //     name={props.focused ? 'account' : 'account-outline'}
           //   />
           // ),
-          headerLeft: () => <Icon source="camera" size={20} />,
-          headerTitle: "Switch",
-          headerRight: () => (
-            <>
-              <Tooltip title="Search">
-                <Appbar.Action icon="magnify" onPress={() => {}} />
-              </Tooltip>
-              <Tooltip title="Settings">
-                <Appbar.Action
-                  icon="menu"
-                  onPress={() => router.navigate("/settings")}
-                />
-              </Tooltip>
-            </>
-          ),
+          // headerLeft: () => <Icon source="camera" size={20} />,
+          // headerTitle: "Switch",
+          // headerRight: () => (
+          //   <>
+          //     <Tooltip title="Search">
+          //       <Appbar.Action icon="magnify" onPress={() => {}} />
+          //     </Tooltip>
+          //     <Tooltip title="Settings">
+          //       <Appbar.Action
+          //         icon="menu"
+          //         onPress={() => router.navigate("/settings")}
+          //       />
+          //     </Tooltip>
+          //   </>
+          // ),
         }}
       />
       <Tabs.Screen
@@ -107,7 +106,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Icon
               source="view-grid"
-              //source="scoreboard-outline"
+              // source="scoreboard-outline"
               color={color}
               size={size || 24}
             />
@@ -121,7 +120,8 @@ export default function TabLayout() {
           // href: null,
           title: "Settings",
           tabBarIcon: ({ color, size }) => (
-            <Icon source="cog" color={color} size={size || 24} />
+            // cog
+            <Icon source="tune-vertical-variant" color={color} size={size || 24} />
           ),
         }}
       />

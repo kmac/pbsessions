@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { View, Modal, FlatList, ScrollView } from "react-native";
+import { Dimensions, View, Modal, FlatList, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Button,
   Card,
   Chip,
+  Icon,
   IconButton,
   Surface,
   Text,
@@ -20,6 +21,9 @@ import {
   UserCheck,
 } from "lucide-react-native";
 import { Player, PlayerStats } from "../types";
+import { getPlayer } from "@/src/utils/util";
+import { isNarrowScreen } from "@/src/utils/screenUtil";
+import PlayerStatsCard from "@/src/components/PlayerStatsCard";
 
 interface PlayerStatsModalProps {
   visible: boolean;
@@ -39,6 +43,8 @@ export default function PlayerStatsModal({
   const theme = useTheme();
   const [sortBy, setSortBy] = useState<SortOption>("gamesPlayed");
 
+  const narrowScreen = isNarrowScreen();
+
   const getPlayerStats = (playerId: string): PlayerStats => {
     return (
       stats.find((s) => s.playerId === playerId) || {
@@ -50,10 +56,6 @@ export default function PlayerStatsModal({
         totalScoreAgainst: 0,
       }
     );
-  };
-
-  const getPlayer = (playerId: string): Player | undefined => {
-    return players.find((p) => p.id === playerId);
   };
 
   const sortedPlayers = [...players].sort((a, b) => {
@@ -235,7 +237,7 @@ export default function PlayerStatsModal({
                 <Text
                   style={{ fontWeight: "500", color: theme.colors.onSurface }}
                 >
-                  {getPlayer(mostFrequentPartner[0])?.name || "Unknown"}
+                  {getPlayer(players, mostFrequentPartner[0])?.name || "Unknown"}
                 </Text>{" "}
                 ({mostFrequentPartner[1]} games)
               </Text>
@@ -300,6 +302,7 @@ export default function PlayerStatsModal({
 
           <View style={{ alignItems: "center", gap: 8 }}>
             <TrendingUp size={20} color={theme.colors.primary} />
+            {/* <Icon size={20} source="trophy" color={theme.colors.primary} /> */}
             <Text variant="titleLarge" style={{ fontWeight: "bold" }}>
               {averageGamesPlayed.toFixed(1)}
             </Text>
@@ -406,17 +409,12 @@ export default function PlayerStatsModal({
           </View>
 
           {/* Player Stats List */}
-          {/*<View style={{ marginHorizontal: 16 }}>
-            <FlatList
-              data={sortedPlayers}
-              renderItem={renderPlayerStat}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              showsVerticalScrollIndicator={false}
-            />
-          </View> */}
           {(sortedPlayers || []).map((item) => (
-            <View key={item.id}>{renderPlayerStat({ item })}</View>
+            <PlayerStatsCard
+              stats={getPlayerStats(item.id)}
+              players={players}
+              narrowScreen={narrowScreen}
+            />
           ))}
         </ScrollView>
       </SafeAreaView>
