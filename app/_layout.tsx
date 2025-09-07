@@ -1,5 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
+import { useColorScheme } from 'react-native';
 import {
   DarkTheme as NavDarkTheme,
   DefaultTheme as NavLightTheme,
@@ -81,8 +82,15 @@ const RootLayoutNav = () => {
     (state: RootState) => state.appSettings.appSettings,
   );
 
-  // const colorScheme = settings.theme || 'light';
-  const colorScheme = "light";
+  // Fix: Get actual system color scheme and use settings theme
+  const systemColorScheme = useColorScheme();
+  const getEffectiveColorScheme = () => {
+    if (!settings?.theme) return 'light';
+    if (settings.theme === 'auto') return systemColorScheme ?? 'light';
+    return settings.theme;
+  };
+  
+  const colorScheme = getEffectiveColorScheme();
 
   // Fallback to default if settings not loaded yet
   const effectiveSettings: Settings = settings || {
@@ -93,15 +101,15 @@ const RootLayoutNav = () => {
   const theme =
     Themes[
       effectiveSettings.theme === "auto"
-        ? (colorScheme ?? "dark")
+        ? (systemColorScheme ?? "light")
         : effectiveSettings.theme
     ][effectiveSettings.color];
 
   const { DarkTheme, LightTheme } = adaptNavigationTheme({
     reactNavigationDark: NavDarkTheme,
     reactNavigationLight: NavLightTheme,
-    materialDark: Themes.dark[settings.color],
-    materialLight: Themes.light[settings.color],
+    materialDark: Themes.dark[effectiveSettings.color],
+    materialLight: Themes.light[effectiveSettings.color],
   });
 
   const stackHeader = () => {
