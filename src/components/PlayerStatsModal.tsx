@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   Chip,
-  Icon,
   IconButton,
   Surface,
   Text,
@@ -411,6 +410,7 @@ export default function PlayerStatsModal({
           {/* Player Stats List */}
           {(sortedPlayers || []).map((item) => (
             <PlayerStatsCard
+              key={item.id}
               stats={getPlayerStats(item.id)}
               players={players}
               narrowScreen={narrowScreen}

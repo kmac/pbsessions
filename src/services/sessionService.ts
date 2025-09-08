@@ -22,7 +22,7 @@ export const getCurrentRoundInfo = (liveData?: {
     roundNumber: roundsLength === 0 ? 1 : roundsLength,
     currentRound:
       roundsLength === 0
-        ? ({ games: [], sittingOutIds: [] } as Round)
+        ? ({ roundNumber: 1, games: [], sittingOutIds: [] } as Round)
         : safeData.rounds[roundsLength - 1],
   };
 };
@@ -66,11 +66,11 @@ export const getCurrentRound = (
   if (live) {
     validateLive(session);
   } else if (!session || !session.liveData) {
-    return { games: [], sittingOutIds: [] };
+    return { roundNumber: 1, games: [], sittingOutIds: [] };
   }
   const length = session.liveData!.rounds.length;
   if (length === 0) {
-    return { games: [], sittingOutIds: [] };
+    return { roundNumber: 1, games: [], sittingOutIds: [] };
   }
   return session.liveData!.rounds[length - 1];
 };
@@ -89,6 +89,7 @@ const convertAssignmentToRound = (
     isCompleted: false,
   }));
   const nextRound = {
+    roundNumber: roundAssignment.roundNumber,
     games: newGames,
     sittingOutIds: roundAssignment.sittingOutIds,
   };

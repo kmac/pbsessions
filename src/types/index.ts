@@ -105,6 +105,7 @@ export interface Results {
 }
 
 export interface Round {
+  roundNumber: number;
   games: Game[];
   sittingOutIds: string[];
 }

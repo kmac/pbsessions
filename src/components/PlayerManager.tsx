@@ -3,11 +3,9 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  Modal,
 } from 'react-native';
 import {
   DataTable,
-  List,
   Text,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';

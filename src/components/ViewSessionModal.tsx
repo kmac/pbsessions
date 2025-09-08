@@ -4,7 +4,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
   Button,
-  Card,
   Chip,
   List,
   Surface,
@@ -13,10 +12,10 @@ import {
 } from "react-native-paper";
 import { useAppSelector } from "@/src/store";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
+import GameCard from "@/src/components/GameCard";
 import { Session, SessionState, Game, Round } from "@/src/types";
 import {
   getPlayerName,
-  getCourtName,
   getSessionPlayers,
 } from "@/src/utils/util";
 
@@ -51,30 +50,6 @@ const useStyles = () => {
         },
         listContainer: {
           padding: 16,
-        },
-        gameCard: {
-          marginVertical: 4,
-        },
-        gameHeader: {
-          flexDirection: "row",
-          justifyContent: "flex-start",
-          alignItems: "center",
-          marginBottom: 12,
-        },
-        teamsContainer: {
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 4,
-        },
-        team: {
-          flexDirection: "column",
-          alignItems: "center",
-          minWidth: 80,
-        },
-        statusChip: {
-          alignSelf: "center",
-          marginTop: 8,
         },
         sittingOutContainer: {
           margin: 16,
@@ -136,66 +111,6 @@ export default function ViewSessionModal({
 
   const sessionPlayers = getSessionPlayers(session, players);
 
-  const renderGame = (game: Game) => (
-    <Card key={game.id} style={styles.gameCard}>
-      <Card.Content>
-        <View style={styles.gameHeader}>
-          <Chip
-            compact
-            style={{ backgroundColor: theme.colors.tertiaryContainer }}
-          >
-            {getCourtName(session.courts, game.courtId)}
-          </Chip>
-        </View>
-
-        <View style={styles.teamsContainer}>
-          <View style={styles.team}>
-            <Chip compact style={styles.partnerChip}>
-              {getPlayerName(players, game.serveTeam.player1Id)}
-            </Chip>
-            <Chip compact style={styles.partnerChip}>
-              {getPlayerName(players, game.serveTeam.player2Id)}
-            </Chip>
-          </View>
-
-          <Chip
-            compact
-            style={[
-              styles.statusChip,
-              { backgroundColor: theme.colors.surfaceVariant },
-            ]}
-          >
-            {game.score
-              ? `${game.score.serveScore} - ${game.score.receiveScore}`
-              : "vs."}
-          </Chip>
-
-          <View style={styles.team}>
-            <Chip compact style={styles.partnerChip}>
-              {getPlayerName(players, game.receiveTeam.player1Id)}
-            </Chip>
-            <Chip compact style={styles.partnerChip}>
-              {getPlayerName(players, game.receiveTeam.player2Id)}
-            </Chip>
-          </View>
-        </View>
-
-        {!game.isCompleted && (
-          <Chip
-            icon="timer-outline"
-            compact
-            style={[
-              styles.statusChip,
-              { backgroundColor: theme.colors.surfaceVariant },
-            ]}
-          >
-            Incomplete
-          </Chip>
-        )}
-      </Card.Content>
-    </Card>
-  );
-
   const renderRound = ({ item, index }: { item: Round; index: number }) => (
     <List.Accordion
       title={`Round ${index + 1}`}
@@ -208,7 +123,14 @@ export default function ViewSessionModal({
       left={(props) => <List.Icon {...props} icon="view-list" />}
       id={index}
     >
-      {item.games.map(renderGame)}
+      {item.games.map((game) => (
+        <GameCard
+          key={game.id}
+          game={game}
+          session={session}
+          players={players}
+        />
+      ))}
 
       {item.sittingOutIds.length > 0 && (
         <View style={styles.sittingOutContainer}>
@@ -337,7 +259,7 @@ export default function ViewSessionModal({
               <FlatList
                 data={rounds}
                 renderItem={renderRound}
-                keyExtractor={(_, index) => index.toString()}
+                keyExtractor={(item) => item.roundNumber.toString()}
                 contentContainerStyle={styles.listContainer}
                 ListFooterComponent={
                   <View>
