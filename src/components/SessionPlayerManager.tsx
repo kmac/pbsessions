@@ -104,19 +104,6 @@ const useStyles = () => {
           //borderColor: colors.border,
           gap: 8,
         },
-        searchContainerOrig: {
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: "white",
-          marginHorizontal: 16,
-          marginBottom: 16,
-          paddingHorizontal: 12,
-          paddingVertical: 12,
-          borderRadius: 8,
-          borderWidth: 1,
-          //borderColor: colors.border,
-          gap: 8,
-        },
         searchBar: {
           flexDirection: "row",
           alignItems: "center",
@@ -537,28 +524,38 @@ export default function SessionPlayerManager({
         {viewMode === "players" && (
           <View style={styles.searchContainer}>
             <Searchbar
-              style={styles.searchBar}
               placeholder="Search players..."
-              value={searchQuery}
               onChangeText={setSearchQuery}
+              value={searchQuery}
+              mode="bar"
+              style={styles.searchBar}
             />
           </View>
         )}
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={true}
+        >
           {selectedPlayers.length > 0 && (
             <Surface style={styles.section}>
               <Text style={styles.sectionTitle}>
                 Selected Players ({selectedPlayers.length})
               </Text>
-              <FlatList
-                data={filteredSelectedPlayers.sort((a, b) =>
-                  a.name.localeCompare(b.name),
-                )}
-                renderItem={renderPlayer}
-                keyExtractor={(item) => `selected-${item.id}`}
-                scrollEnabled={false}
-              />
+              <View>
+                {filteredSelectedPlayers
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((item) => (
+                    <PlayerCard
+                      key={`selected-${item.id}`}
+                      player={item}
+                      isSelected={selectedPlayerIds.includes(item.id)}
+                      onToggle={togglePlayer}
+                      compact={true}
+                      showActions={true}
+                    />
+                  ))}
+              </View>
             </Surface>
           )}
 
@@ -579,24 +576,100 @@ export default function SessionPlayerManager({
                   </Text>
                 </View>
               ) : (
-                <FlatList
-                  data={[...groups].sort((a, b) =>
-                    a.name.localeCompare(b.name),
-                  )}
-                  renderItem={renderGroup}
-                  keyExtractor={(item) => item.id}
-                  scrollEnabled={false}
-                />
+                <View>
+                  {[...groups]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((item) => {
+                      const groupPlayers = getGroupPlayers(item);
+                      const selectedCount = groupPlayers.filter((p) =>
+                        isPlayerSelected(p.id),
+                      ).length;
+                      const isFullySelected =
+                        selectedCount === groupPlayers.length &&
+                        groupPlayers.length > 0;
+                      const isPartiallySelected =
+                        selectedCount > 0 &&
+                        selectedCount < groupPlayers.length;
+
+                      return (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={[
+                            styles.groupItem,
+                            isFullySelected && styles.groupItemSelected,
+                            isPartiallySelected && styles.groupItemPartial,
+                          ]}
+                          onPress={() => toggleGroup(item)}
+                        >
+                          <View style={styles.groupInfo}>
+                            <View style={styles.groupHeader}>
+                              <Text
+                                style={[
+                                  styles.groupName,
+                                  (isFullySelected || isPartiallySelected) &&
+                                    styles.groupNameSelected,
+                                ]}
+                              >
+                                {item.name}
+                              </Text>
+                              <View style={styles.groupStats}>
+                                <Text
+                                  style={[
+                                    styles.groupPlayerCount,
+                                    (isFullySelected || isPartiallySelected) &&
+                                      styles.groupPlayerCountSelected,
+                                  ]}
+                                >
+                                  {selectedCount}/{groupPlayers.length}
+                                </Text>
+                              </View>
+                            </View>
+
+                            {item.description && (
+                              <Text
+                                style={[
+                                  styles.groupDescription,
+                                  (isFullySelected || isPartiallySelected) &&
+                                    styles.groupDescriptionSelected,
+                                ]}
+                              >
+                                {item.description}
+                              </Text>
+                            )}
+
+                            {groupPlayers.length > 0 && (
+                              <Text
+                                style={[
+                                  styles.groupPlayersPreview,
+                                  (isFullySelected || isPartiallySelected) &&
+                                    styles.groupPlayersPreviewSelected,
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {groupPlayers.map((p) => p.name).join(", ")}
+                              </Text>
+                            )}
+                          </View>
+
+                          {!isFullySelected && !isPartiallySelected && (
+                            <IconButton icon="circle-outline" />
+                          )}
+                          {isPartiallySelected && (
+                            <IconButton icon="circle-slice-5" />
+                          )}
+                          {isFullySelected && (
+                            <IconButton icon="circle-slice-8" />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                </View>
               )
             ) : (
-              <FlatList
-                data={filteredPlayers
+              <View>
+                {filteredPlayers
                   .filter((player) => !isPlayerSelected(player.id))
-                  .sort((a, b) => a.name.localeCompare(b.name))}
-                renderItem={renderPlayer}
-                keyExtractor={(item) => item.id}
-                scrollEnabled={false}
-                ListEmptyComponent={
+                  .sort((a, b) => a.name.localeCompare(b.name)).length === 0 ? (
                   <View style={styles.emptyState}>
                     <IconButton icon="account-plus-outline" />
                     <Text style={styles.emptyText}>No players found</Text>
@@ -606,8 +679,22 @@ export default function SessionPlayerManager({
                         : "Add players first"}
                     </Text>
                   </View>
-                }
-              />
+                ) : (
+                  filteredPlayers
+                    .filter((player) => !isPlayerSelected(player.id))
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((item) => (
+                      <PlayerCard
+                        key={item.id}
+                        player={item}
+                        isSelected={selectedPlayerIds.includes(item.id)}
+                        onToggle={togglePlayer}
+                        compact={true}
+                        showActions={true}
+                      />
+                    ))
+                )}
+              </View>
             )}
           </Surface>
         </ScrollView>
