@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   useTheme,
+  Dialog,
 } from "react-native-paper";
 import GroupPlayerManager from "@/src/components/GroupPlayerManager";
 import { useAppSelector } from "@/src/store";
@@ -25,6 +26,7 @@ interface GroupFormProps {
 export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
   const theme = useTheme();
   const [playerManagerVisible, setPlayerManagerVisible] = useState(false);
+  const [cancelDialogVisible, setCancelDialogVisible] = useState(false);
   const { players: allPlayers } = useAppSelector((state) => state.players);
 
   const [formData, setFormData] = useState({
@@ -35,7 +37,7 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
 
   // Track original player IDs to detect changes
   const [originalPlayerIds, setOriginalPlayerIds] = useState<string[]>(
-    group?.playerIds || []
+    group?.playerIds || [],
   );
 
   useEffect(() => {
@@ -80,24 +82,19 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
 
   const handleCancel = () => {
     if (hasUnsavedPlayerChanges()) {
-      Alert.alert(
-        "Unsaved Changes",
-        "You have unsaved changes to the player list. Are you sure you want to cancel?",
-        [
-          {
-            text: "Keep Editing",
-            style: "cancel",
-          },
-          {
-            text: "Discard Changes",
-            style: "destructive",
-            onPress: onCancel,
-          },
-        ]
-      );
+      setCancelDialogVisible(true);
     } else {
       onCancel();
     }
+  };
+
+  const handleConfirmCancel = () => {
+    setCancelDialogVisible(false);
+    onCancel();
+  };
+
+  const handleKeepEditing = () => {
+    setCancelDialogVisible(false);
   };
 
   const handleSaveGroupPlayers = (gp: Player[]) => {
@@ -271,6 +268,22 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
           setPlayerManagerVisible(false);
         }}
       />
+
+      <Dialog visible={cancelDialogVisible} onDismiss={handleKeepEditing}>
+        <Dialog.Title>Unsaved Changes</Dialog.Title>
+        <Dialog.Content>
+          <Text variant="bodyMedium">
+            You have unsaved changes to the player list. Are you sure you want
+            to cancel?
+          </Text>
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button onPress={handleKeepEditing}>Keep Editing</Button>
+          <Button onPress={handleConfirmCancel} textColor={theme.colors.error}>
+            Discard Changes
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
     </SafeAreaView>
   );
 }

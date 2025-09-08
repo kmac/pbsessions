@@ -31,8 +31,7 @@ export default function CourtManager({
   onClose,
 }: CourtManagerProps) {
   const theme = useTheme();
-  // const [localCourts, setLocalCourts] = useState<Court[]>(courts);
-  let localCourts = [...courts];
+  const [localCourts, setLocalCourts] = useState<Court[]>([]);
 
   const [courtNames, setCourtNames] = useState<Map<string, string>>(new Map());
   const [courtNameErrors, setCourtNameErrors] = useState<Map<string, boolean>>(
@@ -41,10 +40,12 @@ export default function CourtManager({
 
   // Initialize court names when courts change
   useEffect(() => {
+    setLocalCourts([...courts]);
+
     const newCourtNames = new Map();
     courts.forEach((court) => {
       if (!courtNames.has(court.id)) {
-        newCourtNames.set(court.id, court.name || `Court ${court.number}`);
+        newCourtNames.set(court.id, court.name);
       } else {
         newCourtNames.set(court.id, courtNames.get(court.id));
       }
@@ -78,8 +79,8 @@ export default function CourtManager({
   };
 
   const handleSave = () => {
-    const activeCourts = localCourts.filter((c) => c.isActive);
-    if (activeCourts.length === 0) {
+    const active = localCourts.filter((c) => c.isActive);
+    if (active.length === 0) {
       Alert.alert("Validation Error", "At least one court must be active");
       return;
     }
@@ -96,24 +97,29 @@ export default function CourtManager({
       );
       return;
     }
-    localCourts.push(createCourt(localCourts.length + 1));
-    onCourtsChange(localCourts);
+    const newCourt = createCourt(`Court ${localCourts.length + 1}`);
+    const updatedCourts = [...localCourts, newCourt];
+    setLocalCourts(updatedCourts);
+    onCourtsChange(updatedCourts);
   };
 
   const removeCourt = (courtId: string) => {
+    console.error("removeCourt");
     if (localCourts.length <= 1) {
       Alert.alert("Cannot Remove", "Must have at least one court");
       return;
     }
-    localCourts = [...localCourts.filter((c) => c.id !== courtId)];
-    onCourtsChange(localCourts);
+    const updatedCourts = localCourts.filter((c) => c.id !== courtId);
+    setLocalCourts(updatedCourts);
+    onCourtsChange(updatedCourts);
   };
 
   const updateCourt = (courtId: string, updates: Partial<Court>) => {
-    localCourts = localCourts.map((court) =>
+    const updatedCourts = localCourts.map((court) =>
       court.id === courtId ? { ...court, ...updates } : court,
     );
-    onCourtsChange(localCourts);
+    setLocalCourts(updatedCourts);
+    onCourtsChange(updatedCourts);
   };
 
   const toggleCourt = (courtId: string) => {
@@ -276,6 +282,7 @@ export default function CourtManager({
                 key={court.id}
                 style={{
                   marginBottom: 12,
+                  marginHorizontal: 8,
                   opacity: court.isActive ? 1 : 0.7,
                 }}
               >
@@ -283,71 +290,51 @@ export default function CourtManager({
                   <View
                     style={{
                       flexDirection: "row",
-                      justifyContent: "space-between",
+                      justifyContent: "flex-start",
                       alignItems: "center",
                       marginBottom: court.isActive ? 12 : 0,
                     }}
                   >
-                    <View
+                    <TextInput
+                      mode="flat"
+                      value={
+                        courtNames.get(court.id) ||
+                        `Court ${localCourts.length + 1}`
+                      }
+                      onChangeText={(text) =>
+                        handleCourtNameChange(court.id, text)
+                      }
+                      error={courtNameErrors.get(court.id)}
+                      placeholder="Optional"
+                      keyboardType="default"
+                      dense
+                      //label="Name"
                       style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        flex: 1,
-                        gap: 12,
+                        flex: 1.0,
+                        textAlign: "left",
+                        fontWeight: "600",
+                        // flex: 2,
+                        color: court.isActive
+                          ? theme.colors.onSurface
+                          : theme.colors.onSurfaceVariant,
+                        marginRight: 4,
                       }}
-                    >
-                      <View
-                        style={{
-                          width: 12,
-                          height: 12,
-                          borderRadius: 6,
-                          // backgroundColor: COURT_COLORS[index % COURT_COLORS.length]
-                        }}
-                      />
-                      <Text
-                        variant="titleSmall"
-                        style={{
-                          color: court.isActive
-                            ? theme.colors.onSurface
-                            : theme.colors.onSurfaceVariant,
-                        }}
-                      >
-                        Name:
-                      </Text>
-                      <TextInput
-                        mode="flat"
-                        value={
-                          courtNames.get(court.id) || `Court ${court.number}`
-                        }
-                        onChangeText={(text) =>
-                          handleCourtNameChange(court.id, text)
-                        }
-                        error={courtNameErrors.get(court.id)}
-                        placeholder="Optional"
-                        keyboardType="default"
-                        dense
-                        style={{
-                          /*width: 80,*/
-                          textAlign: "left",
-                          fontWeight: "600",
-                          // flex: 2,
-                          color: court.isActive
-                            ? theme.colors.onSurface
-                            : theme.colors.onSurfaceVariant,
-                        }}
-                      />
-                      <Switch
-                        value={court.isActive}
-                        onValueChange={() => toggleCourt(court.id)}
-                      />
-                    </View>
+                    />
+                    <Switch
+                      value={court.isActive}
+                      onValueChange={() => toggleCourt(court.id)}
+                      //style={{ flex: 0.2, }}
+                    />
 
                     {localCourts.length > 1 && (
                       <IconButton
                         icon="delete"
-                        size={20}
+                        iconColor={theme.colors.primary}
                         onPress={() => removeCourt(court.id)}
-                        style={{ marginLeft: 8 }}
+                        style={{
+                          //flex: 0.2,
+                          marginHorizontal: 8,
+                        }}
                       />
                     )}
                   </View>

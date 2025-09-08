@@ -68,8 +68,8 @@ export default function GroupsTab() {
     return allPlayers.filter((player) => group.playerIds.includes(player.id));
   };
 
-  const renderGroup = ({ item }: { item: Group }) => {
-    const groupPlayers = getGroupPlayers(item);
+  const renderGroup = ({ item: group }: { item: Group }) => {
+    const groupPlayers = getGroupPlayers(group);
     const averageRating =
       groupPlayers.length > 0
         ? groupPlayers.reduce((sum, p) => sum + (p.rating || 0), 0) /
@@ -101,28 +101,26 @@ export default function GroupsTab() {
                 variant="titleMedium"
                 style={{ fontWeight: "600", marginBottom: 4 }}
               >
-                {item.name}
+                {group.name}
               </Text>
-              {item.description && (
+              {group.description && (
                 <Text
                   variant="bodyMedium"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  {item.description}
+                  {group.description}
                 </Text>
               )}
             </View>
-            <View
-              style={{
-                alignItems: "flex-end",
-                gap: 8,
-              }}
-            >
-              <View style={{ flexDirection: "row" }}>
+              <View style={{ flexDirection: "column", alignItems: "flex-end"  }}>
+                <Chip icon="account-group" elevated compact>
+                  <Text variant="labelMedium">{groupPlayers.length}</Text>
+                </Chip>
                 {averageRating > 0 && (
                   <Chip
                     icon="star-outline"
                     elevated
+                    compact
                     style={{ backgroundColor: theme.colors.secondaryContainer }}
                   >
                     <Text variant="labelSmall">
@@ -130,14 +128,10 @@ export default function GroupsTab() {
                     </Text>
                   </Chip>
                 )}
-                <Chip icon="account-group" elevated>
-                  <Text variant="labelMedium">{groupPlayers.length}</Text>
-                </Chip>
-              </View>
             </View>
           </View>
 
-          {groupPlayers.length > 0 && (
+          {false && groupPlayers.length > 0 && (
             <View style={{ marginVertical: 12 }}>
               <Text
                 variant="labelMedium"
@@ -167,15 +161,16 @@ export default function GroupsTab() {
         <Card.Actions style={{ justifyContent: "space-between" }}>
           <Button
             icon="account-multiple-plus-outline"
-            mode="contained-tonal"
-            onPress={() => handleManagePlayers(item)}
+            //mode="contained-tonal"
+            mode="outlined"
+            onPress={() => handleManagePlayers(group)}
           >
             Players
           </Button>
 
           <View style={{ flexDirection: "row", gap: 4 }}>
-            <IconButton icon="pencil" onPress={() => handleEditGroup(item)} />
-            <IconButton icon="delete" onPress={() => handleDeleteGroup(item)} />
+            <IconButton icon="pencil" onPress={() => handleEditGroup(group)} />
+            <IconButton icon="delete" onPress={() => handleDeleteGroup(group)} />
           </View>
         </Card.Actions>
       </Card>
@@ -252,7 +247,7 @@ export default function GroupsTab() {
         style={{
           flexDirection: "row",
           justifyContent: "space-between",
-          alignItems: "flex-start",
+          alignItems: "center",
           paddingHorizontal: 16,
           paddingVertical: 12,
         }}
@@ -266,7 +261,7 @@ export default function GroupsTab() {
           <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
             Groups ({groups.length})
           </Text>
-          {allPlayers.length > 0 && (
+          {false && allPlayers.length > 0 && (
             <Text
               variant="bodyMedium"
               style={{

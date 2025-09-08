@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  FlatList,
-  Modal,
-  Platform,
-  ScrollView,
-  Dimensions,
-} from "react-native";
+import { View, FlatList, Modal, Platform, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Avatar,
@@ -21,7 +14,6 @@ import {
   TextInput,
   FAB,
   Menu,
-  Divider,
   Portal,
   Checkbox,
 } from "react-native-paper";
@@ -58,8 +50,9 @@ export default function PlayersTab() {
   const narrowScreen = true; // isNarrowScreen();
 
   const [menuVisible, setMenuVisible] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [bulkModalVisible, setBulkModalVisible] = useState(false);
+  const [playerAddModalVisible, setPlayerAddModalVisible] = useState(false);
+  const [bulkPlayerAddModalVisible, setBulkPlayerAddModalVisible] =
+    useState(false);
   const [csvImportModalVisible, setCsvImportModalVisible] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
@@ -80,13 +73,13 @@ export default function PlayersTab() {
     playerData: Omit<Player, "id" | "createdAt" | "updatedAt">,
   ) => {
     dispatch(addPlayer(playerData));
-    setModalVisible(false);
+    setPlayerAddModalVisible(false);
   };
 
   const handleUpdatePlayer = (playerData: Player) => {
     dispatch(updatePlayer(playerData));
     setEditingPlayer(null);
-    setModalVisible(false);
+    setPlayerAddModalVisible(false);
   };
 
   const handleSavePlayer = (
@@ -130,7 +123,7 @@ export default function PlayersTab() {
 
   const handleEditPlayer = (player: Player) => {
     setEditingPlayer(player);
-    setModalVisible(true);
+    setPlayerAddModalVisible(true);
   };
 
   function getPlayerGroups(playerId: string): Group[] {
@@ -869,22 +862,21 @@ export default function PlayersTab() {
   };
 
   const PlayerHeader = () => (
-    <View
+    <Surface
       style={{
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
         paddingHorizontal: 16,
         paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.surfaceVariant,
       }}
+      elevation={1}
     >
-      <Text
-        variant="titleLarge"
-        style={{ fontWeight: "bold" }}>
-        Players ({filteredPlayers.length})
-      </Text>
+      <View style={{ flex: 1 }}>
+        <Text variant="titleLarge" style={{ fontWeight: "bold" }}>
+          Players
+        </Text>
+      </View>
 
       {narrowScreen ? (
         selectedPlayerIds.length > 0 ? (
@@ -896,7 +888,7 @@ export default function PlayersTab() {
             <Button
               icon="account-multiple-plus-outline"
               mode="contained"
-              onPress={() => setBulkModalVisible(true)}
+              onPress={() => setBulkPlayerAddModalVisible(true)}
               compact={false}
             >
               Add
@@ -944,7 +936,7 @@ export default function PlayersTab() {
           <Button
             icon="account-multiple-plus-outline"
             mode="elevated"
-            onPress={() => setBulkModalVisible(true)}
+            onPress={() => setBulkPlayerAddModalVisible(true)}
           >
             Bulk Add
           </Button>
@@ -957,16 +949,15 @@ export default function PlayersTab() {
           <Button
             icon="account-plus-outline"
             mode="contained-tonal"
-            onPress={() => setModalVisible(true)}
+            onPress={() => setPlayerAddModalVisible(true)}
           >
             Add Player
           </Button>
         </View>
       )}
-    </View>
+    </Surface>
   );
 
-  // Mobile FAB for quick access to primary action
   const PrimaryFAB = () => {
     if (!narrowScreen || selectedPlayerIds.length > 0) {
       return null;
@@ -974,7 +965,7 @@ export default function PlayersTab() {
     return (
       <FAB
         icon="account-plus"
-        onPress={() => setModalVisible(true)}
+        onPress={() => setPlayerAddModalVisible(true)}
         color={theme.colors.onSecondary}
         style={{
           position: "absolute",
@@ -992,12 +983,19 @@ export default function PlayersTab() {
       <PlayerHeader />
 
       <Searchbar
-        placeholder="Search players..."
+        placeholder={`Search players...`}
         onChangeText={setSearchQuery}
         value={searchQuery}
         mode="bar"
         style={{ marginHorizontal: 16, marginTop: 6, marginBottom: 6 }}
       />
+
+      <Text variant="labelMedium" style={{ marginHorizontal: 32 }}>
+        {filteredPlayers.length}{" "}
+        {allPlayers.length === filteredPlayers.length
+          ? "total players"
+          : "matching players"}
+      </Text>
 
       <FlatList
         data={[...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name))}
@@ -1046,7 +1044,7 @@ export default function PlayersTab() {
       <SelectionActionBar />
 
       <Modal
-        visible={modalVisible}
+        visible={playerAddModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
       >
@@ -1054,7 +1052,7 @@ export default function PlayersTab() {
           player={editingPlayer}
           onSave={handleSavePlayer}
           onCancel={() => {
-            setModalVisible(false);
+            setPlayerAddModalVisible(false);
             setEditingPlayer(null);
           }}
         />
@@ -1287,8 +1285,8 @@ export default function PlayersTab() {
       </Modal>
 
       <BulkAddPlayersModal
-        visible={bulkModalVisible}
-        onClose={() => setBulkModalVisible(false)}
+        visible={bulkPlayerAddModalVisible}
+        onClose={() => setBulkPlayerAddModalVisible(false)}
       />
     </SafeAreaView>
   );

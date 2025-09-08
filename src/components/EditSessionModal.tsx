@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Modal, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -13,6 +13,7 @@ import {
   Text,
   TextInput,
   useTheme,
+  Dialog,
 } from "react-native-paper";
 import { useAppSelector } from "../store";
 import { createCourt, Session, Court } from "../types";
@@ -55,8 +56,16 @@ export default function EditSessionModal({
     showRatings: useRatings,
   });
 
+  // Track initial values for change detection
+  const initialFormData = useRef({
+    playerIds: [] as string[],
+    courts: [] as Court[],
+  });
+
   const [showPlayerManager, setShowPlayerManager] = useState(false);
   const [showCourtManager, setShowCourtManager] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
+    useState(false);
 
   useEffect(
     // Effect function: contains side effect code
@@ -65,20 +74,70 @@ export default function EditSessionModal({
         setFormData({
           name: session.name,
           dateTime: session.dateTime,
-          playerIds: session.playerIds,
-          courts: session.courts,
+          playerIds: [...session.playerIds],
+          courts: [...session.courts],
           scoring: session.scoring,
           showRatings: session.showRatings,
         });
       } else {
         const now = new Date();
         now.setHours(now.getHours() + 1, 0, 0, 0);
-        setFormData((prev) => ({ ...prev, dateTime: now.toISOString() }));
+        setFormData({
+          ...formData,
+          dateTime: now.toISOString(),
+          playerIds: [],
+          courts: [],
+        });
       }
+      // Store initial values for change detection
+      initialFormData.current = {
+        playerIds: [...formData.playerIds],
+        courts: [...formData.courts],
+      };
     },
     // Dependency array: effect function runs whenever any dependency changes
-    [session],
+    [session, visible],
   );
+
+  // Check if formData has been modified
+  const hasUnsavedChanges = () => {
+    // Compare playerIds arrays
+    const playerIdsChanged =
+      formData.playerIds.length !== initialFormData.current.playerIds.length ||
+      !formData.playerIds.every((id) =>
+        initialFormData.current.playerIds.includes(id),
+      );
+
+    // Compare courts arrays (check both length and content)
+    const courtsChanged =
+      formData.courts.length !== initialFormData.current.courts.length ||
+      !formData.courts.every((court) => {
+        const initialCourt = initialFormData.current.courts.find(
+          (c) => c.id === court.id,
+        );
+        return (
+          initialCourt &&
+          court.name === initialCourt.name &&
+          court.isActive === initialCourt.isActive &&
+          court.minimumRating === initialCourt.minimumRating
+        );
+      });
+
+    return playerIdsChanged || courtsChanged;
+  };
+
+  const handleBackPress = () => {
+    if (hasUnsavedChanges()) {
+      setShowUnsavedChangesDialog(true);
+    } else {
+      onCancel();
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setShowUnsavedChangesDialog(false);
+    onCancel();
+  };
 
   const handleSave = () => {
     // Saves formData which is then persisted by calling the 'onSave' callback
@@ -107,6 +166,12 @@ export default function EditSessionModal({
       courts: formData.courts,
       scoring: formData.scoring,
       showRatings: formData.showRatings,
+    };
+
+    // Update initial values after successful save
+    initialFormData.current = {
+      playerIds: [...formData.playerIds],
+      courts: [...formData.courts],
     };
 
     if (session) {
@@ -157,7 +222,7 @@ export default function EditSessionModal({
         updateCourts(formData.courts);
       }
     } else {
-      formData.courts.push(createCourt(activeCourts.length + 1));
+      formData.courts.push(createCourt(`Court ${formData.courts.length + 1}`));
       updateCourts(formData.courts);
     }
   };
@@ -170,153 +235,229 @@ export default function EditSessionModal({
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
-      <Appbar.Header>
-        <Appbar.BackAction onPress={onCancel} />
-        <Appbar.Content
-          title={
-            <Text
-              variant="titleLarge"
-              style={{
-                alignItems: "center",
-                fontWeight: "600",
-              }}
-            >
-              {session ? "Edit Session" : "New Session"}
-            </Text>
-          }
-        />
-        <Button
-          icon="content-save"
-          mode="contained"
-          onPress={handleSave}
-          style={{ marginRight: 8 }}
-        >
-          Save
-        </Button>
-      </Appbar.Header>
-      <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView
-          style={{ flex: 1, padding: 16 }}
-          showsVerticalScrollIndicator={false}
-        >
-          <TopDescription
-            visible={true}
-            description="Configure session parameters."
+    <>
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <Appbar.Header>
+          <Appbar.BackAction onPress={handleBackPress} />
+          <Appbar.Content
+            title={
+              <Text
+                variant="titleLarge"
+                style={{
+                  alignItems: "center",
+                  fontWeight: "600",
+                }}
+              >
+                {session ? "Edit Session" : "New Session"}
+              </Text>
+            }
           />
-
-          <Surface
-            style={{
-              padding: 16,
-              borderRadius: 12,
-              marginBottom: 16,
-            }}
+          <Button
+            icon="content-save"
+            mode="contained"
+            onPress={handleSave}
+            style={{ marginRight: 8 }}
           >
-            <Text
-              variant="labelLarge"
-              style={{
-                marginBottom: 8,
-                color: theme.colors.onSurface,
-              }}
-            >
-              Session Name *
-            </Text>
-            <TextInput
-              mode="outlined"
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-              placeholder="Enter session name"
-              autoFocus={!session}
+            Save
+          </Button>
+        </Appbar.Header>
+        <SafeAreaView style={{ flex: 1 }}>
+          <ScrollView
+            style={{ flex: 1, padding: 16 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <TopDescription
+              visible={true}
+              description="Configure session parameters."
             />
-          </Surface>
 
-          <Surface
-            style={{
-              padding: 16,
-              // borderRadius: 12,
-              marginBottom: 16,
-            }}
-          >
-            <Text
-              variant="labelLarge"
+            <Surface
               style={{
-                marginBottom: 8,
-                color: theme.colors.onSurface,
+                padding: 16,
+                borderRadius: 12,
+                marginBottom: 16,
               }}
             >
-              Settings
-            </Text>
+              <Text
+                variant="labelLarge"
+                style={{
+                  marginBottom: 8,
+                  color: theme.colors.onSurface,
+                }}
+              >
+                Session Name *
+              </Text>
+              <TextInput
+                mode="outlined"
+                value={formData.name}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, name: text })
+                }
+                placeholder="Enter session name"
+                autoFocus={!session}
+              />
+            </Surface>
 
-            <View
+            <Surface
               style={{
-                flexDirection: "row",
-                flex: 2,
-                justifyContent: "space-between",
+                padding: 16,
+                // borderRadius: 12,
+                marginBottom: 16,
               }}
             >
-              <View
+              <Text
+                variant="labelLarge"
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
+                  marginBottom: 8,
+                  color: theme.colors.onSurface,
                 }}
               >
-                <Text variant="bodyMedium" style={{ marginRight: 8 }}>
-                  Scoring
-                </Text>
-                <Switch
-                  value={formData.scoring}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, scoring: value })
-                  }
-                />
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                }}
-              >
-                <Text variant="bodyMedium" style={{ marginRight: 8 }}>
-                  Use Ratings
-                </Text>
-                <Switch
-                  value={formData.showRatings}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, showRatings: value })
-                  }
-                />
-              </View>
-            </View>
-          </Surface>
+                Settings
+              </Text>
 
-          <Card style={{ marginBottom: 16 }}>
-            <Card.Content>
               <View
                 style={{
                   flexDirection: "row",
+                  flex: 2,
                   justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 12,
                 }}
               >
-                <Text variant="titleMedium" style={{ fontWeight: "600" }}>
-                  Players ({selectedPlayers.length})
-                </Text>
-                <Button
-                  icon="account-multiple"
-                  mode="outlined"
-                  onPress={() => setShowPlayerManager(true)}
-                  compact={true}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
                 >
-                  Manage Players
-                </Button>
+                  <Text variant="bodyMedium" style={{ marginRight: 8 }}>
+                    Scoring
+                  </Text>
+                  <Switch
+                    value={formData.scoring}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, scoring: value })
+                    }
+                  />
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text variant="bodyMedium" style={{ marginRight: 8 }}>
+                    Use Ratings
+                  </Text>
+                  <Switch
+                    value={formData.showRatings}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, showRatings: value })
+                    }
+                  />
+                </View>
               </View>
+            </Surface>
 
-              {selectedPlayers.length === 0 ? (
+            <Card style={{ marginBottom: 16 }}>
+              <Card.Content>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text variant="titleMedium" style={{ fontWeight: "600" }}>
+                    Players ({selectedPlayers.length})
+                  </Text>
+                  <Button
+                    icon="account-multiple"
+                    mode="outlined"
+                    onPress={() => setShowPlayerManager(true)}
+                    compact={true}
+                  >
+                    Manage Players
+                  </Button>
+                </View>
+
+                {selectedPlayers.length === 0 ? (
+                  <Surface
+                    style={{
+                      alignItems: "center",
+                      padding: 24,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: theme.colors.outline,
+                      borderStyle: "dashed",
+                    }}
+                  >
+                    <Icon source="account-multiple-plus" size={32} />
+                    <Text
+                      variant="bodyLarge"
+                      style={{
+                        color: theme.colors.onSurfaceVariant,
+                        marginVertical: 8,
+                      }}
+                    >
+                      No players selected
+                    </Text>
+                    <Button
+                      icon="plus"
+                      mode="outlined"
+                      onPress={() => setShowPlayerManager(true)}
+                    >
+                      Add Players
+                    </Button>
+                  </Surface>
+                ) : (
+                  <Surface
+                    style={{
+                      padding: 12,
+                      borderRadius: 8,
+                      backgroundColor: theme.colors.surfaceVariant,
+                    }}
+                  >
+                    <Text
+                      variant="bodyMedium"
+                      style={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                      {selectedPlayers
+                        .map((p) => p.name)
+                        .sort()
+                        .join(", ")}
+                    </Text>
+                  </Surface>
+                )}
+              </Card.Content>
+            </Card>
+
+            <Card style={{ marginBottom: 16 }}>
+              <Card.Content>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text variant="titleMedium" style={{ fontWeight: "600" }}>
+                    Courts ({activeCourts.length} active)
+                  </Text>
+                  <Button
+                    icon="cog-outline"
+                    mode="outlined"
+                    onPress={() => setShowCourtManager(true)}
+                    compact={true}
+                  >
+                    Manage Courts
+                  </Button>
+                </View>
+
                 <Surface
                   style={{
                     alignItems: "center",
@@ -327,269 +468,223 @@ export default function EditSessionModal({
                     borderStyle: "dashed",
                   }}
                 >
-                  <Icon source="account-multiple-plus" size={32} />
-                  <Text
-                    variant="bodyLarge"
+                  {activeCourts.length === 0 && (
+                    <Text
+                      variant="bodyLarge"
+                      style={{
+                        color: theme.colors.onSurfaceVariant,
+                        marginVertical: 8,
+                      }}
+                    >
+                      No courts configured
+                    </Text>
+                  )}
+                  <View
                     style={{
-                      color: theme.colors.onSurfaceVariant,
-                      marginVertical: 8,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
                     }}
                   >
-                    No players selected
-                  </Text>
-                  <Button
-                    icon="plus"
-                    mode="outlined"
-                    onPress={() => setShowPlayerManager(true)}
+                    <IconButton
+                      icon="minus"
+                      size={20}
+                      mode="contained-tonal"
+                      onPress={() => adjustCourts("minus")}
+                    />
+                    <Text>{activeCourts.length}</Text>
+                    <IconButton
+                      icon="plus"
+                      size={20}
+                      mode="contained-tonal"
+                      onPress={() => adjustCourts("plus")}
+                    />
+                  </View>
+                  <View
+                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
                   >
-                    Add Players
-                  </Button>
+                    {formData.courts.map((court) => (
+                      <Chip
+                        key={court.id}
+                        icon="map-marker-outline"
+                        style={{
+                          backgroundColor: court.isActive
+                            ? theme.colors.tertiaryContainer
+                            : theme.colors.surfaceVariant,
+                        }}
+                      >
+                        {court.name}
+                        {court.minimumRating
+                          ? ` (${court.minimumRating.toFixed(1)}+)`
+                          : ""}
+                      </Chip>
+                    ))}
+                  </View>
                 </Surface>
-              ) : (
-                <Surface
-                  style={{
-                    padding: 12,
-                    borderRadius: 8,
-                    backgroundColor: theme.colors.surfaceVariant,
-                  }}
-                >
-                  <Text
-                    variant="bodyMedium"
-                    style={{ color: theme.colors.onSurfaceVariant }}
-                  >
-                    {selectedPlayers
-                      .map((p) => p.name)
-                      .sort()
-                      .join(", ")}
-                  </Text>
-                </Surface>
-              )}
-            </Card.Content>
-          </Card>
-
-          <Card style={{ marginBottom: 16 }}>
-            <Card.Content>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 12,
-                }}
-              >
-                <Text variant="titleMedium" style={{ fontWeight: "600" }}>
-                  Courts ({activeCourts.length} active)
-                </Text>
-                <Button
-                  icon="cog-outline"
-                  mode="outlined"
-                  onPress={() => setShowCourtManager(true)}
-                  compact={true}
-                >
-                  Manage Courts
-                </Button>
-              </View>
-
-              <Surface
-                style={{
-                  alignItems: "center",
-                  padding: 24,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: theme.colors.outline,
-                  borderStyle: "dashed",
-                }}
-              >
-                {activeCourts.length === 0 && (
-                  <Text
-                    variant="bodyLarge"
-                    style={{
-                      color: theme.colors.onSurfaceVariant,
-                      marginVertical: 8,
-                    }}
-                  >
-                    No courts configured
-                  </Text>
-                )}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <IconButton
-                    icon="minus"
-                    size={20}
-                    mode="contained-tonal"
-                    onPress={() => adjustCourts("minus")}
-                  />
-                  <Text>{activeCourts.length}</Text>
-                  <IconButton
-                    icon="plus"
-                    size={20}
-                    mode="contained-tonal"
-                    onPress={() => adjustCourts("plus")}
-                  />
-                </View>
-                <View
-                  style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
-                >
-                  {formData.courts.map((court) => (
-                    <Chip
-                      key={court.id}
-                      icon="map-marker-outline"
-                      style={{
-                        backgroundColor: court.isActive
-                          ? theme.colors.tertiaryContainer
-                          : theme.colors.surfaceVariant,
-                      }}
-                    >
-                      {court.name}
-                      {court.minimumRating
-                        ? ` (${court.minimumRating.toFixed(1)}+)`
-                        : ""}
-                    </Chip>
-                  ))}
-                </View>
-              </Surface>
-            </Card.Content>
-          </Card>
-
-          {selectedPlayers.length > 0 && activeCourts.length > 0 && (
-            <Card>
-              <Card.Content>
-                <Text
-                  variant="titleMedium"
-                  style={{
-                    fontWeight: "600",
-                    marginBottom: 12,
-                  }}
-                >
-                  Session Summary
-                </Text>
-
-                <View style={{ gap: 8 }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      variant="bodyMedium"
-                      style={{
-                        color: theme.colors.onSurfaceVariant,
-                      }}
-                    >
-                      Total Players:
-                    </Text>
-                    <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
-                      {selectedPlayers.length}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      variant="bodyMedium"
-                      style={{
-                        color: theme.colors.onSurfaceVariant,
-                      }}
-                    >
-                      Active Courts:
-                    </Text>
-                    <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
-                      {activeCourts.length}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      variant="bodyMedium"
-                      style={{
-                        color: theme.colors.onSurfaceVariant,
-                      }}
-                    >
-                      Playing per game:
-                    </Text>
-                    <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
-                      {activeCourts.length * 4}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      variant="bodyMedium"
-                      style={{
-                        color: theme.colors.onSurfaceVariant,
-                      }}
-                    >
-                      Sitting out:
-                    </Text>
-                    <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
-                      {Math.max(
-                        0,
-                        selectedPlayers.length - activeCourts.length * 4,
-                      )}
-                    </Text>
-                  </View>
-                </View>
-
-                {validation.warning && (
-                  <Surface
-                    style={{
-                      backgroundColor: theme.colors.errorContainer,
-                      padding: 8,
-                      borderRadius: 6,
-                      marginTop: 12,
-                    }}
-                  >
-                    <Text
-                      variant="bodySmall"
-                      style={{
-                        color: theme.colors.onErrorContainer,
-                        textAlign: "center",
-                      }}
-                    >
-                      {validation.warning}
-                    </Text>
-                  </Surface>
-                )}
               </Card.Content>
             </Card>
-          )}
-        </ScrollView>
 
-        <SessionPlayerManager
-          visible={showPlayerManager}
-          selectedPlayerIds={formData.playerIds}
-          onSelectionChange={updatePlayerIds}
-          onClose={() => setShowPlayerManager(false)}
-        />
+            {selectedPlayers.length > 0 && activeCourts.length > 0 && (
+              <Card>
+                <Card.Content>
+                  <Text
+                    variant="titleMedium"
+                    style={{
+                      fontWeight: "600",
+                      marginBottom: 12,
+                    }}
+                  >
+                    Session Summary
+                  </Text>
 
-        <CourtManager
-          visible={showCourtManager}
-          courts={formData.courts}
-          onCourtsChange={updateCourts}
-          onClose={() => setShowCourtManager(false)}
-        />
-      </SafeAreaView>
-    </Modal>
+                  <View style={{ gap: 8 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        variant="bodyMedium"
+                        style={{
+                          color: theme.colors.onSurfaceVariant,
+                        }}
+                      >
+                        Total Players:
+                      </Text>
+                      <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
+                        {selectedPlayers.length}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        variant="bodyMedium"
+                        style={{
+                          color: theme.colors.onSurfaceVariant,
+                        }}
+                      >
+                        Active Courts:
+                      </Text>
+                      <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
+                        {activeCourts.length}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        variant="bodyMedium"
+                        style={{
+                          color: theme.colors.onSurfaceVariant,
+                        }}
+                      >
+                        Playing per game:
+                      </Text>
+                      <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
+                        {activeCourts.length * 4}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        variant="bodyMedium"
+                        style={{
+                          color: theme.colors.onSurfaceVariant,
+                        }}
+                      >
+                        Sitting out:
+                      </Text>
+                      <Text variant="bodyMedium" style={{ fontWeight: "600" }}>
+                        {Math.max(
+                          0,
+                          selectedPlayers.length - activeCourts.length * 4,
+                        )}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {validation.warning && (
+                    <Surface
+                      style={{
+                        backgroundColor: theme.colors.errorContainer,
+                        padding: 8,
+                        borderRadius: 6,
+                        marginTop: 12,
+                      }}
+                    >
+                      <Text
+                        variant="bodySmall"
+                        style={{
+                          color: theme.colors.onErrorContainer,
+                          textAlign: "center",
+                        }}
+                      >
+                        {validation.warning}
+                      </Text>
+                    </Surface>
+                  )}
+                </Card.Content>
+              </Card>
+            )}
+          </ScrollView>
+
+          <SessionPlayerManager
+            visible={showPlayerManager}
+            selectedPlayerIds={formData.playerIds}
+            onSelectionChange={updatePlayerIds}
+            onClose={() => setShowPlayerManager(false)}
+          />
+
+          <CourtManager
+            visible={showCourtManager}
+            courts={formData.courts}
+            onCourtsChange={updateCourts}
+            onClose={() => setShowCourtManager(false)}
+          />
+
+          <Dialog
+            visible={showUnsavedChangesDialog}
+            onDismiss={() => setShowUnsavedChangesDialog(false)}
+          >
+            <Dialog.Title>Unsaved Changes</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">
+                You have unsaved changes to players or courts. Are you sure you
+                want to discard these changes?
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowUnsavedChangesDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onPress={handleDiscardChanges}
+                mode="contained"
+                buttonColor={theme.colors.error}
+                textColor={theme.colors.onError}
+              >
+                Discard Changes
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </SafeAreaView>
+      </Modal>
+    </>
   );
 }

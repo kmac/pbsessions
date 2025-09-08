@@ -232,7 +232,7 @@ export default function ArchivedSessions({
                 fontWeight: "600",
               }}
             >
-              Archived Sessions
+              Archives
             </Text>
           }
         />
@@ -249,7 +249,7 @@ export default function ArchivedSessions({
           elevation={1}
         >
           <View style={{ flex: 1 }}>
-            <Text variant="headlineMedium" style={{ fontWeight: "bold" }}>
+            <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
               Archived Sessions (
               {sessions.filter((s) => s.state === SessionState.Archived).length}
               )

@@ -26,21 +26,18 @@ export interface Group {
 export interface Court {
   id: string;
   name: string;
-  number: number;
   minimumRating?: number;
   isActive: boolean;
 }
 
 export const createCourt = (
-  courtNum: number,
-  name: string | undefined = undefined,
+  name: string,
   minimumRating: number | undefined = undefined,
   isActive = true,
 ): Court => {
   return {
     id: uuidv4(),
-    number: courtNum,
-    name: name ? name : `Court ${courtNum}`,
+    name: name,
     minimumRating: minimumRating,
     isActive: isActive ? isActive : true,
   };

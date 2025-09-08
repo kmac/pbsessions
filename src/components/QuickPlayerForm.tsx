@@ -164,7 +164,7 @@ export default function QuickPlayerForm({ onSave, onCancel, groupName }: QuickPl
               <Picker.Item label="Select gender (optional)" value="" />
               <Picker.Item label="Male" value="male" />
               <Picker.Item label="Female" value="female" />
-              <Picker.Item label="Other" value="other" />
+              {/* <Picker.Item label="Other" value="other" /> */}
             </Picker>
           </View>
         </View>

@@ -312,7 +312,7 @@ export default function SessionsTab() {
       style={{
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "flex-start",
+        alignItems: "center",
         paddingHorizontal: 16,
         paddingVertical: 12,
       }}
@@ -320,8 +320,7 @@ export default function SessionsTab() {
     >
       <View style={{ flex: 1 }}>
         <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
-          Sessions (
-          {sessions.filter((s) => s.state !== SessionState.Archived).length})
+          Sessions
         </Text>
       </View>
 
@@ -758,6 +757,11 @@ export default function SessionsTab() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <SessionHeader />
+
+      {/*<Text variant="labelMedium" style={{ marginHorizontal: 32 }}>
+        {sessions.filter((s) => s.state !== SessionState.Archived).length}{" "}
+        sessions
+      </Text>*/}
 
       <FlatList
         data={sessions

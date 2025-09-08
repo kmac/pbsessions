@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  FlatList,
   ScrollView,
 } from "react-native";
 import {

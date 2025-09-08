@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   Icon,
-  List,
   SegmentedButtons,
   Searchbar,
   Surface,
@@ -121,33 +120,8 @@ export default function GroupPlayerManager({
     onSave(selectedPlayers);
   };
 
-  function renderPlayer({ item }: { item: Player }) {
-    return (
-      <PlayerCard
-        player={item}
-        isSelected={selectedPlayerIds.includes(item.id)}
-        onToggle={handleTogglePlayer}
-        showActions={true}
-      />
-    );
-  }
-
   const SelectExistingView = () => (
     <>
-      {/*<List.Section title="Group">
-        <List.Accordion
-          title={groupName}
-          left={props => <List.Icon {...props} icon="folder" />}>
-          {selectedPlayers.sort((a, b) => a.name.localeCompare(b.name)).map(player => (
-            <List.Item
-              title={player.name}
-              description="player description"
-              left={props => <List.Icon {...props} icon="account" />}
-            />
-          ))}
-        </List.Accordion>
-      </List.Section>*/}
-
       {selectedPlayers.length > 0 && (
         <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
           <Text

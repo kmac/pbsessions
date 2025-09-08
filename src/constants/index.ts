@@ -4,9 +4,9 @@ export const APP_CONFIG = {
   VERSION: '1.0.0',
   MIN_PLAYERS_PER_GAME: 4,
   MIN_PLAYERS_PER_SESSION: 4,
-  MAX_PLAYERS_PER_SESSION: 24,
+  MAX_PLAYERS_PER_SESSION: 128,
   MIN_COURTS: 1,
-  MAX_COURTS: 6,
+  MAX_COURTS: 32,
   DEFAULT_GAME_SCORE: 11,
   MIN_RATING: 0.0,
   MAX_RATING: 7.0,
@@ -22,7 +22,7 @@ export const GAME_STATES = {
 export const GENDER_OPTIONS = [
   { label: 'Male', value: 'male' },
   { label: 'Female', value: 'female' },
-  { label: 'Other', value: 'other' },
+  // { label: 'Other', value: 'other' },
 ] as const;
 
 export const DEFAULT_COURTS = [
