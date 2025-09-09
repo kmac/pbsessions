@@ -237,7 +237,9 @@ export default function ArchivedSessions({
           }
         />
       </Appbar.Header>
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: theme.colors.background }}
+      >
         <Surface
           style={{
             flexDirection: "row",

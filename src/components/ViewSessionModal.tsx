@@ -104,7 +104,9 @@ export default function ViewSessionModal({
           <Appbar.Content title="Session Details" />
         </Appbar.Header>
 
-        <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: theme.colors.background }}
+        >
           <Surface style={styles.headerContainer}>
             <View style={{ flexDirection: "column", marginBottom: 8 }}>
               <Text variant="titleMedium" style={styles.sessionName}>

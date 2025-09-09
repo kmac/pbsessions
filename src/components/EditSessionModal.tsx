@@ -265,7 +265,9 @@ export default function EditSessionModal({
             Save
           </Button>
         </Appbar.Header>
-        <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: theme.colors.background }}
+        >
           <ScrollView
             style={{ flex: 1, padding: 16 }}
             showsVerticalScrollIndicator={false}

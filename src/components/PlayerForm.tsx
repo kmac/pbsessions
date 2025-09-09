@@ -80,7 +80,7 @@ export default function PlayerForm({
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header>
         <Appbar.BackAction onPress={onCancel} />
         <Appbar.Content

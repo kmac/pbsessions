@@ -381,7 +381,7 @@ export default function RoundComponent({
   };
 
   return (
-    <SafeAreaView>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={{ marginBottom: 24 }}>
         {(currentRound.games || []).map((game) => (
           <View key={game.id}>{renderCourtAssignment({ item: game })}</View>

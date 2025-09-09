@@ -155,7 +155,9 @@ export default function CourtManager({
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: theme.colors.background }}
+        >
         <Appbar.Header>
           <Appbar.BackAction onPress={onClose} />
           <Appbar.Content

@@ -1153,7 +1153,9 @@ export default function PlayersTab() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: theme.colors.background }}
+        >
           <View style={{ flex: 1, padding: 16 }}>
             <View
               style={{
