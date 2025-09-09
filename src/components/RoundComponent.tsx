@@ -19,7 +19,14 @@ import {
   useTheme,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import { Court, Game, Session, Player, PlayerStats, SessionState } from "@/src/types";
+import {
+  Court,
+  Game,
+  Session,
+  Player,
+  PlayerStats,
+  SessionState,
+} from "@/src/types";
 import {
   getCurrentRound,
   getCurrentRoundNumber,
@@ -28,7 +35,10 @@ import {
   updateCourtInSessionThunk,
   updateCurrentRoundThunk,
 } from "@/src/store/actions/sessionActions";
-import { RoundRender } from "@/src/components/render/RoundRender";
+import {
+  RoundGameCard,
+  PlayerRenderData,
+} from "@/src/components/RoundGameCard";
 import { getSessionPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 
@@ -335,48 +345,44 @@ export default function RoundComponent({
     const receivePlayer1 = getPlayer(game.receiveTeam.player1Id);
     const receivePlayer2 = getPlayer(game.receiveTeam.player2Id);
 
-    const roundRender = new RoundRender(theme, showRating, chipMode);
-
-    return roundRender.renderGame(
-      {
-        player: servePlayer1,
-        selected: getPlayerSelected(servePlayer1),
-        selectDisabled: playerSelectDisabled(servePlayer1),
-        onSelected: () => editing && togglePlayerSelected(servePlayer1),
-      },
-      {
-        player: servePlayer2,
-        selected: getPlayerSelected(servePlayer2),
-        selectDisabled: playerSelectDisabled(servePlayer2),
-        onSelected: () => editing && togglePlayerSelected(servePlayer2),
-      },
-      {
-        player: receivePlayer1,
-        selected: getPlayerSelected(receivePlayer1),
-        selectDisabled: playerSelectDisabled(receivePlayer1),
-        onSelected: () => editing && togglePlayerSelected(receivePlayer1),
-      },
-      {
-        player: receivePlayer2,
-        selected: getPlayerSelected(receivePlayer2),
-        selectDisabled: playerSelectDisabled(receivePlayer2),
-        onSelected: () => editing && togglePlayerSelected(receivePlayer2),
-      },
-      getCourt(game.courtId),
-      game.score,
-      editing ? handleCourtSetting : undefined,
+    return (
+      <RoundGameCard
+        servePlayer1Data={{
+          player: servePlayer1,
+          selected: getPlayerSelected(servePlayer1),
+          selectDisabled: playerSelectDisabled(servePlayer1),
+          onSelected: () => editing && togglePlayerSelected(servePlayer1),
+        }}
+        servePlayer2Data={{
+          player: servePlayer2,
+          selected: getPlayerSelected(servePlayer2),
+          selectDisabled: playerSelectDisabled(servePlayer2),
+          onSelected: () => editing && togglePlayerSelected(servePlayer2),
+        }}
+        receivePlayer1Data={{
+          player: receivePlayer1,
+          selected: getPlayerSelected(receivePlayer1),
+          selectDisabled: playerSelectDisabled(receivePlayer1),
+          onSelected: () => editing && togglePlayerSelected(receivePlayer1),
+        }}
+        receivePlayer2Data={{
+          player: receivePlayer2,
+          selected: getPlayerSelected(receivePlayer2),
+          selectDisabled: playerSelectDisabled(receivePlayer2),
+          onSelected: () => editing && togglePlayerSelected(receivePlayer2),
+        }}
+        court={getCourt(game.courtId)}
+        score={game.score}
+        chipMode={chipMode}
+        showRating={showRating}
+        handleCourtSetting={editing ? handleCourtSetting : undefined}
+      />
     );
   };
 
   return (
     <SafeAreaView>
       <View style={{ marginBottom: 24 }}>
-        {/*<FlatList
-          data={currentRound.games ? currentRound.games : []}
-          renderItem={renderCourtAssignment}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-        />*/}
         {(currentRound.games || []).map((game) => (
           <View key={game.id}>{renderCourtAssignment({ item: game })}</View>
         ))}
@@ -503,8 +509,8 @@ export default function RoundComponent({
                   editing && player && togglePlayerSelected(player);
                 }}
               >
-                {player.name}
-                ({getPlayerStats(session, player.id)?.gamesSatOut || 0})
+                {player.name}(
+                {getPlayerStats(session, player.id)?.gamesSatOut || 0})
                 {showRating && player.rating && (
                   <Badge
                     size={22}

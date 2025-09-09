@@ -15,9 +15,9 @@ import {
 } from "react-native-paper";
 import { useAppSelector, useAppDispatch } from "@/src/store";
 import { addPlayer } from "@/src/store/slices/playersSlice";
-import { Group, Player } from "@/src/types";
+import { Player } from "@/src/types";
 import PlayerCard from "./PlayerCard";
-import QuickPlayerForm from "./QuickPlayerForm";
+import PlayerForm from "./PlayerForm";
 import { Alert } from "@/src/utils/alert";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 
@@ -102,16 +102,17 @@ export default function GroupPlayerManager({
           .includes(groupPlayerSearchQuery.toLowerCase())),
   );
 
-  function handleQuickAddPlayer(
+  async function handleQuickAddPlayer(
     playerData: Omit<Player, "id" | "createdAt" | "updatedAt">,
   ) {
-    dispatch(addPlayer(playerData));
+    const resultAction = await dispatch(addPlayer(playerData));
+    const newPlayer = resultAction.payload;
 
-    setTimeout(() => {
-      const newPlayer = allPlayers[allPlayers.length - 1];
+    if (!newPlayer) {
+      console.error("handleQuickAddPlayer: newPlayer is null");
+    } else {
       addPlayerToSelected(newPlayer);
-    }, 100);
-
+    }
     setShowQuickAdd(false);
     Alert.alert("Success", `${playerData.name} has been added to the group!`);
   }
@@ -374,7 +375,9 @@ export default function GroupPlayerManager({
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: theme.colors.background }}
+      >
         <Appbar.Header>
           <Appbar.BackAction onPress={onCancel} />
           <Appbar.Content
@@ -452,10 +455,10 @@ export default function GroupPlayerManager({
           animationType="slide"
           presentationStyle="formSheet"
         >
-          <QuickPlayerForm
+          <PlayerForm
             onSave={handleQuickAddPlayer}
             onCancel={() => setShowQuickAdd(false)}
-            groupName={groupName}
+            //groupName={groupName}
           />
         </Modal>
       </SafeAreaView>

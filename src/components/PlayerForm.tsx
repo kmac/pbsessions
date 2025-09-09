@@ -32,7 +32,8 @@ export default function PlayerForm({
     name: "",
     email: "",
     phone: "",
-    gender: "" as "male" | "female" | "other" | "",
+    // gender: "" as "male" | "female" | "other" | "",
+    gender: "" as "male" | "female" | "",
     rating: "",
   });
 
@@ -197,7 +198,14 @@ export default function PlayerForm({
               onValueChange={(value) =>
                 setFormData({ ...formData, gender: value })
               }
-              style={{ height: 50 }}
+              style={{
+                height: 50,
+                color: theme.colors.onSurface,
+                backgroundColor: theme.colors.surface,
+              }}
+              itemStyle={{
+                color: theme.colors.onSurface,
+              }}
             >
               <Picker.Item label="Select (optional)" value="" />
               <Picker.Item label="Male" value="male" />

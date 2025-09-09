@@ -14,64 +14,7 @@ import { useAppSelector } from "@/src/store";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import GameCard from "@/src/components/GameCard";
 import { Session, SessionState, Game, Round } from "@/src/types";
-import {
-  getPlayerName,
-  getSessionPlayers,
-} from "@/src/utils/util";
-
-const useStyles = () => {
-  const theme = useTheme();
-
-  return useMemo(
-    () =>
-      StyleSheet.create({
-        headerContainer: {
-          padding: 16,
-          elevation: 1,
-          marginBottom: 2,
-        },
-        sessionName: {
-          fontWeight: "bold",
-          marginBottom: 8,
-        },
-        sessionInfo: {
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 8,
-        },
-        stateChip: {
-          alignSelf: "flex-start",
-        },
-        sessionMetrics: {
-          flexDirection: "row",
-          gap: 8,
-          flexWrap: "wrap",
-        },
-        listContainer: {
-          padding: 16,
-        },
-        sittingOutContainer: {
-          margin: 16,
-          padding: 12,
-          borderRadius: 8,
-        },
-        sittingOutLabel: {
-          fontWeight: "600",
-          marginBottom: 4,
-        },
-        partnerChip: {
-          marginBottom: 4,
-        },
-        emptyContainer: {
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-        },
-      }),
-    [theme],
-  );
-};
+import { getPlayerName, getSessionPlayers } from "@/src/utils/util";
 
 interface ViewSessionModalProps {
   visible: boolean;
@@ -84,10 +27,9 @@ export default function ViewSessionModal({
   session,
   onCancel,
 }: ViewSessionModalProps) {
-  const styles = useStyles();
   const theme = useTheme();
-  const [statsModalVisible, setStatsModalVisible] = useState(false);
 
+  const [statsModalVisible, setStatsModalVisible] = useState(false);
   const { players } = useAppSelector((state) => state.players);
 
   if (!session) {
@@ -249,7 +191,14 @@ export default function ViewSessionModal({
           </Surface>
 
           {rounds.length === 0 && (
-            <View style={styles.emptyContainer}>
+            <View
+              style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: theme.colors.background,
+              }}
+            >
               <Text variant="bodyMedium">No rounds available</Text>
             </View>
           )}
@@ -296,3 +245,44 @@ export default function ViewSessionModal({
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  headerContainer: {
+    padding: 16,
+    elevation: 1,
+    marginBottom: 2,
+  },
+  sessionName: {
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  sessionInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  stateChip: {
+    alignSelf: "flex-start",
+  },
+  sessionMetrics: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  listContainer: {
+    padding: 16,
+  },
+  sittingOutContainer: {
+    margin: 16,
+    padding: 12,
+    borderRadius: 8,
+  },
+  sittingOutLabel: {
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  partnerChip: {
+    marginBottom: 4,
+  },
+});

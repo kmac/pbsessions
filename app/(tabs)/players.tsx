@@ -420,7 +420,7 @@ export default function PlayersTab() {
 
           // Validate gender
           const validGenders = ["male", "female", "other"];
-          let gender: "male" | "female" | "other" | undefined = undefined;
+          let gender: "male" | "female" | undefined = undefined;
           if (rowData.gender && rowData.gender.trim() !== "") {
             const genderLower = rowData.gender.toLowerCase().trim();
             if (!validGenders.includes(genderLower)) {
@@ -429,7 +429,7 @@ export default function PlayersTab() {
               );
               continue;
             }
-            gender = genderLower as "male" | "female" | "other";
+            gender = genderLower as "male" | "female";
           }
 
           // Create player object

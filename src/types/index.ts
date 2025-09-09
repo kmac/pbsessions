@@ -7,7 +7,7 @@ export interface Player {
   name: string;
   email?: string;
   phone?: string;
-  gender?: "male" | "female" | "other";
+  gender?: "male" | "female";
   rating?: number; // DUPR-style rating
   notes?: string;
   createdAt: string;

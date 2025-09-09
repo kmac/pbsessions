@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Player } from '@/src/types/index';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { Player } from "@/src/types/index";
 
 interface PlayersState {
   players: Player[];
@@ -14,21 +14,36 @@ const initialState: PlayersState = {
 };
 
 const playersSlice = createSlice({
-  name: 'players',
+  name: "players",
   initialState,
   reducers: {
-    addPlayer: (state, action: PayloadAction<Omit<Player, 'id' | 'createdAt' | 'updatedAt'>>) => {
-      const now = new Date().toISOString();
-      const newPlayer: Player = {
-        ...action.payload,
-        id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-        createdAt: now,
-        updatedAt: now,
-      };
-      state.players.push(newPlayer);
+    // addPlayer: (state, action: PayloadAction<Omit<Player, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    //   const now = new Date().toISOString();
+    //   const newPlayer: Player = {
+    //     ...action.payload,
+    //     id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+    //     createdAt: now,
+    //     updatedAt: now,
+    //   };
+    //   state.players.push(newPlayer);
+    // },
+    addPlayer: {
+      reducer: (state, action: PayloadAction<Player>) => {
+        state.players.push(action.payload);
+      },
+      prepare: (playerData: Omit<Player, "id" | "createdAt" | "updatedAt">) => {
+        const now = new Date().toISOString();
+        const newPlayer: Player = {
+          ...playerData,
+          id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+          createdAt: now,
+          updatedAt: now,
+        };
+        return { payload: newPlayer };
+      },
     },
     updatePlayer: (state, action: PayloadAction<Player>) => {
-      const index = state.players.findIndex(p => p.id === action.payload.id);
+      const index = state.players.findIndex((p) => p.id === action.payload.id);
       if (index !== -1) {
         state.players[index] = {
           ...action.payload,
@@ -37,9 +52,12 @@ const playersSlice = createSlice({
       }
     },
     removePlayer: (state, action: PayloadAction<string>) => {
-      state.players = state.players.filter(p => p.id !== action.payload);
+      state.players = state.players.filter((p) => p.id !== action.payload);
     },
-    addMultiplePlayers: (state, action: PayloadAction<Omit<Player, 'id' | 'createdAt' | 'updatedAt'>[]>) => {
+    addMultiplePlayers: (
+      state,
+      action: PayloadAction<Omit<Player, "id" | "createdAt" | "updatedAt">[]>,
+    ) => {
       const now = new Date().toISOString();
       const newPlayers = action.payload.map((player, index) => ({
         ...player,
@@ -62,7 +80,8 @@ const playersSlice = createSlice({
   },
   selectors: {
     selectAllPlayers: (playersState) => playersState.players,
-    selectAllPlayerIds: (playersState) => playersState.players.map(player => player.id),
+    selectAllPlayerIds: (playersState) =>
+      playersState.players.map((player) => player.id),
   },
 });
 
@@ -76,9 +95,6 @@ export const {
   setError,
 } = playersSlice.actions;
 
-export const {
-  selectAllPlayers,
-  selectAllPlayerIds,
-} = playersSlice.selectors;
+export const { selectAllPlayers, selectAllPlayerIds } = playersSlice.selectors;
 
 export default playersSlice.reducer;

@@ -3,7 +3,6 @@ import {
   View,
   Modal,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -19,7 +18,6 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { Court, Game, Player, Results } from '../types';
-import { COURT_COLORS } from '../theme';
 
 interface RoundScoreEntryModalProps {
   visible: boolean;
@@ -65,7 +63,7 @@ export default function RoundScoreEntryModal({
           courtName: getCourtName(game.courtId),
           serveScore: game.score?.serveScore || 0,
           receiveScore: game.score?.receiveScore || 0,
-          hasScore: !!game.score,
+          hasScore: true,
           serveTeam: [
             getPlayer(game.serveTeam.player1Id),
             getPlayer(game.serveTeam.player2Id)
@@ -152,9 +150,6 @@ export default function RoundScoreEntryModal({
   };
 
   const renderCourtScore = (court: CourtScore, index: number) => {
-    const winner = getWinner(court);
-    const courtColor = COURT_COLORS[index % COURT_COLORS.length];
-
     return (
       <Card key={court.gameId} style={{ marginBottom: 16 }}>
         <Card.Content>
@@ -197,21 +192,6 @@ export default function RoundScoreEntryModal({
                   alignItems: 'center',
                   backgroundColor: theme.colors.primaryContainer
                 }}>
-                  {/*<View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                    marginBottom: 8,
-                  }}>
-                    <Text variant="titleSmall" style={{
-                      fontWeight: '600',
-                      color: theme.colors.onPrimaryContainer
-                    }}>
-                      Serve Team
-                    </Text>
-                    {winner === 'serve' && <Icon source="trophy" size={16} />}
-                  </View>*/}
-
                   <View style={{ alignItems: 'center', marginBottom: 16 }}>
                     <Text variant="bodyMedium" style={{
                       fontWeight: '600',
@@ -364,9 +344,6 @@ export default function RoundScoreEntryModal({
       </Card>
     );
   };
-
-  const courtsWithScores = courtScores.filter(c => c.hasScore).length;
-  const totalCourts = courtScores.length;
 
   return (
     <Modal
