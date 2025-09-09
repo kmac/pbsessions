@@ -36,10 +36,12 @@ import {
   updateCurrentRoundThunk,
 } from "@/src/store/actions/sessionActions";
 import {
+  getPlayerText,
+  getPlayerRating,
   RoundGameCard,
-  PlayerRenderData,
 } from "@/src/components/RoundGameCard";
 import { getSessionPlayers } from "@/src/utils/util";
+import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
 
 interface RoundComponentProps {
@@ -382,9 +384,20 @@ export default function RoundComponent({
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <View style={{ marginBottom: 24 }}>
+      <View
+        style={{
+          marginBottom: 24,
+        }}
+      >
         {(currentRound.games || []).map((game) => (
-          <View key={game.id}>{renderCourtAssignment({ item: game })}</View>
+          <View
+            style={{
+              marginLeft: 0,
+            }}
+            key={game.id}
+          >
+            {renderCourtAssignment({ item: game })}
+          </View>
         ))}
       </View>
       {disabledCourts.length > 0 &&
@@ -509,19 +522,19 @@ export default function RoundComponent({
                   editing && player && togglePlayerSelected(player);
                 }}
               >
-                {player.name}(
-                {getPlayerStats(session, player.id)?.gamesSatOut || 0})
-                {showRating && player.rating && (
-                  <Badge
-                    size={22}
-                    style={{
-                      backgroundColor: theme.colors.primary,
-                      marginLeft: 6,
-                    }}
-                  >
-                    {player.rating!.toFixed(2)}
-                  </Badge>
-                )}
+                <View
+                  style={{
+                    // flexDirection: isNarrowScreen() ? "column" : "row",
+                    flexDirection: "column"
+                  }}
+                >
+                  {getPlayerText(
+                    `${player.name} (${getPlayerStats(session, player.id)?.gamesSatOut || 0})`,
+                  )}
+                  {showRating &&
+                    player.rating &&
+                    getPlayerRating(player.rating)}
+                </View>
               </Chip>
             ))}
           </View>

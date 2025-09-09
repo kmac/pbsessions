@@ -1,8 +1,47 @@
 import React from "react";
-import { View } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Badge, Card, Chip, Text, useTheme } from "react-native-paper";
 import { Court, Player, Score } from "@/src/types";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
+
+export const getPlayerText = (name: string) => {
+  const variant = name.length > 12 ? "labelSmall" : "labelMedium";
+  return <Text variant={variant}>{name}</Text>;
+};
+
+export const getPlayerRating = (rating: number) => {
+  const theme = useTheme();
+  if (true) {
+    return (
+      <Text
+        variant="bodySmall"
+        style={{
+          color: theme.colors.tertiary,
+          fontSize: 9,
+          alignSelf: /*"center"*/ "flex-end",
+          marginLeft: isNarrowScreen() ? 0 : 8,
+        }}
+      >
+        {rating.toFixed(2)}
+      </Text>
+    );
+  } else {
+    const theme = useTheme();
+    return (
+      <Badge
+        size={20}
+        style={{
+          fontSize: 9,
+          color: theme.colors.onPrimary,
+          backgroundColor: theme.colors.primary,
+          marginLeft: 6,
+        }}
+      >
+        {rating.toFixed(2)}
+      </Badge>
+    );
+  }
+};
 
 export type PlayerRenderData = {
   player: Player;
@@ -21,6 +60,7 @@ interface RoundGameCardProps {
   chipMode: "flat" | "outlined" | undefined;
   showRating: boolean;
   handleCourtSetting?: (courtId: string) => void;
+  gameCardLayout?: "horizontal" | "vertical";
 }
 
 const GameSide: React.FC<{
@@ -31,15 +71,24 @@ const GameSide: React.FC<{
 }> = ({ player1Data, player2Data, chipMode, showRating }) => {
   const theme = useTheme();
 
+  const ratingBadge = {
+    fontSize: 9,
+    color: theme.colors.onPrimary,
+    backgroundColor: theme.colors.primary,
+    marginLeft: 6,
+  };
+  const badgeSize = 20;
+
   return (
     <View
       style={{
         flexDirection: "row",
         flex: 1,
-        gap: 10,
-        padding: 12,
+        //gap: 4,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
         borderRadius: 8,
-        alignItems: "center",
+        //alignItems: "center",
         justifyContent: "center",
         backgroundColor: theme.colors.surfaceVariant,
       }}
@@ -47,8 +96,9 @@ const GameSide: React.FC<{
       <View
         style={{
           flexDirection: "column",
-          alignItems: "stretch",
-          gap: 5,
+          // alignItems: "stretch",
+          alignItems: "center",
+          gap: 4,
         }}
       >
         <Chip
@@ -60,18 +110,18 @@ const GameSide: React.FC<{
             player1Data.onSelected && player1Data.onSelected();
           }}
         >
-          {player1Data.player.name}
-          {showRating && player1Data.player.rating && (
-            <Badge
-              size={22}
-              style={{
-                backgroundColor: theme.colors.primary,
-                marginLeft: 6,
-              }}
-            >
-              {player1Data.player.rating!.toFixed(2)}
-            </Badge>
-          )}
+          <View
+            style={{
+              //flexDirection: isNarrowScreen() ? "column" : "row",
+              flexDirection: "column",
+              //rowGap: 4,
+            }}
+          >
+            {getPlayerText(player1Data.player.name)}
+            {showRating &&
+              player1Data.player.rating &&
+              getPlayerRating(player1Data.player.rating)}
+          </View>
         </Chip>
         <Chip
           mode={chipMode}
@@ -82,18 +132,18 @@ const GameSide: React.FC<{
             player2Data.onSelected && player2Data.onSelected();
           }}
         >
-          {player2Data.player.name}
-          {showRating && player2Data.player.rating && (
-            <Badge
-              size={22}
-              style={{
-                backgroundColor: theme.colors.primary,
-                marginLeft: 6,
-              }}
-            >
-              {player2Data.player.rating!.toFixed(2)}
-            </Badge>
-          )}
+          <View
+            style={{
+              //flexDirection: isNarrowScreen() ? "column" : "row",
+              flexDirection: "column",
+              //rowGap: 4,
+            }}
+          >
+            {getPlayerText(player2Data.player.name)}
+            {showRating &&
+              player2Data.player.rating &&
+              getPlayerRating(player2Data.player.rating)}
+          </View>
         </Chip>
       </View>
     </View>
@@ -109,7 +159,7 @@ const ScoreDisplay: React.FC<{
   if (!serveScore || !receiveScore) {
     return (
       <View style={{ alignItems: "center" }}>
-        <Text variant="titleMedium">vs.</Text>
+        <Text variant="titleSmall">vs.</Text>
       </View>
     );
   }
@@ -118,14 +168,14 @@ const ScoreDisplay: React.FC<{
     <View
       style={{
         alignItems: "center",
-        marginVertical: 8,
+        marginVertical: 4,
       }}
     >
       <Chip
         style={{ backgroundColor: theme.colors.tertiaryContainer }}
         elevated={true}
       >
-        <Text variant="titleSmall">
+        <Text variant="labelSmall">
           {serveScore} - {receiveScore}
         </Text>
       </Chip>
@@ -143,27 +193,39 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
   chipMode,
   showRating,
   handleCourtSetting,
+  gameCardLayout = "horizontal",
 }) => {
   const theme = useTheme();
 
   return (
-    <Card style={{ marginBottom: 12 }}>
+    <Card
+      style={{
+        marginBottom: 8,
+      }}
+    >
       <Card.Content>
+        {/* Court */}
         <View
           style={{
             flexDirection: "row",
             gap: 8,
-            marginBottom: 12,
+            marginBottom: 8,
           }}
         >
           <Chip
             mode={chipMode}
+            //style={{ backgroundColor: theme.colors.primaryContainer }}
             onPress={() => {
               handleCourtSetting && handleCourtSetting(court.id);
             }}
           >
             {court.isActive && (
-              <Text variant="titleMedium" style={{ fontWeight: "600" }}>
+              <Text
+                variant="titleMedium"
+                style={{
+                  fontWeight: "600",
+                }}
+              >
                 {court.name}
               </Text>
             )}
@@ -192,29 +254,59 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
           </Chip>
         </View>
 
+        {/* Game and score */}
         <View
           style={{
-            flexDirection: isNarrowScreen() ? "column" : "row",
-            alignItems: "stretch",
-            columnGap: 6,
+            flexDirection: "column",
+            alignItems: "center",
           }}
         >
-          <GameSide
-            player1Data={servePlayer1Data}
-            player2Data={servePlayer2Data}
-            chipMode={chipMode}
-            showRating={showRating}
-          />
-          <ScoreDisplay
-            serveScore={score?.serveScore}
-            receiveScore={score?.receiveScore}
-          />
-          <GameSide
-            player1Data={receivePlayer1Data}
-            player2Data={receivePlayer2Data}
-            chipMode={chipMode}
-            showRating={showRating}
-          />
+          <View
+            style={{
+              flexDirection: gameCardLayout === "vertical" ? "column" : "row",
+              alignItems: gameCardLayout === "vertical" ? "center" : "stretch",
+              columnGap: 8,
+            }}
+          >
+            <GameSide
+              player1Data={servePlayer1Data}
+              player2Data={servePlayer2Data}
+              chipMode={chipMode}
+              showRating={showRating}
+            />
+            {gameCardLayout === "vertical" && score && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <ScoreDisplay
+                  serveScore={score?.serveScore}
+                  receiveScore={score?.receiveScore}
+                />
+              </View>
+            )}
+            <GameSide
+              player1Data={receivePlayer1Data}
+              player2Data={receivePlayer2Data}
+              chipMode={chipMode}
+              showRating={showRating}
+            />
+          </View>
+          {gameCardLayout === "horizontal" && score && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <ScoreDisplay
+                serveScore={score?.serveScore}
+                receiveScore={score?.receiveScore}
+              />
+            </View>
+          )}
         </View>
       </Card.Content>
     </Card>

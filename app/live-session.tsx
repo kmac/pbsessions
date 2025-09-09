@@ -330,7 +330,7 @@ export default function LiveSessionScreen() {
           contentStyle={{ paddingVertical: 2 }}
           //style={{ marginBottom: 12 }}
         >
-          Edit Round
+          Edit
         </Button>
       </View>
     );
