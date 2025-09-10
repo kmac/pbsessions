@@ -4,20 +4,51 @@ import { Badge, Card, Chip, Text, useTheme } from "react-native-paper";
 import { Court, Player, Score } from "@/src/types";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 
+const useBadge = false;
+const useTextVariant = true;
+
 export const getPlayerText = (name: string) => {
-  const variant = name.length > 12 ? "labelSmall" : "labelMedium";
-  return <Text variant={variant}>{name}</Text>;
+  if (useTextVariant) {
+    const variant = name.length > 12 ? "labelLarge" : "labelLarge";
+    //const variant = name.length > 100 ? "titleSmall" : "titleMedium";
+    return <Text variant={variant}>{name}</Text>;
+  }
+  const fontSize = name.length > 12 ? 14 : 15;
+  return (
+    <Text
+      style={{
+        fontSize: fontSize,
+        fontWeight: "500",
+      }}
+    >
+      {name}
+    </Text>
+  );
 };
 
-export const getPlayerRating = (rating: number) => {
-  const theme = useTheme();
-  if (true) {
+export const getPlayerRating = (rating: number, theme: any) => {
+  if (useBadge) {
+    return (
+      <Badge
+        size={20}
+        style={{
+          fontSize: 10,
+          color: theme.colors.onPrimary,
+          backgroundColor: theme.colors.primary,
+        }}
+      >
+        {rating.toFixed(2)}
+      </Badge>
+    );
+  }
+  if (useTextVariant) {
     return (
       <Text
-        variant="bodySmall"
+        variant="labelSmall"
         style={{
           color: theme.colors.tertiary,
-          fontSize: 9,
+          //fontSize: 9,
+          fontWeight: "400",
           alignSelf: /*"center"*/ "flex-end",
           marginLeft: isNarrowScreen() ? 0 : 8,
         }}
@@ -25,22 +56,20 @@ export const getPlayerRating = (rating: number) => {
         {rating.toFixed(2)}
       </Text>
     );
-  } else {
-    const theme = useTheme();
-    return (
-      <Badge
-        size={20}
-        style={{
-          fontSize: 9,
-          color: theme.colors.onPrimary,
-          backgroundColor: theme.colors.primary,
-          marginLeft: 6,
-        }}
-      >
-        {rating.toFixed(2)}
-      </Badge>
-    );
   }
+  return (
+    <Text
+      //variant="bodySmall"
+      style={{
+        color: theme.colors.tertiary,
+        fontSize: 9,
+        alignSelf: /*"center"*/ "flex-end",
+        marginLeft: isNarrowScreen() ? 0 : 8,
+      }}
+    >
+      {rating.toFixed(2)}
+    </Text>
+  );
 };
 
 export type PlayerRenderData = {
@@ -86,7 +115,7 @@ const GameSide: React.FC<{
         flex: 1,
         //gap: 4,
         paddingVertical: 12,
-        paddingHorizontal: 8,
+        paddingHorizontal: 10,
         borderRadius: 8,
         //alignItems: "center",
         justifyContent: "center",
@@ -120,7 +149,7 @@ const GameSide: React.FC<{
             {getPlayerText(player1Data.player.name)}
             {showRating &&
               player1Data.player.rating &&
-              getPlayerRating(player1Data.player.rating)}
+              getPlayerRating(player1Data.player.rating, theme)}
           </View>
         </Chip>
         <Chip
@@ -142,7 +171,7 @@ const GameSide: React.FC<{
             {getPlayerText(player2Data.player.name)}
             {showRating &&
               player2Data.player.rating &&
-              getPlayerRating(player2Data.player.rating)}
+              getPlayerRating(player2Data.player.rating, theme)}
           </View>
         </Chip>
       </View>
@@ -266,6 +295,7 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
               flexDirection: gameCardLayout === "vertical" ? "column" : "row",
               alignItems: gameCardLayout === "vertical" ? "center" : "stretch",
               columnGap: 8,
+              // backgroundColor: theme.colors.surfaceVariant,
             }}
           >
             <GameSide

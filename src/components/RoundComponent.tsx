@@ -64,8 +64,8 @@ export default function RoundComponent({
   const [courtSettingDialogVisible, setCourtSettingDialogVisible] =
     useState(false);
   const [currentCourtId, setCurrentCourtId] = useState<string>("");
-  const [ratingInput, setRatingInput] = useState<string>("");
-  const [ratingEnabled, setRatingEnabled] = useState<boolean>(false);
+  const [courtRatingInput, setCourtRatingInput] = useState<string>("");
+  const [courtRatingEnabled, setCourtRatingEnabled] = useState<boolean>(false);
   const [courtDisabled, setCourtDisabled] = useState<boolean>(false);
 
   const { players } = useAppSelector((state) => state.players);
@@ -78,7 +78,8 @@ export default function RoundComponent({
     : [];
   const currentRound = getCurrentRound(session, false);
 
-  const showRating = session ? session.showRatings : false;
+  const showRating = session?.showRatings ?? false;
+  const [showRatingEnabled, setShowRatingEnabled] = useState<boolean>(false);
   const scoring = session ? session.scoring : false;
 
   const chipMode = editing ? "outlined" : "flat";
@@ -294,8 +295,8 @@ export default function RoundComponent({
   const handleCourtSetting = (courtId: string) => {
     const court: Court = getCourt(courtId);
     setCurrentCourtId(courtId);
-    setRatingInput(court.minimumRating?.toString() || "");
-    setRatingEnabled(court.minimumRating ? true : false);
+    setCourtRatingInput(court.minimumRating?.toString() || "");
+    setCourtRatingEnabled(court.minimumRating ? true : false);
     setCourtDisabled(!court.isActive);
     setCourtSettingDialogVisible(true);
   };
@@ -303,8 +304,8 @@ export default function RoundComponent({
   const handleSaveCourtSetting = async () => {
     const court = getCourt(currentCourtId);
     const rating =
-      ratingEnabled && ratingInput.trim() !== ""
-        ? parseFloat(ratingInput)
+      courtRatingEnabled && courtRatingInput.trim() !== ""
+        ? parseFloat(courtRatingInput)
         : undefined;
     const updatedCourt = {
       ...court,
@@ -329,15 +330,15 @@ export default function RoundComponent({
   const handleCloseCourtSetting = () => {
     setCourtSettingDialogVisible(false);
     setCurrentCourtId("");
-    setRatingInput("");
-    setRatingEnabled(false);
+    setCourtRatingInput("");
+    setCourtRatingEnabled(false);
     setCourtDisabled(false);
   };
 
-  const handleRatingEnabledChange = (enabled: boolean) => {
-    setRatingEnabled(enabled);
+  const handleCourtRatingEnabledChange = (enabled: boolean) => {
+    setCourtRatingEnabled(enabled);
     if (!enabled) {
-      setRatingInput("");
+      setCourtRatingInput("");
     }
   };
 
@@ -376,7 +377,7 @@ export default function RoundComponent({
         court={getCourt(game.courtId)}
         score={game.score}
         chipMode={chipMode}
-        showRating={showRating}
+        showRating={showRatingEnabled}
         handleCourtSetting={editing ? handleCourtSetting : undefined}
       />
     );
@@ -525,19 +526,35 @@ export default function RoundComponent({
                 <View
                   style={{
                     // flexDirection: isNarrowScreen() ? "column" : "row",
-                    flexDirection: "column"
+                    flexDirection: "column",
                   }}
                 >
                   {getPlayerText(
                     `${player.name} (${getPlayerStats(session, player.id)?.gamesSatOut || 0})`,
                   )}
-                  {showRating &&
+                  {showRatingEnabled &&
                     player.rating &&
-                    getPlayerRating(player.rating)}
+                    getPlayerRating(player.rating, theme)}
                 </View>
               </Chip>
             ))}
           </View>
+        </View>
+      )}
+
+      {showRating && (
+        <View style={{ flexDirection: "row" }}>
+          <Text variant="labelSmall" style={{ marginRight: 4 }}>
+            Show Ratings:
+          </Text>
+          <Switch
+            value={showRatingEnabled}
+            onValueChange={(value) => {
+              setShowRatingEnabled(value);
+            }}
+            // disabled={!showRating}
+            style={{ opacity: showRating ? 1 : 0.3 }}
+          />
         </View>
       )}
 
@@ -577,9 +594,9 @@ export default function RoundComponent({
             }}
           >
             <Checkbox.Item
-              status={ratingEnabled ? "checked" : "unchecked"}
+              status={courtRatingEnabled ? "checked" : "unchecked"}
               onPress={() => {
-                handleRatingEnabledChange(!ratingEnabled);
+                handleCourtRatingEnabledChange(!courtRatingEnabled);
               }}
               label="Enable minimum rating"
               labelVariant="labelMedium"
@@ -588,21 +605,24 @@ export default function RoundComponent({
               Limits this court to players at or above the assigned rating.
             </Text>
             <TextInput
-              value={ratingInput}
+              value={courtRatingInput}
               onChangeText={(value) => {
-                setRatingInput(value);
+                setCourtRatingInput(value);
               }}
               keyboardType="numeric"
               mode="outlined"
               placeholder="e.g. 4.0"
-              disabled={!ratingEnabled}
+              disabled={!courtRatingEnabled}
               style={{
                 marginLeft: 16,
-                opacity: ratingEnabled ? 1 : 0.5,
+                opacity: courtRatingEnabled ? 1 : 0.5,
                 width: 150,
               }}
             />
-            <HelperText type="error" visible={ratingEnabled && !ratingInput}>
+            <HelperText
+              type="error"
+              visible={courtRatingEnabled && !courtRatingInput}
+            >
               Rating is required
             </HelperText>
           </View>
