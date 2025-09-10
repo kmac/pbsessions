@@ -16,6 +16,7 @@ import {
   Menu,
   Portal,
   Checkbox,
+  Dialog,
 } from "react-native-paper";
 import { useSelector, useDispatch } from "react-redux";
 import { Users } from "lucide-react-native";
@@ -38,6 +39,7 @@ import { APP_CONFIG } from "@/src/constants";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
+import * as Clipboard from "expo-clipboard";
 
 import { useTheme } from "react-native-paper";
 
@@ -60,6 +62,8 @@ export default function PlayersTab() {
   const [groupSelectionModalVisible, setGroupSelectionModalVisible] =
     useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [exportDialogVisible, setExportDialogVisible] = useState(false);
+  const [exportCsvContent, setExportCsvContent] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredPlayers = allPlayers.filter(
@@ -189,7 +193,8 @@ export default function PlayersTab() {
           Alert.alert("Export Complete", `File saved as ${fileName}`);
         }
       } else {
-        Alert.alert("Export", csvContent);
+        setExportCsvContent(csvContent);
+        setExportDialogVisible(true);
       }
     } catch (error) {
       console.error("Export error:", error);
@@ -318,6 +323,16 @@ export default function PlayersTab() {
   const handleCancelCsvImport = () => {
     setCsvImportModalVisible(false);
     setCsvText("");
+  };
+
+  const handleCopyToClipboard = async () => {
+    try {
+      await Clipboard.setStringAsync(exportCsvContent);
+      Alert.alert("Copied", "CSV content copied to clipboard!");
+    } catch (error) {
+      console.error("Copy error:", error);
+      Alert.alert("Copy Failed", "Failed to copy to clipboard.");
+    }
   };
 
   const parsePlayersFromCsv = (
@@ -1290,6 +1305,41 @@ export default function PlayersTab() {
         visible={bulkPlayerAddModalVisible}
         onClose={() => setBulkPlayerAddModalVisible(false)}
       />
+
+      {/* Export CSV Dialog */}
+      <Portal>
+        <Dialog
+          visible={exportDialogVisible}
+          onDismiss={() => setExportDialogVisible(false)}
+          style={{ maxHeight: "80%" }}
+        >
+          <Dialog.Title>Exported CSV Data</Dialog.Title>
+          <Dialog.ScrollArea>
+            <ScrollView>
+              <Text
+                variant="bodySmall"
+                style={{
+                  fontFamily:
+                    Platform.OS === "ios" ? "Courier New" : "monospace",
+                  fontSize: 12,
+                  backgroundColor: theme.colors.surfaceVariant,
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+                selectable
+              >
+                {exportCsvContent}
+              </Text>
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button icon="content-copy" onPress={handleCopyToClipboard}>
+              Copy
+            </Button>
+            <Button onPress={() => setExportDialogVisible(false)}>Close</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }
