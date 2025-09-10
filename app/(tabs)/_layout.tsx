@@ -2,12 +2,6 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs } from "expo-router";
 import { useTheme } from 'react-native-paper';
 import { Appbar, Icon, Tooltip } from "react-native-paper";
-import { router } from "expo-router";
-import { Users, Users2, Calendar, Settings } from "lucide-react-native";
-import { TabsHeader } from "@/src/components/TabsHeader";
-
-import Colors from "@/src/theme/Colors";
-import { useClientOnlyValue } from "@/src/utils/useClientOnlyValue";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -145,10 +139,6 @@ export function TabLayoutOrig() {
       // headerTitleStyle: {
       //   fontWeight: 'bold',
       // },
-      // screenOptions={{
-      //   tabBarHideOnKeyboard: true,
-      //   header: (props) => <TabsHeader navProps={props} children={undefined} />,
-      // }}
     >
       <Tabs.Screen
         name="index"
