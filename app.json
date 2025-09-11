@@ -16,14 +16,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.pickleballsessions"
+      "bundleIdentifier": "com.kmac5dev.pbsessions"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#f9fafb"
       },
-      "package": "com.anonymous.pickleballsessions"
+      "package": "com.kmac5dev.pbsessions"
     },
     "web": {
       "bundler": "metro",
