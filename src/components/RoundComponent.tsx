@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, } from "react-native";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Button,
@@ -17,13 +17,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import {
-  Court,
-  Game,
-  Session,
-  Player,
-  PlayerStats,
-} from "@/src/types";
+import { Court, Game, Session, Player, PlayerStats } from "@/src/types";
 import {
   getCurrentRound,
   getCurrentRoundNumber,
@@ -78,7 +72,8 @@ export default function RoundComponent({
   const currentRound = getCurrentRound(session, false, roundNumber);
 
   const showRating = session?.showRatings ?? false;
-  const [showRatingEnabled, setShowRatingEnabled] = useState<boolean>(showRating);
+  const [showRatingEnabled, setShowRatingEnabled] =
+    useState<boolean>(showRating);
 
   const chipMode = editing ? "outlined" : "flat";
 
@@ -104,7 +99,12 @@ export default function RoundComponent({
   const getCourt = (courtId: string): Court => {
     const court = courts?.find((c) => c.id === courtId);
     if (!court) {
-      throw new Error(`Court with ID "${courtId}" not found in session courts`);
+      console.error(`Court with ID "${courtId}" not found in session courts`);
+      return {
+        id: courtId,
+        name: "UNKNOWN",
+        isActive: false,
+      } as Court;
     }
     return court;
   };
@@ -460,7 +460,9 @@ export default function RoundComponent({
         })}
 
       {showRating && (
-        <View style={{ flexDirection: "row", alignSelf: "center", marginBottom: 2 }}>
+        <View
+          style={{ flexDirection: "row", alignSelf: "center", marginBottom: 2 }}
+        >
           <Text variant="labelSmall" style={{ marginRight: 4 }}>
             Show Ratings:
           </Text>
@@ -610,7 +612,6 @@ export default function RoundComponent({
           <Button onPress={handleSaveCourtSetting}>Save</Button>
         </Dialog.Actions>
       </Dialog>
-
     </SafeAreaView>
   );
 }
