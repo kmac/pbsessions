@@ -171,7 +171,7 @@ export default function BetweenRoundsModal({
                 fontWeight: "600",
               }}
             >
-              New Round {roundNumber}
+              New Round: {roundNumber}
             </Text>
           }
         />
