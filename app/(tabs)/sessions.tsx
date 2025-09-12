@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, FlatList, Modal, Dimensions } from "react-native";
+import { View, FlatList,  } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
@@ -32,7 +32,6 @@ import { Alert } from "@/src/utils/alert";
 import {
   endSessionThunk,
   startLiveSessionThunk,
-  updateCourtInSessionThunk,
 } from "@/src/store/actions/sessionActions";
 
 export default function SessionsTab() {
@@ -57,9 +56,6 @@ export default function SessionsTab() {
 
   const allLiveSessions = sessions.filter(
     (session) => session.state === SessionState.Live,
-  );
-  const allLiveSessionIds: string[] = allLiveSessions.map(
-    (session) => session.id,
   );
   const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
 

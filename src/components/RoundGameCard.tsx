@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Badge, Card, Chip, Text, useTheme } from "react-native-paper";
-import { Court, Player, Score } from "@/src/types";
+import { Court, Player, PlayerStats, Score } from "@/src/types";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 
 const useBadge = false;
@@ -74,6 +74,7 @@ export const getPlayerRating = (rating: number, theme: any) => {
 
 export type PlayerRenderData = {
   player: Player;
+  stats?: PlayerStats;
   selected: boolean;
   selectDisabled: boolean;
   onSelected?: () => void;
@@ -109,6 +110,7 @@ const GameSide: React.FC<{
   const badgeSize = 20;
 
   return (
+    // Player's box
     <View
       style={{
         flexDirection: "row",
@@ -146,7 +148,11 @@ const GameSide: React.FC<{
               //rowGap: 4,
             }}
           >
-            {getPlayerText(player1Data.player.name)}
+            {getPlayerText(
+              player1Data.selected
+                ? `${player1Data.player.name} (${player1Data.stats?.gamesSatOut || 0})`
+                : player1Data.player.name,
+            )}
             {showRating &&
               player1Data.player.rating &&
               getPlayerRating(player1Data.player.rating, theme)}
@@ -168,7 +174,11 @@ const GameSide: React.FC<{
               //rowGap: 4,
             }}
           >
-            {getPlayerText(player2Data.player.name)}
+            {getPlayerText(
+              player2Data.selected
+                ? `${player2Data.player.name} (${player2Data.stats?.gamesSatOut || 0})`
+                : player2Data.player.name,
+            )}
             {showRating &&
               player2Data.player.rating &&
               getPlayerRating(player2Data.player.rating, theme)}
@@ -239,6 +249,7 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
             flexDirection: "row",
             gap: 8,
             marginBottom: 8,
+            flex: 1,
           }}
         >
           <Chip
@@ -248,46 +259,52 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
               handleCourtSetting && handleCourtSetting(court.id);
             }}
           >
-            {court.isActive && (
-              <Text
-                variant="titleMedium"
-                style={{
-                  fontWeight: "600",
-                }}
-              >
-                {court.name}
-              </Text>
-            )}
-            {!court.isActive && (
-              <Text
-                variant="titleMedium"
-                style={{
-                  fontWeight: "600",
-                  textDecorationLine: "line-through",
-                }}
-              >
-                {court.name}
-              </Text>
-            )}
-            {court.minimumRating && (
-              <Badge
-                size={22}
-                style={{
-                  backgroundColor: theme.colors.tertiary,
-                  marginLeft: 6,
-                }}
-              >
-                {court.minimumRating.toFixed(2)}
-              </Badge>
-            )}
+            <View style={{ flexDirection: "column" }}>
+              {court.isActive && (
+                <Text
+                  variant="titleMedium"
+                  style={{
+                    fontWeight: "600",
+                  }}
+                >
+                  {court.name}
+                </Text>
+              )}
+              {!court.isActive && (
+                <Text
+                  variant="titleMedium"
+                  style={{
+                    fontWeight: "600",
+                    textDecorationLine: "line-through",
+                  }}
+                >
+                  {court.name}
+                </Text>
+              )}
+              {court.minimumRating &&
+                !useBadge &&
+                getPlayerRating(court.minimumRating, theme)}
+              {useBadge && court.minimumRating && (
+                <Badge
+                  size={20}
+                  style={{
+                    fontSize: 10,
+                    color: theme.colors.onPrimary,
+                    backgroundColor: theme.colors.primary,
+                  }}
+                >
+                  {court.minimumRating.toFixed(2)}
+                </Badge>
+              )}
+            </View>
           </Chip>
         </View>
 
-        {/* Game and score */}
+        {/* Full Game */}
         <View
           style={{
             flexDirection: "column",
-            alignItems: "center",
+            alignItems: "stretch", // "center"
           }}
         >
           <View
@@ -327,7 +344,6 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
           {gameCardLayout === "horizontal" && score && (
             <View
               style={{
-                flexDirection: "row",
                 alignItems: "center",
               }}
             >

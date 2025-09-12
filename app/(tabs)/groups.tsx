@@ -259,7 +259,7 @@ export default function GroupsTab() {
           }}
         >
           <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
-            Groups ({groups.length})
+            Groups
           </Text>
           {false && allPlayers.length > 0 && (
             <Text

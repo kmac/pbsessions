@@ -12,7 +12,7 @@ import {
 } from "react-native-paper";
 import { useAppSelector } from "@/src/store";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
-import GameCard from "@/src/components/GameCard";
+import RoundComponent from "@/src/components/RoundComponent";
 import { Session, SessionState, Game, Round } from "@/src/types";
 import { getPlayerName, getSessionPlayers } from "@/src/utils/util";
 
@@ -65,14 +65,7 @@ export default function ViewSessionModal({
       left={(props) => <List.Icon {...props} icon="view-list" />}
       id={index}
     >
-      {item.games.map((game) => (
-        <GameCard
-          key={game.id}
-          game={game}
-          session={session}
-          players={players}
-        />
-      ))}
+      <RoundComponent editing={false} session={session} roundNumber={index} />
 
       {item.sittingOutIds.length > 0 && (
         <View style={styles.sittingOutContainer}>

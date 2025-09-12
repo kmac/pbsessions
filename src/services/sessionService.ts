@@ -39,13 +39,14 @@ export const validateLive = (session?: Session): void => {
 export const getCurrentRoundNumber = (
   session: Session,
   live: boolean = true,
+  roundNumber?: number,
 ): number => {
   if (live) {
     validateLive(session);
   } else if (!session || !session.liveData) {
     return 0;
   }
-  return session.liveData!.rounds.length;
+  return roundNumber ? roundNumber : session.liveData!.rounds.length;
 
   // if (session.state === SessionState.Live) {
   //   return length - 1;
@@ -62,6 +63,7 @@ export const getCurrentRoundNumber = (
 export const getCurrentRound = (
   session: Session,
   live: boolean = true,
+  roundNumber?: number,
 ): Round => {
   if (live) {
     validateLive(session);
@@ -72,7 +74,7 @@ export const getCurrentRound = (
   if (length === 0) {
     return { roundNumber: 1, games: [], sittingOutIds: [] };
   }
-  return session.liveData!.rounds[length - 1];
+  return session.liveData!.rounds[roundNumber ? roundNumber : length - 1];
 };
 
 const convertAssignmentToRound = (
@@ -133,10 +135,7 @@ export const playerStatsToString = (stats: PlayerStats[]): string => {
 };
 
 export class SessionService {
-
-  static startLiveSession = (
-    session: Session,
-  ): Session => {
+  static startLiveSession = (session: Session): Session => {
     return {
       ...session,
       state: SessionState.Live,

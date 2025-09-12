@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, FlatList } from "react-native";
+import { View, } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Button,
@@ -8,11 +8,9 @@ import {
   Card,
   Chip,
   Dialog,
-  IconButton,
   FAB,
   HelperText,
   Portal,
-  Surface,
   Switch,
   Text,
   TextInput,
@@ -25,7 +23,6 @@ import {
   Session,
   Player,
   PlayerStats,
-  SessionState,
 } from "@/src/types";
 import {
   getCurrentRound,
@@ -47,12 +44,14 @@ import { Alert } from "@/src/utils/alert";
 interface RoundComponentProps {
   editing: boolean;
   session: Session;
+  roundNumber?: number;
   onSwapPlayersChange?: (canSwap: boolean, swapHandler: () => void) => void;
 }
 
 export default function RoundComponent({
   editing,
   session,
+  roundNumber,
   onSwapPlayersChange,
 }: RoundComponentProps) {
   const dispatch = useAppDispatch();
@@ -76,11 +75,10 @@ export default function RoundComponent({
   const sessionPlayers: Player[] = session
     ? getSessionPlayers(session, players)
     : [];
-  const currentRound = getCurrentRound(session, false);
+  const currentRound = getCurrentRound(session, false, roundNumber);
 
   const showRating = session?.showRatings ?? false;
-  const [showRatingEnabled, setShowRatingEnabled] = useState<boolean>(false);
-  const scoring = session ? session.scoring : false;
+  const [showRatingEnabled, setShowRatingEnabled] = useState<boolean>(showRating);
 
   const chipMode = editing ? "outlined" : "flat";
 
@@ -342,7 +340,7 @@ export default function RoundComponent({
     }
   };
 
-  const renderCourtAssignment = ({ item: game }: { item: Game }) => {
+  const renderCourtAssignment = (game: Game) => {
     const servePlayer1 = getPlayer(game.serveTeam.player1Id);
     const servePlayer2 = getPlayer(game.serveTeam.player2Id);
     const receivePlayer1 = getPlayer(game.receiveTeam.player1Id);
@@ -352,24 +350,28 @@ export default function RoundComponent({
       <RoundGameCard
         servePlayer1Data={{
           player: servePlayer1,
+          stats: getPlayerStats(session, servePlayer1.id),
           selected: getPlayerSelected(servePlayer1),
           selectDisabled: playerSelectDisabled(servePlayer1),
           onSelected: () => editing && togglePlayerSelected(servePlayer1),
         }}
         servePlayer2Data={{
           player: servePlayer2,
+          stats: getPlayerStats(session, servePlayer2.id),
           selected: getPlayerSelected(servePlayer2),
           selectDisabled: playerSelectDisabled(servePlayer2),
           onSelected: () => editing && togglePlayerSelected(servePlayer2),
         }}
         receivePlayer1Data={{
           player: receivePlayer1,
+          stats: getPlayerStats(session, receivePlayer1.id),
           selected: getPlayerSelected(receivePlayer1),
           selectDisabled: playerSelectDisabled(receivePlayer1),
           onSelected: () => editing && togglePlayerSelected(receivePlayer1),
         }}
         receivePlayer2Data={{
           player: receivePlayer2,
+          stats: getPlayerStats(session, receivePlayer2.id),
           selected: getPlayerSelected(receivePlayer2),
           selectDisabled: playerSelectDisabled(receivePlayer2),
           onSelected: () => editing && togglePlayerSelected(receivePlayer2),
@@ -397,7 +399,7 @@ export default function RoundComponent({
             }}
             key={game.id}
           >
-            {renderCourtAssignment({ item: game })}
+            {renderCourtAssignment(game)}
           </View>
         ))}
       </View>
@@ -457,49 +459,20 @@ export default function RoundComponent({
           );
         })}
 
-      {editing && (
-        <Portal>
-          <FAB
-            icon="swap-horizontal-bold"
-            label="Swap Players"
-            size="large"
-            variant="tertiary"
-            style={{
-              position: "absolute",
-              margin: 16,
-              right: 16,
-              bottom: 80, // Adjust based on your bottom navigation/safe area
-              zIndex: 1000,
+      {showRating && (
+        <View style={{ flexDirection: "row", alignSelf: "center", marginBottom: 2 }}>
+          <Text variant="labelSmall" style={{ marginRight: 4 }}>
+            Show Ratings:
+          </Text>
+          <Switch
+            value={showRatingEnabled}
+            onValueChange={(value) => {
+              setShowRatingEnabled(value);
             }}
-            visible={selectedPlayers.size === 2}
-            disabled={selectedPlayers.size != 2}
-            onPress={handleSwapPlayers}
+            // disabled={!showRating}
+            style={{ opacity: showRating ? 1 : 0.3 }}
           />
-        </Portal>
-      )}
-
-      {false && editing && (
-        <FAB
-          icon="swap-horizontal-bold"
-          label="Swap Players"
-          size="large"
-          variant="tertiary"
-          style={{
-            position: "absolute",
-            margin: 16,
-            right: 0,
-            //bottom: 30,
-            top: 150,
-            // position: 'absolute',
-            // margin: 16,
-            // marginTop: 40,
-            // right: 0,
-            // bottom: 0,
-          }}
-          visible={selectedPlayers.size === 2}
-          disabled={selectedPlayers.size != 2}
-          onPress={handleSwapPlayers}
-        />
+        </View>
       )}
 
       {sittingOutPlayers.length > 0 && (
@@ -542,20 +515,25 @@ export default function RoundComponent({
         </View>
       )}
 
-      {showRating && (
-        <View style={{ flexDirection: "row" }}>
-          <Text variant="labelSmall" style={{ marginRight: 4 }}>
-            Show Ratings:
-          </Text>
-          <Switch
-            value={showRatingEnabled}
-            onValueChange={(value) => {
-              setShowRatingEnabled(value);
+      {editing && (
+        <Portal>
+          <FAB
+            icon="swap-horizontal-bold"
+            label="Swap Players"
+            size="large"
+            variant="tertiary"
+            style={{
+              position: "absolute",
+              margin: 16,
+              right: 16,
+              bottom: 80, // Adjust based on your bottom navigation/safe area
+              zIndex: 1000,
             }}
-            // disabled={!showRating}
-            style={{ opacity: showRating ? 1 : 0.3 }}
+            visible={selectedPlayers.size === 2}
+            disabled={selectedPlayers.size != 2}
+            onPress={handleSwapPlayers}
           />
-        </View>
+        </Portal>
       )}
 
       <Dialog
@@ -632,6 +610,7 @@ export default function RoundComponent({
           <Button onPress={handleSaveCourtSetting}>Save</Button>
         </Dialog.Actions>
       </Dialog>
+
     </SafeAreaView>
   );
 }
