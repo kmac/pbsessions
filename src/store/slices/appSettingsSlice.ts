@@ -13,6 +13,7 @@ const initialState: AppSettingsState = {
     theme: "light",
     defaultUseScoring: false,
     defaultUseRatings: false,
+    defaultEnforceFixedPartnerships: true,
   },
   loading: false,
   error: null,

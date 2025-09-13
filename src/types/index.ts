@@ -50,6 +50,23 @@ export enum SessionState {
   Archived = "Archived",
 }
 
+export interface FixedPartnership {
+  id: string;
+  player1Id: string;
+  player2Id: string;
+  // Optional descriptive name
+  name?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface PartnershipConstraint {
+  partnerships: FixedPartnership[];
+  // If true, both players in a partnership must play or both sit out
+  // There is global Settings defaultEnforceFixedPartnerships
+  enforceAllPairings: boolean;
+}
+
 export interface Session {
   id: string;
   name: string;
@@ -59,6 +76,7 @@ export interface Session {
   state: SessionState;
   scoring: boolean;
   showRatings: boolean;
+  partnershipConstraint?: PartnershipConstraint;
   createdAt: string;
   updatedAt: string;
   liveData?: {
@@ -95,6 +113,7 @@ export interface PlayerStats {
   gamesPlayed: number;
   gamesSatOut: number;
   partners: { [playerId: string]: number }; // count of games played with each partner
+  fixedPartnershipGames: number; // games played with fixed partner
   totalScore: number;
   totalScoreAgainst: number;
   averageRating?: number;
@@ -129,4 +148,5 @@ export interface Settings {
   theme: "light" | "dark" | "auto";
   defaultUseScoring: boolean;
   defaultUseRatings: boolean;
+  defaultEnforceFixedPartnerships: boolean; // New setting
 }

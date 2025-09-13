@@ -145,6 +145,7 @@ async restoreAllData(data: StoredData): Promise<void> {
         theme: "light",
         defaultUseScoring: false,
         defaultUseRatings: false,
+        defaultEnforceFixedPartnerships: true,
       }
     );
   }

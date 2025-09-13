@@ -1,27 +1,42 @@
 import {
   Court,
-  Player,
+  FixedPartnership,
   Game,
   GameAssignment,
-  Session,
+  PartnershipConstraint,
+  Player,
   PlayerStats,
   Results,
   Round,
   RoundAssignment,
   Score,
+  Session,
   Team,
 } from "@/src/types";
+import { Alert } from "@/src/utils/alert";
+
+interface PartnershipUnit {
+  players: [Player, Player];
+  partnership: FixedPartnership;
+  maxRating: number; // Higher of the two player ratings
+}
+
+interface PartnershipConstraints {
+  fixedPairs: Map<string, string>; // playerId -> partnerId
+  flexiblePlayers: Player[];
+  partnershipUnits: PartnershipUnit[];
+}
 
 export class SessionCoordinator {
   private activeCourts: Court[];
   private players: Player[];
   private playerStats: Map<string, PlayerStats> = new Map();
   private liveData: NonNullable<Session["liveData"]>;
-  private currentRound : Round;
-  private currentRoundNumber : number;
+  private currentRound: Round;
+  private currentRoundNumber: number;
+  private partnershipConstraint?: PartnershipConstraint;
 
   constructor(session: Session, players: Player[]) {
-
     if (!session.liveData) {
       throw new Error(
         `Invalid session: missing required live data. session: ${session}`,
@@ -30,6 +45,7 @@ export class SessionCoordinator {
     this.liveData = session.liveData;
     this.activeCourts = session.courts.filter((c) => c.isActive);
     this.players = players;
+    this.partnershipConstraint = session.partnershipConstraint;
     this.currentRoundNumber = this.liveData.rounds.length;
     this.currentRound = this.liveData.rounds[this.currentRoundNumber - 1];
 
@@ -45,6 +61,7 @@ export class SessionCoordinator {
           gamesPlayed: 0,
           gamesSatOut: 0,
           partners: {},
+          fixedPartnershipGames: 0,
           totalScore: 0,
           totalScoreAgainst: 0,
         },
@@ -57,26 +74,38 @@ export class SessionCoordinator {
     const availablePlayers = [...this.players];
     const playersPerRound = this.activeCourts.length * 4;
 
-    // Step 1: Determine who sits out (Equal playing time - Priority #2)
+    // Step 0: Extract partnership constraints
+    const partnershipConstraints =
+      this.extractPartnershipConstraints(availablePlayers);
+
+    // Step 1: Determine who sits out (considering partnerships)
     if (!sittingOut) {
-      sittingOut = this.selectSittingOutPlayers(
-        availablePlayers,
+      sittingOut = this.selectSittingOutPlayersWithPartnerships(
+        partnershipConstraints,
         playersPerRound,
       );
     }
+
     const playingPlayers = availablePlayers.filter(
       (p) => !sittingOut?.includes(p),
     );
 
-    // Step 2: Assign players to courts based on rating requirements (Priority #1)
+    // Step 2: Assign players to courts based on rating requirements and partnerships
     const courtAssignments: Player[][] =
-      this.assignPlayersToCourts(playingPlayers);
+      this.assignPlayersToCourtsWithPartnerships(
+        playingPlayers,
+        partnershipConstraints,
+      );
 
-    // Step 3: Create team assignments for each court (Partner diversity - Priority #3)
+    // Step 3: Create team assignments for each court (honoring partnerships)
     courtAssignments.forEach((courtPlayers, courtIndex) => {
       if (courtPlayers.length === 4 && courtIndex < this.activeCourts.length) {
         const court = this.activeCourts[courtIndex];
-        const teams = this.assignTeamsForCourt(courtPlayers, court);
+        const teams = this.assignTeamsForCourtWithPartnerships(
+          courtPlayers,
+          court,
+          partnershipConstraints,
+        );
 
         gameAssignments.push({
           courtId: court.id,
@@ -85,11 +114,302 @@ export class SessionCoordinator {
         });
       }
     });
+
     return {
       roundNumber: this.currentRoundNumber,
       gameAssignments: gameAssignments,
       sittingOutIds: sittingOut.map((player) => player.id),
     };
+  }
+
+  private extractPartnershipConstraints(
+    players: Player[],
+  ): PartnershipConstraints {
+    const fixedPairs = new Map<string, string>(); // maps each partner to the other
+    const partnershipUnits: PartnershipUnit[] = [];
+    const playerSet = new Set(players.map((p) => p.id));
+
+    if (this.partnershipConstraint) {
+      // Process active partnerships
+      this.partnershipConstraint.partnerships
+        .filter((p) => p.isActive)
+        .forEach((partnership) => {
+          // Only include partnerships where both players are in the session
+          if (
+            playerSet.has(partnership.player1Id) &&
+            playerSet.has(partnership.player2Id)
+          ) {
+            const player1 = players.find(
+              (p) => p.id === partnership.player1Id,
+            )!;
+            const player2 = players.find(
+              (p) => p.id === partnership.player2Id,
+            )!;
+
+            if (player1 && player2) {
+              // map each partner to the other
+              fixedPairs.set(partnership.player1Id, partnership.player2Id);
+              fixedPairs.set(partnership.player2Id, partnership.player1Id);
+
+              const maxRating = Math.max(
+                player1.rating || 0,
+                player2.rating || 0,
+              );
+
+              partnershipUnits.push({
+                players: [player1, player2],
+                partnership,
+                maxRating,
+              });
+
+            } else {
+              // very unexpected
+              const partnershipInfo = partnership.name
+                ? partnership.name
+                : `${partnership.player1Id} / ${partnership.player2Id}`;
+              Alert.alert(
+                "Error",
+                `Partnership has invalid data: ${partnershipInfo}`,
+              );
+            }
+          }
+        });
+    }
+
+    const flexiblePlayers = players.filter((p) => !fixedPairs.has(p.id));
+
+    return {
+      fixedPairs,
+      flexiblePlayers,
+      partnershipUnits,
+    };
+  }
+
+  private selectSittingOutPlayersWithPartnerships(
+    constraints: PartnershipConstraints,
+    neededPlayers: number,
+  ): Player[] {
+    const totalPlayers =
+      constraints.flexiblePlayers.length +
+      constraints.partnershipUnits.length * 2;
+
+    if (totalPlayers <= neededPlayers) return [];
+
+    const sittingOutCount = totalPlayers - neededPlayers;
+    const sittingOut: Player[] = [];
+
+    // If enforcing partnerships, we need to sit out in units
+    if (this.partnershipConstraint?.enforceAllPairings) {
+      // Calculate how many partnership units need to sit out
+      const partnershipUnitsToSitOut = Math.floor(sittingOutCount / 2);
+      const remainingSittingOut = sittingOutCount % 2;
+
+      // Sort partnership units by combined sit-out count and games played
+      const sortedUnits = [...constraints.partnershipUnits].sort((a, b) => {
+        const aStats1 = this.playerStats.get(a.players[0].id)!;
+        const aStats2 = this.playerStats.get(a.players[1].id)!;
+        const bStats1 = this.playerStats.get(b.players[0].id)!;
+        const bStats2 = this.playerStats.get(b.players[1].id)!;
+
+        const aTotalSitOuts = aStats1.gamesSatOut + aStats2.gamesSatOut;
+        const bTotalSitOuts = bStats1.gamesSatOut + bStats2.gamesSatOut;
+
+        if (aTotalSitOuts !== bTotalSitOuts) {
+          return aTotalSitOuts - bTotalSitOuts;
+        }
+
+        const aTotalGames = aStats1.gamesPlayed + aStats2.gamesPlayed;
+        const bTotalGames = bStats1.gamesPlayed + bStats2.gamesPlayed;
+
+        return bTotalGames - aTotalGames;
+      });
+
+      // Sit out partnership units
+      for (let i = 0; i < partnershipUnitsToSitOut; i++) {
+        sittingOut.push(...sortedUnits[i].players);
+      }
+
+      // Handle remaining individual flexible players
+      if (remainingSittingOut > 0) {
+        const flexibleSittingOut = this.selectSittingOutPlayers(
+          constraints.flexiblePlayers,
+          constraints.flexiblePlayers.length - remainingSittingOut,
+        );
+        sittingOut.push(...flexibleSittingOut.slice(0, remainingSittingOut));
+      }
+    } else {
+      // Not enforcing partnerships - treat all as individuals but prefer to keep partnerships together
+      const allPlayers = [
+        ...constraints.flexiblePlayers,
+        ...constraints.partnershipUnits.flatMap((unit) => unit.players),
+      ];
+
+      const individualSittingOut = this.selectSittingOutPlayers(
+        allPlayers,
+        neededPlayers,
+      );
+      sittingOut.push(...individualSittingOut);
+    }
+
+    return sittingOut;
+  }
+
+  private assignPlayersToCourtsWithPartnerships(
+    playingPlayers: Player[],
+    constraints: PartnershipConstraints,
+  ): Player[][] {
+    const courtAssignments: Player[][] = Array(this.activeCourts.length)
+      .fill(null)
+      .map(() => []);
+
+    // Filter partnership units to only include those where both players are playing
+    const playingPlayerIds = new Set(playingPlayers.map((p) => p.id));
+    const playingPartnershipUnits = constraints.partnershipUnits.filter(
+      (unit) => unit.players.every((player) => playingPlayerIds.has(player.id)),
+    );
+
+    const flexiblePlayingPlayers = constraints.flexiblePlayers.filter(
+      (player) => playingPlayerIds.has(player.id),
+    );
+
+    let remainingFlexiblePlayers = this.shuffleArray(flexiblePlayingPlayers);
+
+    // Sort courts by minimum rating (highest first) to assign partnerships appropriately
+    const sortedCourts = [...this.activeCourts]
+      .map((court, index) => ({ court, index }))
+      .sort(
+        (a, b) => (b.court.minimumRating || 0) - (a.court.minimumRating || 0),
+      );
+
+    // Step 1: Assign partnership units to courts
+    const remainingUnits = [...playingPartnershipUnits];
+
+    for (const { court, index: courtIndex } of sortedCourts) {
+      if (remainingUnits.length === 0) break;
+      if (courtAssignments[courtIndex].length >= 4) continue;
+
+      // Find partnerships that can play on this court
+      const eligibleUnits = remainingUnits.filter((unit) => {
+        if (!court.minimumRating) return true;
+        return unit.maxRating >= court.minimumRating;
+      });
+
+      if (eligibleUnits.length > 0) {
+        // Take the first eligible partnership
+        const selectedUnit = eligibleUnits[0];
+        courtAssignments[courtIndex].push(...selectedUnit.players);
+
+        // Remove from remaining units
+        const unitIndex = remainingUnits.indexOf(selectedUnit);
+        remainingUnits.splice(unitIndex, 1);
+      }
+    }
+
+    // Step 2: Handle remaining partnership units that couldn't be placed due to rating constraints
+    // These partnerships will sit out together
+    const unplacedPartnershipPlayers = remainingUnits.flatMap(
+      (unit) => unit.players,
+    );
+
+    // Step 3: Fill remaining court slots with flexible players
+    for (const { court, index: courtIndex } of sortedCourts) {
+      if (
+        court.minimumRating &&
+        remainingFlexiblePlayers.length >=
+          4 - courtAssignments[courtIndex].length
+      ) {
+        // Get players who meet the rating requirement
+        const eligiblePlayers = remainingFlexiblePlayers.filter(
+          (player) => player.rating && player.rating >= court.minimumRating!,
+        );
+
+        while (
+          courtAssignments[courtIndex].length < 4 &&
+          eligiblePlayers.length > 0
+        ) {
+          // Sort by rating (highest first for balanced distribution)
+          eligiblePlayers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+          const player = eligiblePlayers.shift()!;
+          courtAssignments[courtIndex].push(player);
+
+          // Remove from remaining pool
+          const index = remainingFlexiblePlayers.indexOf(player);
+          if (index > -1) remainingFlexiblePlayers.splice(index, 1);
+        }
+      }
+    }
+
+    // Step 4: Assign remaining flexible players to unfilled courts
+    let playerIndex = 0;
+    for (const { index: courtIndex } of sortedCourts) {
+      while (
+        courtAssignments[courtIndex].length < 4 &&
+        playerIndex < remainingFlexiblePlayers.length
+      ) {
+        courtAssignments[courtIndex].push(
+          remainingFlexiblePlayers[playerIndex],
+        );
+        playerIndex++;
+      }
+    }
+
+    return courtAssignments;
+  }
+
+  private assignTeamsForCourtWithPartnerships(
+    players: Player[],
+    court: Court,
+    constraints: PartnershipConstraints,
+  ): {
+    serveTeam: Team;
+    receiveTeam: Team;
+  } {
+    // Check for fixed partnerships in this court
+    const playerIds = new Set(players.map((p) => p.id));
+    const courtPartnerships = constraints.partnershipUnits.filter((unit) =>
+      unit.players.every((player) => playerIds.has(player.id)),
+    );
+
+    if (courtPartnerships.length === 2) {
+      // Two partnerships - they become opposing teams
+      return {
+        serveTeam: {
+          player1Id: courtPartnerships[0].players[0].id,
+          player2Id: courtPartnerships[0].players[1].id,
+        },
+        receiveTeam: {
+          player1Id: courtPartnerships[1].players[0].id,
+          player2Id: courtPartnerships[1].players[1].id,
+        },
+      };
+    } else if (courtPartnerships.length === 1) {
+      // One partnership + two flexible players
+      const partnership = courtPartnerships[0];
+      const flexiblePlayers = players.filter(
+        (p) => !partnership.players.includes(p),
+      );
+
+      return {
+        serveTeam: {
+          player1Id: partnership.players[0].id,
+          player2Id: partnership.players[1].id,
+        },
+        receiveTeam: {
+          player1Id: flexiblePlayers[0].id,
+          player2Id: flexiblePlayers[1].id,
+        },
+      };
+    } else {
+      // No partnerships - use existing logic
+      const allHaveRatings = players.every((p) => p.rating !== undefined);
+
+      if (allHaveRatings && court.minimumRating) {
+        return this.createBalancedTeams(players);
+      }
+
+      return this.createDiversePartnerTeams(players);
+    }
   }
 
   public updateStatsForRound(games: Game[], results: Results): PlayerStats[] {
@@ -129,6 +449,11 @@ export class SessionCoordinator {
       if (teammateId) {
         mutableStats.partners[teammateId] =
           (mutableStats.partners[teammateId] || 0) + 1;
+
+        // Check if this was a fixed partnership game
+        if (this.isFixedPartnership(playerId, teammateId)) {
+          mutableStats.fixedPartnershipGames++;
+        }
       }
 
       // Update score if provided
@@ -148,7 +473,20 @@ export class SessionCoordinator {
         gamesPlayed: s.gamesPlayed,
         gamesSatOut: s.gamesSatOut,
         partnerships: Object.keys(s.partners).length,
+        fixedPartnershipGames: s.fixedPartnershipGames,
       })),
+    );
+  }
+
+  private isFixedPartnership(player1Id: string, player2Id: string): boolean {
+    if (!this.partnershipConstraint) {
+      return false;
+    }
+    return this.partnershipConstraint.partnerships.some(
+      (p) =>
+        p.isActive &&
+        ((p.player1Id === player1Id && p.player2Id === player2Id) ||
+          (p.player1Id === player2Id && p.player2Id === player1Id)),
     );
   }
 
@@ -400,144 +738,20 @@ export class SessionCoordinator {
     return null;
   }
 
-  private getPlayerScore(game: Game, playerId: string, score: Score): { for: number, against: number } {
+  private getPlayerScore(
+    game: Game,
+    playerId: string,
+    score: Score,
+  ): { for: number; against: number } {
     const isOnServeTeam =
       game.serveTeam.player1Id === playerId ||
       game.serveTeam.player2Id === playerId;
-    return isOnServeTeam ? { for: score.serveScore, against: score.receiveScore} : { for: score.receiveScore, against: score.serveScore};
+    return isOnServeTeam
+      ? { for: score.serveScore, against: score.receiveScore }
+      : { for: score.receiveScore, against: score.serveScore };
   }
 
-  // This is the key method - it returns the current stats
   public getPlayerStats(): PlayerStats[] {
     return Array.from(this.playerStats.values());
   }
-
-  // Method to sync stats from external source (Redux store)
-  // syncPlayerStats(externalStats: PlayerStats[]): void {
-  //   externalStats.forEach((stats) => {
-  //     this.playerStats.set(stats.playerId, { ...stats });
-  //   });
-  // }
-
-  // getTeamBalance(team1: Player[], team2: Player[]): TeamBalance | null {
-  //   if (!team1.every((p) => p.rating) || !team2.every((p) => p.rating)) {
-  //     return null;
-  //   }
-  //
-  //   const team1Rating =
-  //     team1.reduce((sum, p) => sum + p.rating!, 0) / team1.length;
-  //   const team2Rating =
-  //     team2.reduce((sum, p) => sum + p.rating!, 0) / team2.length;
-  //
-  //   return {
-  //     team1Rating,
-  //     team2Rating,
-  //     difference: Math.abs(team1Rating - team2Rating),
-  //   };
-  // }
-
-  // Statistical methods for analysis
-  // getSessionStats(): {
-  //   totalGames: number;
-  //   averageGamesPerPlayer: number;
-  //   averageSitOutsPerPlayer: number;
-  //   mostActivePlayer: string | null;
-  //   fairnessScore: number; // 0-1, where 1 is perfectly fair
-  // } {
-  //   const stats = this.getPlayerStats();
-  //   const totalGames = Math.max(
-  //     ...stats.map((s) => s.gamesPlayed + s.gamesSatOut),
-  //     0,
-  //   );
-  //   const averageGamesPerPlayer =
-  //     stats.length > 0
-  //       ? stats.reduce((sum, s) => sum + s.gamesPlayed, 0) / stats.length
-  //       : 0;
-  //   const averageSitOutsPerPlayer =
-  //     stats.length > 0
-  //       ? stats.reduce((sum, s) => sum + s.gamesSatOut, 0) / stats.length
-  //       : 0;
-  //
-  //   // Find most active player
-  //   const mostActive = stats.reduce(
-  //     (max, current) => (current.gamesPlayed > max.gamesPlayed ? current : max),
-  //     stats[0] || { gamesPlayed: 0, playerId: null },
-  //   );
-  //
-  //   // Calculate fairness score based on standard deviation of games played
-  //   const gamesPlayedArray = stats.map((s) => s.gamesPlayed);
-  //   const mean = averageGamesPerPlayer;
-  //   const variance =
-  //     gamesPlayedArray.length > 0
-  //       ? gamesPlayedArray.reduce(
-  //           (sum, games) => sum + Math.pow(games - mean, 2),
-  //           0,
-  //         ) / gamesPlayedArray.length
-  //       : 0;
-  //   const stdDev = Math.sqrt(variance);
-  //
-  //   // Fairness score: closer to 0 standard deviation = closer to 1 fairness
-  //   const fairnessScore = Math.max(0, 1 - stdDev / (mean || 1));
-  //
-  //   return {
-  //     totalGames,
-  //     averageGamesPerPlayer,
-  //     averageSitOutsPerPlayer,
-  //     mostActivePlayer: mostActive.playerId,
-  //     fairnessScore,
-  //   };
-  // }
-
-  // Debugging and validation methods
-  // validateAssignments(assignments: GameAssignment[]): {
-  //   isValid: boolean;
-  //   errors: string[];
-  // } {
-  //   const errors: string[] = [];
-  //   const allAssignedPlayerIds = new Set<string>();
-  //
-  //   assignments.forEach((assignment, index) => {
-  //     // Check that each court has exactly 4 players
-  //     const courtPlayerIds = [
-  //       ...Object.values(assignment.serveTeam),
-  //       ...Object.values(assignment.receiveTeam),
-  //     ].map((p) => p.id);
-  //
-  //     if (courtPlayerIds.length !== 4) {
-  //       errors.push(
-  //         `Court ${index + 1} has ${courtPlayerIds.length} players instead of 4`,
-  //       );
-  //     }
-  //
-  //     // Check for duplicate players across courts
-  //     courtPlayerIds.forEach((playerId) => {
-  //       if (allAssignedPlayerIds.has(playerId)) {
-  //         errors.push(`Player ${playerId} is assigned to multiple courts`);
-  //       }
-  //       allAssignedPlayerIds.add(playerId);
-  //     });
-  //
-  //     // Check court rating requirements
-  //     if (assignment.court.minimumRating) {
-  //       const playersWithLowRating = [
-  //         ...Object.values(assignment.serveTeam),
-  //         ...Object.values(assignment.receiveTeam),
-  //       ].filter(
-  //         (player) =>
-  //           !player.rating || player.rating < assignment.court.minimumRating!,
-  //       );
-  //
-  //       if (playersWithLowRating.length > 0) {
-  //         errors.push(
-  //           `Court ${index + 1} has players below minimum rating requirement`,
-  //         );
-  //       }
-  //     }
-  //   });
-  //
-  //   return {
-  //     isValid: errors.length === 0,
-  //     errors,
-  //   };
-  // }
 }
