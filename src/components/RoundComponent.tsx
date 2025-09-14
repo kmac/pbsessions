@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View } from "react-native";
+import { View, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Button,
@@ -340,7 +340,7 @@ export default function RoundComponent({
     }
   };
 
-  const renderCourtAssignment = (game: Game) => {
+  const renderCourtAssignment = ({ item: game }: { item: Game }) => {
     const servePlayer1 = getPlayer(game.serveTeam.player1Id);
     const servePlayer2 = getPlayer(game.serveTeam.player2Id);
     const receivePlayer1 = getPlayer(game.receiveTeam.player1Id);
@@ -392,16 +392,14 @@ export default function RoundComponent({
           marginBottom: 24,
         }}
       >
-        {(currentRound.games || []).map((game) => (
-          <View
-            style={{
-              marginLeft: 0,
-            }}
-            key={game.id}
-          >
-            {renderCourtAssignment(game)}
-          </View>
-        ))}
+        <FlatList
+          data={currentRound.games || []}
+          renderItem={renderCourtAssignment}
+          keyExtractor={(game) => game.id}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
+          contentContainerStyle={{ flexGrow: 1 }}
+        />
       </View>
       {disabledCourts.length > 0 &&
         disabledCourts.map((court) => {

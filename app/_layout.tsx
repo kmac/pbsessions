@@ -173,8 +173,6 @@ const RootLayoutNav = () => {
             name="live-session"
             options={{
               headerShown: false,
-              presentation: "modal",
-              title: "Live Session",
             }}
           />
         </Stack>

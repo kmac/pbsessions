@@ -155,124 +155,136 @@ export default function BetweenRoundsModal({
     sessionPlayers.find((p) => p.id === playerId);
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
-      <Appbar.Header>
-        <Appbar.BackAction onPress={onClose} />
-        <Appbar.Content
-          title={
-            <Text
-              variant="titleLarge"
-              style={{
-                alignItems: "center",
-                fontWeight: "600",
-              }}
-            >
-              New Round: {roundNumber}
-            </Text>
-          }
-        />
-        {onEditSession && (
-          <Appbar.Action icon="pencil" onPress={onEditSession} />
-        )}
-        <Appbar.Action
-          icon="help-circle"
-          onPress={() => {
-            setHelpDialogVisible(true);
-          }}
-        />
-      </Appbar.Header>
-
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: theme.colors.background }}
+    <>
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
       >
-        <ScrollView
-          style={{ flex: 1, padding: 16 }}
-          showsVerticalScrollIndicator={false}
+        <Appbar.Header>
+          <Appbar.BackAction onPress={onClose} />
+          <Appbar.Content
+            title={
+              <Text
+                variant="titleLarge"
+                style={{
+                  alignItems: "center",
+                  fontWeight: "600",
+                }}
+              >
+                New Round: {roundNumber}
+              </Text>
+            }
+          />
+          {onEditSession && (
+            <Appbar.Action icon="pencil" onPress={onEditSession} />
+          )}
+          <Appbar.Action
+            icon="help-circle"
+            onPress={() => {
+              setHelpDialogVisible(true);
+            }}
+          />
+        </Appbar.Header>
+
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: theme.colors.background }}
         >
-          <TopDescription
-            visible={true}
-            description="Configure players and court settings for this round."
-          />
-
-          <RoundComponent
-            editing={true}
-            session={currentSession}
-            onSwapPlayersChange={handleSwapPlayersChange}
-          />
-
-          <View // Action buttons
+          <Surface
             style={{
-              flexDirection: isSmallScreen ? "column" : "row",
-              alignContent: "space-between",
-              gap: 12,
+              padding: 16,
+              elevation: 1,
+              marginBottom: 2,
             }}
           >
-            <Button
-              icon="play"
-              mode="contained"
-              onPress={onStartRound}
-              contentStyle={{ padding: 2 }}
-              style={isSmallScreen ? { flex: 1 } : undefined}
-            >
-              Start
-            </Button>
-            <Button
-              icon="refresh"
-              mode="outlined"
-              onPress={() => {
-                handleReshufflePlayers(false);
-              }}
-              contentStyle={{ padding: 2 }}
-              style={isSmallScreen ? { flex: 1 } : undefined}
-            >
-              Reshuffle
-            </Button>
-            <Button
-              icon="chart-box"
-              mode="elevated"
-              onPress={() => {
-                setStatsModalVisible(true);
-              }}
-              contentStyle={{ padding: 2 }}
-              style={isSmallScreen ? { flex: 1 } : undefined}
-            >
-              {isSmallScreen ? "Stats" : "Player Stats"}
-            </Button>
+            <View style={{ flexDirection: "column", marginBottom: 8 }}>
+              {/*<ScrollView
+            style={{ flex: 1, padding: 16 }}
+            showsVerticalScrollIndicator={false}
+          >*/}
+              <TopDescription
+                visible={true}
+                description="Configure players and court settings for this round."
+              />
 
-            {onEditSession && (
-              <Button
-                icon="pencil"
-                mode="outlined"
-                onPress={onEditSession}
-                contentStyle={{ padding: 2 }}
-                style={isSmallScreen ? { flex: 1 } : undefined}
+              <RoundComponent
+                editing={true}
+                session={currentSession}
+                onSwapPlayersChange={handleSwapPlayersChange}
+              />
+
+              <View // Action buttons
+                style={{
+                  flexDirection: isSmallScreen ? "column" : "row",
+                  alignContent: "space-between",
+                  gap: 12,
+                }}
               >
-                Edit Session
-              </Button>
-            )}
-          </View>
-        </ScrollView>
+                <Button
+                  icon="play"
+                  mode="contained"
+                  onPress={onStartRound}
+                  contentStyle={{ padding: 2 }}
+                  style={isSmallScreen ? { flex: 1 } : undefined}
+                >
+                  Start
+                </Button>
+                <Button
+                  icon="refresh"
+                  mode="outlined"
+                  onPress={() => {
+                    handleReshufflePlayers(false);
+                  }}
+                  contentStyle={{ padding: 2 }}
+                  style={isSmallScreen ? { flex: 1 } : undefined}
+                >
+                  Reshuffle
+                </Button>
+                <Button
+                  icon="chart-box"
+                  mode="elevated"
+                  onPress={() => {
+                    setStatsModalVisible(true);
+                  }}
+                  contentStyle={{ padding: 2 }}
+                  style={isSmallScreen ? { flex: 1 } : undefined}
+                >
+                  {isSmallScreen ? "Stats" : "Player Stats"}
+                </Button>
 
-        {canSwapPlayers && (
-          <FAB
-            icon="swap-horizontal-bold"
-            label="Swap Players"
-            size="large"
-            variant="tertiary"
-            style={{
-              position: "absolute",
-              margin: 16,
-              right: 16,
-              bottom: 100, // Above the action buttons
-            }}
-            onPress={() => swapPlayersHandler && swapPlayersHandler()}
-          />
-        )}
-      </SafeAreaView>
+                {onEditSession && (
+                  <Button
+                    icon="pencil"
+                    mode="outlined"
+                    onPress={onEditSession}
+                    contentStyle={{ padding: 2 }}
+                    style={isSmallScreen ? { flex: 1 } : undefined}
+                  >
+                    Edit Session
+                  </Button>
+                )}
+              </View>
+              {/*</ScrollView>*/}
+
+              {canSwapPlayers && (
+                <FAB
+                  icon="swap-horizontal-bold"
+                  label="Swap Players"
+                  size="large"
+                  variant="tertiary"
+                  style={{
+                    position: "absolute",
+                    margin: 16,
+                    right: 16,
+                    bottom: 100, // Above the action buttons
+                  }}
+                  onPress={() => swapPlayersHandler && swapPlayersHandler()}
+                />
+              )}
+            </View>
+          </Surface>
+        </SafeAreaView>
+      </Modal>
 
       <Dialog
         visible={helpDialogVisible}
@@ -316,6 +328,6 @@ export default function BetweenRoundsModal({
         stats={playerStats}
         onClose={() => setStatsModalVisible(false)}
       />
-    </Modal>
+    </>
   );
 }

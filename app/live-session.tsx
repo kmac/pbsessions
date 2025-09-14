@@ -348,7 +348,7 @@ export default function LiveSessionScreen() {
                 fontWeight: "400",
               }}
             >
-              Session: {liveSession.name}
+              {liveSession.name}
             </Text>
           }
         />

@@ -51,6 +51,7 @@ export default function PlayerStatsModal({
         gamesPlayed: 0,
         gamesSatOut: 0,
         partners: {},
+        fixedPartnershipGames: 0,
         totalScore: 0,
         totalScoreAgainst: 0,
       }
@@ -104,7 +105,7 @@ export default function PlayerStatsModal({
     )[0];
 
     return (
-      <Card style={{ marginBottom: 12 }}>
+      <Card style={{ marginBottom: 12, marginHorizontal: 16 }}>
         <Card.Content>
           <View
             style={{
@@ -236,7 +237,8 @@ export default function PlayerStatsModal({
                 <Text
                   style={{ fontWeight: "500", color: theme.colors.onSurface }}
                 >
-                  {getPlayer(players, mostFrequentPartner[0])?.name || "Unknown"}
+                  {getPlayer(players, mostFrequentPartner[0])?.name ||
+                    "Unknown"}
                 </Text>{" "}
                 ({mostFrequentPartner[1]} games)
               </Text>
@@ -320,6 +322,68 @@ export default function PlayerStatsModal({
     </Card>
   );
 
+  const renderListHeader = () => (
+    <View>
+      <SessionSummary />
+
+      {/* Sort Options */}
+      <View
+        style={{
+          marginHorizontal: 16,
+          marginBottom: 16,
+        }}
+      >
+        <Text
+          variant="titleMedium"
+          style={{
+            fontWeight: "600",
+            marginBottom: 12,
+          }}
+        >
+          Sort by:
+        </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 8,
+          }}
+        >
+          <Button
+            mode={sortBy === "name" ? "contained" : "outlined"}
+            onPress={() => setSortBy("name")}
+            compact={true}
+          >
+            Name
+          </Button>
+
+          <Button
+            mode={sortBy === "gamesPlayed" ? "contained" : "outlined"}
+            onPress={() => setSortBy("gamesPlayed")}
+            compact={true}
+          >
+            #Games
+          </Button>
+
+          <Button
+            mode={sortBy === "gamesSatOut" ? "contained" : "outlined"}
+            onPress={() => setSortBy("gamesSatOut")}
+            compact={true}
+          >
+            #Sat
+          </Button>
+
+          <Button
+            mode={sortBy === "totalScore" ? "contained" : "outlined"}
+            onPress={() => setSortBy("totalScore")}
+            compact={true}
+          >
+            Score
+          </Button>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <Modal
       visible={visible}
@@ -333,7 +397,7 @@ export default function PlayerStatsModal({
           style={{
             flexDirection: "row",
             alignItems: "center",
-            justifyContent: "space-between",
+            // justifyContent: "space-between",
             paddingHorizontal: 16,
             paddingVertical: 12,
           }}
@@ -343,80 +407,16 @@ export default function PlayerStatsModal({
           <Text variant="titleLarge" style={{ fontWeight: "600" }}>
             Player Statistics
           </Text>
-          <View style={{ width: 48 }} />
         </Surface>
 
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-          <SessionSummary />
-
-          {/* Sort Options */}
-          <View
-            style={{
-              marginHorizontal: 16,
-              marginBottom: 16,
-            }}
-          >
-            <Text
-              variant="titleMedium"
-              style={{
-                fontWeight: "600",
-                marginBottom: 12,
-              }}
-            >
-              Sort by:
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{
-                flexDirection: "row",
-                gap: 8,
-              }}
-            >
-              <Button
-                mode={sortBy === "name" ? "contained" : "outlined"}
-                onPress={() => setSortBy("name")}
-                compact={true}
-              >
-                Name
-              </Button>
-
-              <Button
-                mode={sortBy === "gamesPlayed" ? "contained" : "outlined"}
-                onPress={() => setSortBy("gamesPlayed")}
-                compact={true}
-              >
-                #Games
-              </Button>
-
-              <Button
-                mode={sortBy === "gamesSatOut" ? "contained" : "outlined"}
-                onPress={() => setSortBy("gamesSatOut")}
-                compact={true}
-              >
-                #Sat
-              </Button>
-
-              <Button
-                mode={sortBy === "totalScore" ? "contained" : "outlined"}
-                onPress={() => setSortBy("totalScore")}
-                compact={true}
-              >
-                Score
-              </Button>
-            </ScrollView>
-          </View>
-
-          {/* Player Stats List */}
-          {(sortedPlayers || []).map((item) => (
-            <PlayerStatsCard
-              key={item.id}
-              stats={getPlayerStats(item.id)}
-              players={players}
-              narrowScreen={narrowScreen}
-            />
-          ))}
-        </ScrollView>
+        <FlatList
+          data={sortedPlayers}
+          renderItem={renderPlayerStat}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={true}
+          ListHeaderComponent={renderListHeader}
+          contentContainerStyle={{ paddingBottom: 16 }}
+        />
       </SafeAreaView>
     </Modal>
   );

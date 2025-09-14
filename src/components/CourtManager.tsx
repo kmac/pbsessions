@@ -16,6 +16,7 @@ import {
 import { createCourt, Court } from "../types";
 import { APP_CONFIG } from "../constants";
 import { Alert } from "../utils/alert";
+import { isNarrowScreen } from "../utils/screenUtil";
 
 interface CourtManagerProps {
   visible: boolean;
@@ -161,7 +162,7 @@ export default function CourtManager({
         <Appbar.Header>
           <Appbar.BackAction onPress={onClose} />
           <Appbar.Content
-            title="Court Configuration"
+            title={isNarrowScreen() ? "Configure" : "Court Configuration"}
             titleStyle={{ fontWeight: "600" }}
           />
           <Button

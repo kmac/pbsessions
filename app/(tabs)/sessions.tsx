@@ -778,9 +778,9 @@ export default function SessionsTab() {
           paddingBottom: narrowScreen ? 80 : 16, // Extra space for FAB
         }}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <TopDescription visible={true} description="Ready to play" />
-        }
+        // ListHeaderComponent={
+        //   <TopDescription visible={true} description="Ready to play" />
+        // }
         ListEmptyComponent={<EmptyState />}
       />
 
