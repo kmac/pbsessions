@@ -87,6 +87,25 @@ export class StorageManager {
     }
   }
 
+async restoreAllData(data: StoredData): Promise<void> {
+  try {
+    // Validate that data has the expected structure
+    if (!data.players || !data.groups || !data.sessions || !data.appSettings) {
+      throw new Error("Invalid data structure");
+    }
+
+    // Save all data to storage
+    await Promise.all([
+      this.savePlayers(data.players),
+      this.saveGroups(data.groups),
+      this.saveSessions(data.sessions),
+      this.saveAppSettings(data.appSettings),
+    ]);
+  } catch (error) {
+    console.error("Error importing data:", error);
+    throw new Error("Failed to import data");
+  }
+}
   async savePlayers(players: Player[]): Promise<void> {
     await this.saveData(STORAGE_KEYS.PLAYERS, players);
   }
@@ -130,7 +149,7 @@ export class StorageManager {
     );
   }
 
-  async exportAllData(): Promise<StoredData> {
+  async backupAllData(): Promise<StoredData> {
     const [players, groups, sessions, appSettings] = await Promise.all([
       this.loadPlayers(),
       this.loadGroups(),

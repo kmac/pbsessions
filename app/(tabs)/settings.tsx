@@ -1,27 +1,38 @@
 import React, { useState } from "react";
-import { Linking, View, ScrollView } from "react-native";
+import { Linking, View, ScrollView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Avatar,
   Button,
   Card,
+  Dialog,
   Divider,
   Icon,
   Menu,
+  Portal,
   SegmentedButtons,
   Surface,
   Switch,
   Text,
+  TextInput,
   TouchableRipple,
   useTheme,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { StorageManager, StoredData } from "@/src/store/storage";
 import { Alert } from "@/src/utils/alert";
+import { APP_CONFIG } from "@/src/constants";
 import TopDescription from "@/src/components/TopDescription";
 import { setAppSettings } from "@/src/store/slices/appSettingsSlice";
+import { setSessions } from "@/src/store/slices/sessionsSlice";
+import { setGroups } from "@/src/store/slices/groupsSlice";
+import { setPlayers } from "@/src/store/slices/playersSlice";
 import { Settings, Color } from "@/src/types";
+import { copyToClipboard, saveToFile, readSelectedFile, pasteFromClipboard } from '@/src/utils/fileClipboardUtil';
 import Colors from "@/src/ui/styles/colors";
+import * as Clipboard from "expo-clipboard";
+import * as FileSystem from "expo-file-system";
+import * as DocumentPicker from "expo-document-picker";
 
 export default function SettingsTab() {
   const theme = useTheme();
@@ -33,19 +44,101 @@ export default function SettingsTab() {
   const { appSettings } = useAppSelector((state) => state.appSettings);
 
   const [colorMenuVisible, setColorMenuVisible] = useState(false);
+  const [backupDialogVisible, setBackupDialogVisible] = useState(false);
+  const [backupJsonData, setBackupJsonData] = useState("");
+  const [restoreDialogVisible, setRestoreDialogVisible] = useState(false);
+  const [restoreJsonData, setRestoreJsonData] = useState("");
 
-  const handleExportData = async () => {
+  const handleBackupData = async () => {
     try {
       const storage = StorageManager.getInstance();
-      const data: StoredData = await storage.exportAllData();
+      const data: StoredData = await storage.backupAllData();
+      const jsonData = JSON.stringify(data, null, 2);
+      setBackupJsonData(jsonData);
+      setBackupDialogVisible(true);
+    } catch (error) {
+      Alert.alert("Error", "Failed to create backup");
+    }
+  };
+
+  const handleCopyToClipboard = async () => {
+    copyToClipboard(
+      backupJsonData,
+      () => setBackupDialogVisible(false)
+    );
+  };
+
+  const handleSaveToFile = async () => {
+    const fileName = `${APP_CONFIG.NAME}-backup-${new Date().toISOString().split("T")[0]}.json`;
+    saveToFile(
+      backupJsonData,
+      fileName,
+      () => setBackupDialogVisible(false)
+    );
+  }
+
+  const handleRestoreData = async () => {
+    setRestoreDialogVisible(true);
+  };
+
+  const handleSelectFile = async () => {
+    readSelectedFile((content) => setRestoreJsonData(content))
+  };
+
+  const validateAndRestoreData = async () => {
+    try {
+      if (!restoreJsonData.trim()) {
+        Alert.alert("Error", "No data to restore");
+        return;
+      }
+
+      let parsedData: StoredData;
+      try {
+        parsedData = JSON.parse(restoreJsonData);
+      } catch (parseError) {
+        Alert.alert("Error", "Invalid JSON format");
+        return;
+      }
+
+      if (!parsedData.players || !parsedData.groups || !parsedData.sessions) {
+        Alert.alert(
+          "Error",
+          "Invalid data structure. Missing required fields.",
+        );
+        return;
+      }
 
       Alert.alert(
-        "Export Data",
-        `TODO: Ready to export:\n• ${data.players.length} players\n• ${data.groups.length} groups\n• ${data.sessions.length} sessions.`,
-        [{ text: "OK" }],
+        "Restore Data",
+        `This will replace all current data with:\n• ${parsedData.players.length} players\n• ${parsedData.groups.length} groups\n• ${parsedData.sessions.length} sessions\n\nThis action cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Restore",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const storage = StorageManager.getInstance();
+                await storage.restoreAllData(parsedData);
+
+                // Update store with imported data
+                dispatch(setPlayers(parsedData.players));
+                dispatch(setGroups(parsedData.groups));
+                dispatch(setSessions(parsedData.sessions));
+                dispatch(setAppSettings(parsedData.appSettings));
+
+                Alert.alert("Success", "Data restored successfully");
+                setRestoreDialogVisible(false);
+                setRestoreJsonData("");
+              } catch (error) {
+                Alert.alert("Error", "Failed to restore data");
+              }
+            },
+          },
+        ],
       );
     } catch (error) {
-      Alert.alert("Error", "Failed to export data");
+      Alert.alert("Error", "Failed to process restore data");
     }
   };
 
@@ -90,10 +183,12 @@ export default function SettingsTab() {
         paddingVertical: 24,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
+      >
         <Avatar.Image
-          size={64}
-          source={require("@/assets/images/pbsessions-large.png")}
+          size={48}
+          source={require("@/assets/images/pbsessions-small.png")}
         />
         <Text
           variant="titleLarge"
@@ -364,11 +459,21 @@ export default function SettingsTab() {
         <Button
           icon="download"
           mode="outlined"
-          onPress={handleExportData}
+          onPress={handleBackupData}
           style={{ marginBottom: 12 }}
           contentStyle={{ justifyContent: "flex-start" }}
         >
-          Export Data
+          Backup Data
+        </Button>
+
+        <Button
+          icon="upload"
+          mode="outlined"
+          onPress={handleRestoreData}
+          style={{ marginBottom: 12 }}
+          contentStyle={{ justifyContent: "flex-start" }}
+        >
+          Restore Data
         </Button>
 
         <Button
@@ -434,6 +539,139 @@ export default function SettingsTab() {
         <DataManagementCard />
         <AboutCard />
       </ScrollView>
+
+      <Portal>
+        <Dialog
+          visible={backupDialogVisible}
+          onDismiss={() => setBackupDialogVisible(false)}
+          style={{ maxHeight: "80%" }}
+        >
+          <Dialog.Title>Backup Data</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+              {Platform.OS === "web"
+                ? "Download or copy the JSON data below:"
+                : "Save to file or copy the JSON data below:"}
+            </Text>
+            <TextInput
+              mode="outlined"
+              multiline
+              value={backupJsonData}
+              editable={false}
+              style={{
+                flex: 1,
+                minHeight: 340,
+                maxHeight: "60%",
+                fontSize: 12,
+                fontFamily: "monospace",
+              }}
+              contentStyle={{
+                paddingVertical: 8,
+              }}
+              scrollEnabled={true}
+            />
+          </Dialog.Content>
+          <Dialog.Actions
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            <Button
+              mode="contained-tonal"
+              onPress={() => setBackupDialogVisible(false)}
+            >
+              Cancel
+            </Button>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Button
+                mode="outlined"
+                onPress={handleCopyToClipboard}
+                icon="content-copy"
+              >
+                Copy
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleSaveToFile}
+                icon={Platform.OS === "web" ? "download" : "content-save"}
+              >
+                {Platform.OS === "web" ? "Download" : "Save File"}
+              </Button>
+            </View>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog
+          visible={restoreDialogVisible}
+          onDismiss={() => setRestoreDialogVisible(false)}
+          style={{ height: "80%" }}
+        >
+          <Dialog.Title>Restore Data</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+              Select a file or paste JSON data to restore:
+            </Text>
+
+              <Button
+                mode="outlined"
+                onPress={handleSelectFile}
+                icon="file-upload"
+                style={{ flex: 1, marginBottom: 12 }}
+              >
+                Select File
+              </Button>
+
+            <TextInput
+              mode="flat"
+              multiline
+              value={restoreJsonData}
+              onChangeText={setRestoreJsonData}
+              placeholder="Import file or paste JSON data here..."
+              style={{
+                flex: 1,
+                minHeight: 340,
+                maxHeight: "60%",
+                fontSize: 12,
+                fontFamily: "monospace",
+              }}
+              contentStyle={{
+                paddingVertical: 8,
+              }}
+              scrollEnabled={true}
+            />
+          </Dialog.Content>
+
+          <Dialog.Actions
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            <Button
+              mode="contained-tonal"
+              onPress={() => {
+                setRestoreDialogVisible(false);
+                setRestoreJsonData("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              mode="contained"
+              onPress={validateAndRestoreData}
+              icon="import"
+              disabled={!restoreJsonData.trim()}
+            >
+              Restore
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }

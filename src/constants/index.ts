@@ -1,6 +1,7 @@
 import { colors } from '../theme';
 
 export const APP_CONFIG = {
+  NAME: 'pbsessions',
   VERSION: '1.0.0',
   MIN_PLAYERS_PER_GAME: 4,
   MIN_PLAYERS_PER_SESSION: 4,

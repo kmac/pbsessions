@@ -30,6 +30,7 @@ import {
 import { updateGroup } from "@/src/store/slices/groupsSlice";
 import { getShortGender } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
+import { copyToClipboard, saveToFile, readSelectedFile, } from '@/src/utils/fileClipboardUtil';
 import { Group, Player } from "@/src/types";
 import PlayerForm from "@/src/components/PlayerForm";
 import BulkAddPlayersModal from "@/src/components/BulkAddPlayersModal";
@@ -38,8 +39,6 @@ import { APP_CONFIG } from "@/src/constants";
 
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import * as DocumentPicker from "expo-document-picker";
-import * as Clipboard from "expo-clipboard";
 
 import { useTheme } from "react-native-paper";
 
@@ -55,8 +54,6 @@ export default function PlayersTab() {
   const [playerAddModalVisible, setPlayerAddModalVisible] = useState(false);
   const [bulkPlayerAddModalVisible, setBulkPlayerAddModalVisible] =
     useState(false);
-  const [csvImportModalVisible, setCsvImportModalVisible] = useState(false);
-  const [csvText, setCsvText] = useState("");
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [groupSelectionModalVisible, setGroupSelectionModalVisible] =
@@ -64,6 +61,8 @@ export default function PlayersTab() {
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [exportDialogVisible, setExportDialogVisible] = useState(false);
   const [exportCsvContent, setExportCsvContent] = useState("");
+  const [importDialogVisible, setImportDialogVisible] = useState(false);
+  const [importCsvContent, setImportCsvContent] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredPlayers = allPlayers.filter(
@@ -203,29 +202,8 @@ export default function PlayersTab() {
   };
 
   const handleImportPlayers = async () => {
-    if (Platform.OS === "web") {
-      handleImportPlayersWeb();
-      return;
-    }
     try {
-      // Pick CSV file
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "text/csv",
-        copyToCacheDirectory: true,
-      });
-
-      if (result.canceled || !result.assets || result.assets.length === 0) {
-        return;
-      }
-
-      const fileUri = result.assets[0].uri;
-
-      // Read file content
-      const csvContent = await FileSystem.readAsStringAsync(fileUri, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
-
-      const { importedPlayers, errors } = parsePlayersFromCsv(csvContent);
+      const { importedPlayers, errors } = parsePlayersFromCsv(importCsvContent);
 
       // Show errors if any
       if (errors.length > 0) {
@@ -267,73 +245,30 @@ export default function PlayersTab() {
     }
   };
 
-  const handleImportPlayersWeb = async () => {
-    setCsvText("");
-    setCsvImportModalVisible(true);
-  };
-
-  const handleCsvImport = () => {
-    if (!csvText.trim()) {
-      Alert.alert("No Data", "Please paste CSV data to import.");
-      return;
-    }
-
-    const { importedPlayers, errors } = parsePlayersFromCsv(csvText);
-
-    // Show errors if any
-    if (errors.length > 0) {
-      Alert.alert(
-        "Import Warnings",
-        `${errors.length} error(s) occurred:\n${errors.slice(0, 5).join("\n")}${errors.length > 5 ? "\n..." : ""}`,
-        [{ text: "OK" }],
-      );
-    }
-
-    if (importedPlayers.length === 0) {
-      Alert.alert("Import Failed", "No valid players found to import.");
-      return;
-    }
-
-    // Close modal first
-    setCsvImportModalVisible(false);
-    setCsvText("");
-
-    // Confirm import
-    Alert.alert(
-      "Confirm Import",
-      `Import ${importedPlayers.length} player(s)?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Import",
-          onPress: () => {
-            importedPlayers.forEach((playerData) => {
-              dispatch(addPlayer(playerData));
-            });
-            Alert.alert(
-              "Success",
-              `Imported ${importedPlayers.length} player(s).`,
-            );
-          },
-        },
-      ],
-    );
+  const handleSelectImportCsvFile = async () => {
+    await readSelectedFile((content) => setImportCsvContent(content))
   };
 
   const handleCancelCsvImport = () => {
-    setCsvImportModalVisible(false);
-    setCsvText("");
+    setImportDialogVisible(false);
+    setImportCsvContent("");
   };
 
   const handleCopyToClipboard = async () => {
-    try {
-      await Clipboard.setStringAsync(exportCsvContent);
-      Alert.alert("Copied", "CSV content copied to clipboard!");
-    } catch (error) {
-      console.error("Copy error:", error);
-      Alert.alert("Copy Failed", "Failed to copy to clipboard.");
-    }
+    copyToClipboard(
+      exportCsvContent,
+      () => setExportDialogVisible(false)
+    );
   };
+
+  const handleSaveToFile = async () => {
+    const fileName = `${APP_CONFIG.NAME}-players-${new Date().toISOString().split("T")[0]}.json`;
+    saveToFile(
+      exportCsvContent,
+      fileName,
+      () => setExportDialogVisible(false)
+    );
+  }
 
   const parsePlayersFromCsv = (
     csvContent: string,
@@ -931,7 +866,8 @@ export default function PlayersTab() {
                 leadingIcon="import"
                 onPress={() => {
                   setMenuVisible(false);
-                  handleImportPlayers();
+                  //handleImportPlayers();
+                  setImportDialogVisible(true);
                 }}
                 title="Import"
               />
@@ -939,7 +875,8 @@ export default function PlayersTab() {
                 leadingIcon="export"
                 onPress={() => {
                   setMenuVisible(false);
-                  handleExportPlayers();
+                  //handleExportPlayers();
+                  setExportDialogVisible(true);
                 }}
                 title="Export"
               />
@@ -994,7 +931,7 @@ export default function PlayersTab() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <PlayerHeader />
 
       <Searchbar
@@ -1071,96 +1008,6 @@ export default function PlayersTab() {
             setEditingPlayer(null);
           }}
         />
-      </Modal>
-
-      {/* CSV Import Modal */}
-      <Modal
-        visible={csvImportModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView style={{ flex: 1 }}>
-          <View style={{ flex: 1, padding: 16 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
-              }}
-            >
-              <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
-                Import Players from CSV
-              </Text>
-              <IconButton
-                icon="close"
-                size={24}
-                onPress={handleCancelCsvImport}
-              />
-            </View>
-
-            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
-              Paste your CSV data below. Expected format:
-              {"\n"}name,email,phone,gender,rating,notes
-            </Text>
-
-            <ScrollView style={{ flex: 1 }}>
-              <TextInput
-                mode="outlined"
-                multiline
-                numberOfLines={15}
-                value={csvText}
-                onChangeText={setCsvText}
-                placeholder="Paste CSV data here..."
-                style={{ minHeight: 300 }}
-                contentStyle={{
-                  fontFamily:
-                    Platform.OS === "ios" ? "Courier New" : "monospace",
-                  fontSize: 14,
-                }}
-              />
-            </ScrollView>
-
-            <View
-              style={{
-                flexDirection: narrowScreen ? "column" : "row",
-                justifyContent: "flex-end",
-                gap: 12,
-                marginTop: 16,
-              }}
-            >
-              {narrowScreen ? (
-                // Mobile: Primary action first, then secondary
-                <>
-                  <Button
-                    mode="contained"
-                    onPress={handleCsvImport}
-                    disabled={!csvText.trim()}
-                  >
-                    Parse CSV
-                  </Button>
-                  <Button mode="outlined" onPress={handleCancelCsvImport}>
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                // Desktop: Cancel first, then primary action (standard pattern)
-                <>
-                  <Button mode="outlined" onPress={handleCancelCsvImport}>
-                    Cancel
-                  </Button>
-                  <Button
-                    mode="contained"
-                    onPress={handleCsvImport}
-                    disabled={!csvText.trim()}
-                  >
-                    Parse CSV
-                  </Button>
-                </>
-              )}
-            </View>
-          </View>
-        </SafeAreaView>
       </Modal>
 
       <Modal
@@ -1306,37 +1153,137 @@ export default function PlayersTab() {
         onClose={() => setBulkPlayerAddModalVisible(false)}
       />
 
-      {/* Export CSV Dialog */}
       <Portal>
+        {/* Export CSV Dialog */}
         <Dialog
           visible={exportDialogVisible}
           onDismiss={() => setExportDialogVisible(false)}
           style={{ maxHeight: "80%" }}
         >
-          <Dialog.Title>Exported CSV Data</Dialog.Title>
-          <Dialog.ScrollArea>
-            <ScrollView>
-              <Text
-                variant="bodySmall"
-                style={{
-                  fontFamily:
-                    Platform.OS === "ios" ? "Courier New" : "monospace",
-                  fontSize: 12,
-                  backgroundColor: theme.colors.surfaceVariant,
-                  padding: 12,
-                  borderRadius: 8,
-                }}
-                selectable
+          <Dialog.Title>Export Players</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+              {Platform.OS === "web"
+                ? "Download or copy the JSON data below:"
+                : "Save to file or copy the JSON data below:"}
+            </Text>
+            <TextInput
+              mode="outlined"
+              multiline
+              value={exportCsvContent}
+              editable={false}
+              style={{
+                flex: 1,
+                minHeight: 340,
+                maxHeight: "60%",
+                fontSize: 12,
+                fontFamily: "monospace",
+              }}
+              contentStyle={{
+                paddingVertical: 8,
+              }}
+              scrollEnabled={true}
+            />
+          </Dialog.Content>
+          <Dialog.Actions
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            <Button
+              mode="contained-tonal"
+              onPress={() => setExportDialogVisible(false)}
               >
-                {exportCsvContent}
-              </Text>
-            </ScrollView>
-          </Dialog.ScrollArea>
-          <Dialog.Actions>
-            <Button icon="content-copy" onPress={handleCopyToClipboard}>
-              Copy
+              Cancel
             </Button>
-            <Button onPress={() => setExportDialogVisible(false)}>Close</Button>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Button
+                mode="outlined"
+                onPress={handleCopyToClipboard}
+                icon="content-copy"
+              >
+                Copy
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleSaveToFile}
+                icon={Platform.OS === "web" ? "download" : "content-save"}
+              >
+                {Platform.OS === "web" ? "Download" : "Save File"}
+              </Button>
+            </View>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Import CSV Dialog */}
+        <Dialog
+          visible={importDialogVisible}
+          onDismiss={handleCancelCsvImport}
+          style={{ height: "80%" }}
+        >
+          <Dialog.Title>Import Players</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+              Select a file or paste CSV data to import.
+              Expected format:{"\n"}name,email,phone,gender,rating,notes
+            </Text>
+
+              <Button
+                mode="outlined"
+                onPress={handleSelectImportCsvFile}
+                icon="file-upload"
+                style={{ flex: 1, marginBottom: 12 }}
+              >
+                Select File
+              </Button>
+
+            <TextInput
+              mode="flat"
+              multiline
+              value={importCsvContent}
+              onChangeText={(value) => setImportCsvContent(value)}
+              placeholder="Import file or paste CSV data here..."
+              style={{
+                flex: 1,
+                minHeight: 340,
+                maxHeight: "60%",
+                fontSize: 12,
+                fontFamily: "monospace",
+              }}
+              contentStyle={{
+                paddingVertical: 8,
+              }}
+              scrollEnabled={true}
+            />
+          </Dialog.Content>
+          <Dialog.Actions
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            <Button
+              mode="contained-tonal"
+              onPress={() => {
+                setImportDialogVisible(false);
+                setImportCsvContent("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              mode="contained"
+              onPress={handleImportPlayers}
+              icon="import"
+              disabled={!importCsvContent.trim()}
+            >
+              Import
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
