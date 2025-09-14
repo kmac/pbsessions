@@ -22,6 +22,7 @@ import {
 import { Group, Player } from "@/src/types";
 import GroupForm from "@/src/components/GroupForm";
 import GroupPlayerManager from "@/src/components/GroupPlayerManager";
+import TopDescription from "@/src/components/TopDescription";
 import { Alert } from "@/src/utils/alert";
 
 export default function GroupsTab() {
@@ -112,22 +113,22 @@ export default function GroupsTab() {
                 </Text>
               )}
             </View>
-              <View style={{ flexDirection: "column", alignItems: "flex-end"  }}>
-                <Chip icon="account-group" elevated compact>
-                  <Text variant="labelMedium">{groupPlayers.length}</Text>
+            <View style={{ flexDirection: "column", alignItems: "flex-end" }}>
+              <Chip icon="account-group" elevated compact>
+                <Text variant="labelMedium">{groupPlayers.length}</Text>
+              </Chip>
+              {averageRating > 0 && (
+                <Chip
+                  icon="star-outline"
+                  elevated
+                  compact
+                  style={{ backgroundColor: theme.colors.secondaryContainer }}
+                >
+                  <Text variant="labelSmall">
+                    Avg: {averageRating.toFixed(1)}
+                  </Text>
                 </Chip>
-                {averageRating > 0 && (
-                  <Chip
-                    icon="star-outline"
-                    elevated
-                    compact
-                    style={{ backgroundColor: theme.colors.secondaryContainer }}
-                  >
-                    <Text variant="labelSmall">
-                      Avg: {averageRating.toFixed(1)}
-                    </Text>
-                  </Chip>
-                )}
+              )}
             </View>
           </View>
 
@@ -170,7 +171,10 @@ export default function GroupsTab() {
 
           <View style={{ flexDirection: "row", gap: 4 }}>
             <IconButton icon="pencil" onPress={() => handleEditGroup(group)} />
-            <IconButton icon="delete" onPress={() => handleDeleteGroup(group)} />
+            <IconButton
+              icon="delete"
+              onPress={() => handleDeleteGroup(group)}
+            />
           </View>
         </Card.Actions>
       </Card>
@@ -253,11 +257,12 @@ export default function GroupsTab() {
         }}
         elevation={1}
       >
-        <View
-          style={{
-            flex: 1,
-          }}
-        >
+        <View style={{ flexDirection: "row", flex: 1 }}>
+          <Avatar.Image
+            size={38}
+            source={require("@/assets/images/pbsessions-logo.png")}
+            style={{ marginRight: 8 }}
+          />
           <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
             Groups
           </Text>
@@ -308,6 +313,12 @@ export default function GroupsTab() {
           padding: 16,
         }}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <TopDescription
+            visible={true}
+            description="Organize players in groups for easier session management."
+          />
+        }
         ListEmptyComponent={<EmptyState />}
       />
       <Modal

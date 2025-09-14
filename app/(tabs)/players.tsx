@@ -30,9 +30,14 @@ import {
 import { updateGroup } from "@/src/store/slices/groupsSlice";
 import { getShortGender } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
-import { copyToClipboard, saveToFile, readSelectedFile, } from '@/src/utils/fileClipboardUtil';
+import {
+  copyToClipboard,
+  saveToFile,
+  readSelectedFile,
+} from "@/src/utils/fileClipboardUtil";
 import { Group, Player } from "@/src/types";
 import PlayerForm from "@/src/components/PlayerForm";
+import TopDescription from "@/src/components/TopDescription";
 import BulkAddPlayersModal from "@/src/components/BulkAddPlayersModal";
 import { Alert } from "@/src/utils/alert";
 import { APP_CONFIG } from "@/src/constants";
@@ -246,7 +251,7 @@ export default function PlayersTab() {
   };
 
   const handleSelectImportCsvFile = async () => {
-    await readSelectedFile((content) => setImportCsvContent(content))
+    await readSelectedFile((content) => setImportCsvContent(content));
   };
 
   const handleCancelCsvImport = () => {
@@ -255,20 +260,13 @@ export default function PlayersTab() {
   };
 
   const handleCopyToClipboard = async () => {
-    copyToClipboard(
-      exportCsvContent,
-      () => setExportDialogVisible(false)
-    );
+    copyToClipboard(exportCsvContent, () => setExportDialogVisible(false));
   };
 
   const handleSaveToFile = async () => {
     const fileName = `${APP_CONFIG.NAME}-players-${new Date().toISOString().split("T")[0]}.json`;
-    saveToFile(
-      exportCsvContent,
-      fileName,
-      () => setExportDialogVisible(false)
-    );
-  }
+    saveToFile(exportCsvContent, fileName, () => setExportDialogVisible(false));
+  };
 
   const parsePlayersFromCsv = (
     csvContent: string,
@@ -822,6 +820,11 @@ export default function PlayersTab() {
       }}
       elevation={1}
     >
+      <Avatar.Image
+        size={38}
+        source={require("@/assets/images/pbsessions-logo.png")}
+        style={{ marginRight: 8 }}
+      />
       <View style={{ flex: 1 }}>
         <Text variant="titleLarge" style={{ fontWeight: "bold" }}>
           Players
@@ -875,8 +878,8 @@ export default function PlayersTab() {
                 leadingIcon="export"
                 onPress={() => {
                   setMenuVisible(false);
-                  //handleExportPlayers();
-                  setExportDialogVisible(true);
+                  handleExportPlayers();
+                  //setExportDialogVisible(true);
                 }}
                 title="Export"
               />
@@ -962,6 +965,12 @@ export default function PlayersTab() {
             : 16,
         }}
         showsVerticalScrollIndicator={true}
+        ListHeaderComponent={
+          <TopDescription
+            visible={true}
+            description="Configure individual players"
+          />
+        }
         ListEmptyComponent={
           <View
             style={{
@@ -1196,7 +1205,7 @@ export default function PlayersTab() {
             <Button
               mode="contained-tonal"
               onPress={() => setExportDialogVisible(false)}
-              >
+            >
               Cancel
             </Button>
             <View style={{ flexDirection: "row", gap: 8 }}>
@@ -1227,18 +1236,18 @@ export default function PlayersTab() {
           <Dialog.Title>Import Players</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
-              Select a file or paste CSV data to import.
-              Expected format:{"\n"}name,email,phone,gender,rating,notes
+              Select a file or paste CSV data to import. Expected format:{"\n"}
+              name,email,phone,gender,rating,notes
             </Text>
 
-              <Button
-                mode="outlined"
-                onPress={handleSelectImportCsvFile}
-                icon="file-upload"
-                style={{ flex: 1, marginBottom: 12 }}
-              >
-                Select File
-              </Button>
+            <Button
+              mode="outlined"
+              onPress={handleSelectImportCsvFile}
+              icon="file-upload"
+              style={{ flex: 1, marginBottom: 12 }}
+            >
+              Select File
+            </Button>
 
             <TextInput
               mode="flat"

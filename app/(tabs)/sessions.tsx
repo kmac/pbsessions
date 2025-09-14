@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { View, FlatList,  } from "react-native";
+import { View, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
+  Avatar,
   Button,
   Card,
   Chip,
@@ -27,6 +28,7 @@ import { Court, Session, SessionState } from "@/src/types";
 import ArchivedSessions from "@/src/components/ArchivedSessions";
 import EditSessionModal from "@/src/components/EditSessionModal";
 import ViewSessionModal from "@/src/components/ViewSessionModal";
+import TopDescription from "@/src/components/TopDescription";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
 import {
@@ -302,7 +304,6 @@ export default function SessionsTab() {
     }));
   };
 
-  // Mobile-friendly header component
   const SessionHeader = () => (
     <Surface
       style={{
@@ -314,7 +315,12 @@ export default function SessionsTab() {
       }}
       elevation={1}
     >
-      <View style={{ flex: 1 }}>
+      <View style={{ flexDirection: "row", flex: 1 }}>
+        <Avatar.Image
+          size={38}
+          source={require("@/assets/images/pbsessions-logo.png")}
+          style={{ marginRight: 8 }}
+        />
         <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
           Sessions
         </Text>
@@ -772,6 +778,9 @@ export default function SessionsTab() {
           paddingBottom: narrowScreen ? 80 : 16, // Extra space for FAB
         }}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <TopDescription visible={true} description="Ready to play" />
+        }
         ListEmptyComponent={<EmptyState />}
       />
 

@@ -28,7 +28,12 @@ import { setSessions } from "@/src/store/slices/sessionsSlice";
 import { setGroups } from "@/src/store/slices/groupsSlice";
 import { setPlayers } from "@/src/store/slices/playersSlice";
 import { Settings, Color } from "@/src/types";
-import { copyToClipboard, saveToFile, readSelectedFile, pasteFromClipboard } from '@/src/utils/fileClipboardUtil';
+import {
+  copyToClipboard,
+  saveToFile,
+  readSelectedFile,
+  pasteFromClipboard,
+} from "@/src/utils/fileClipboardUtil";
 import Colors from "@/src/ui/styles/colors";
 import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system";
@@ -62,27 +67,20 @@ export default function SettingsTab() {
   };
 
   const handleCopyToClipboard = async () => {
-    copyToClipboard(
-      backupJsonData,
-      () => setBackupDialogVisible(false)
-    );
+    copyToClipboard(backupJsonData, () => setBackupDialogVisible(false));
   };
 
   const handleSaveToFile = async () => {
     const fileName = `${APP_CONFIG.NAME}-backup-${new Date().toISOString().split("T")[0]}.json`;
-    saveToFile(
-      backupJsonData,
-      fileName,
-      () => setBackupDialogVisible(false)
-    );
-  }
+    saveToFile(backupJsonData, fileName, () => setBackupDialogVisible(false));
+  };
 
   const handleRestoreData = async () => {
     setRestoreDialogVisible(true);
   };
 
   const handleSelectFile = async () => {
-    readSelectedFile((content) => setRestoreJsonData(content))
+    readSelectedFile((content) => setRestoreJsonData(content));
   };
 
   const validateAndRestoreData = async () => {
@@ -179,32 +177,24 @@ export default function SettingsTab() {
   const SettingsHeader = () => (
     <Surface
       style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
         paddingHorizontal: 16,
-        paddingVertical: 24,
+        paddingVertical: 12,
       }}
+      elevation={1}
     >
-      <View
-        style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
-      >
+      <View style={{ flexDirection: "row", flex: 1 }}>
         <Avatar.Image
-          size={48}
-          source={require("@/assets/images/pbsessions-small.png")}
+          size={38}
+          source={require("@/assets/images/pbsessions-logo.png")}
+          style={{ marginRight: 8 }}
         />
-        <Text
-          variant="titleLarge"
-          style={{
-            marginLeft: 20,
-            marginBottom: 8,
-            color: theme.colors.onSurface,
-          }}
-        >
+        <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
           Pickleball Sessions
         </Text>
       </View>
-      <TopDescription
-        visible={true}
-        description="Configure application settings and defaults"
-      />
     </Surface>
   );
 
@@ -533,6 +523,11 @@ export default function SettingsTab() {
         }}
         showsVerticalScrollIndicator={false}
       >
+      <TopDescription
+        visible={true}
+        description="Configure application settings and defaults"
+      />
+
         <AppearanceCard />
         <DefaultsCard />
         <DataStatsCard />
@@ -615,14 +610,14 @@ export default function SettingsTab() {
               Select a file or paste JSON data to restore:
             </Text>
 
-              <Button
-                mode="outlined"
-                onPress={handleSelectFile}
-                icon="file-upload"
-                style={{ flex: 1, marginBottom: 12 }}
-              >
-                Select File
-              </Button>
+            <Button
+              mode="outlined"
+              onPress={handleSelectFile}
+              icon="file-upload"
+              style={{ flex: 1, marginBottom: 12 }}
+            >
+              Select File
+            </Button>
 
             <TextInput
               mode="flat"
