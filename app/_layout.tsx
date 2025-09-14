@@ -12,7 +12,8 @@ import {
   useDispatch,
   useSelector,
 } from "react-redux";
-import { SplashScreen, Stack } from "expo-router";
+import { Stack } from "expo-router";
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from "expo-status-bar";
 import {
   adaptNavigationTheme,
@@ -42,6 +43,11 @@ export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: "(tabs)",
 };
+
+SplashScreen.setOptions({
+  duration: 1000,
+  fade: true,
+});
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
