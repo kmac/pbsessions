@@ -13,6 +13,7 @@ import {
   Session,
   Team,
 } from "@/src/types";
+import { APP_CONFIG } from "../constants";
 import { Alert } from "@/src/utils/alert";
 
 interface PartnershipUnit {
@@ -72,7 +73,8 @@ export class SessionCoordinator {
   public generateRoundAssignment(sittingOut?: Player[]): RoundAssignment {
     const gameAssignments: GameAssignment[] = [];
     const availablePlayers = [...this.players];
-    const playersPerRound = this.activeCourts.length * 4;
+    const playersPerRound =
+      this.activeCourts.length * APP_CONFIG.MIN_PLAYERS_PER_GAME;
 
     // Step 0: Extract partnership constraints
     const partnershipConstraints =
@@ -115,10 +117,47 @@ export class SessionCoordinator {
       }
     });
 
+    // Step 4: Update sitting out list to include players who couldn't be assigned to courts
+    const assignedPlayers = new Set(
+      courtAssignments.flat().map((player) => player.id),
+    );
+    const actualSittingOut = availablePlayers.filter(
+      (player) => !assignedPlayers.has(player.id),
+    );
+
+    const log_for_console = false;
+    const log_for_browser = false;
+    if (log_for_console) {
+      // console friendly:
+      console.log(
+        `generateRoundAssignment ${this.currentRoundNumber}: ${JSON.stringify(
+          {
+            courtAssignments,
+            gameAssignments,
+            sittingOut,
+            availablePlayers,
+            assignedPlayers,
+          },
+          undefined,
+          2,
+        )}`,
+      );
+    }
+    if (log_for_browser) {
+      // browser friendly:
+      console.log("generateRoundAssignment ${this.currentRoundNumber}:", {
+        courtAssignments,
+        gameAssignments,
+        sittingOut,
+        availablePlayers,
+        assignedPlayers,
+      });
+    }
+
     return {
       roundNumber: this.currentRoundNumber,
       gameAssignments: gameAssignments,
-      sittingOutIds: sittingOut.map((player) => player.id),
+      sittingOutIds: actualSittingOut.map((player) => player.id),
     };
   }
 
@@ -161,7 +200,6 @@ export class SessionCoordinator {
                 partnership,
                 maxRating,
               });
-
             } else {
               // very unexpected
               const partnershipInfo = partnership.name
@@ -311,6 +349,15 @@ export class SessionCoordinator {
       (unit) => unit.players,
     );
 
+    // Add unplaced partnership players back to flexible pool if not enforcing all pairings
+    if (
+      !this.partnershipConstraint?.enforceAllPairings &&
+      unplacedPartnershipPlayers.length > 0
+    ) {
+      remainingFlexiblePlayers.push(...unplacedPartnershipPlayers);
+      remainingFlexiblePlayers = this.shuffleArray(remainingFlexiblePlayers);
+    }
+
     // Step 3: Fill remaining court slots with flexible players
     for (const { court, index: courtIndex } of sortedCourts) {
       if (
@@ -354,7 +401,10 @@ export class SessionCoordinator {
       }
     }
 
-    return courtAssignments;
+    // Step 5: Remove courts with insufficient players
+    return courtAssignments.filter(
+      (court) => court.length >= APP_CONFIG.MIN_PLAYERS_PER_GAME,
+    );
   }
 
   private assignTeamsForCourtWithPartnerships(
@@ -401,13 +451,12 @@ export class SessionCoordinator {
         },
       };
     } else {
-      // No partnerships - use existing logic
+      // No partnerships
       const allHaveRatings = players.every((p) => p.rating !== undefined);
 
       if (allHaveRatings && court.minimumRating) {
         return this.createBalancedTeams(players);
       }
-
       return this.createDiversePartnerTeams(players);
     }
   }
@@ -541,74 +590,6 @@ export class SessionCoordinator {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
-  }
-
-  private assignPlayersToCourts(playingPlayers: Player[]): Player[][] {
-    const courtAssignments: Player[][] = Array(this.activeCourts.length)
-      .fill(null)
-      .map(() => []);
-    const remainingPlayers = this.shuffleArray(playingPlayers);
-
-    // TODO: it looks to me that we'll have to sort the courts by minimum
-    // rating first, so that higher rating players get selected for higher
-    // courts first.
-
-    // Step 1: Assign players to courts with rating requirements first
-    this.activeCourts.forEach((court, courtIndex) => {
-      if (court.minimumRating && remainingPlayers.length >= 4) {
-        // Get players who meet the rating requirement
-        const eligiblePlayers = remainingPlayers.filter(
-          (player) => player.rating && player.rating >= court.minimumRating!,
-        );
-
-        if (eligiblePlayers.length >= 4) {
-          // Sort by rating (highest first for balanced distribution)
-          eligiblePlayers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-
-          // Take 4 players for this court
-          const courtPlayers = eligiblePlayers.slice(0, 4);
-          courtAssignments[courtIndex] = courtPlayers;
-
-          // Remove assigned players from remaining pool
-          courtPlayers.forEach((player) => {
-            const index = remainingPlayers.indexOf(player);
-            if (index > -1) remainingPlayers.splice(index, 1);
-          });
-        }
-      }
-    });
-
-    // Step 2: Assign remaining players to unfilled courts
-    let playerIndex = 0;
-    this.activeCourts.forEach((court, courtIndex) => {
-      while (
-        courtAssignments[courtIndex].length < 4 &&
-        playerIndex < remainingPlayers.length
-      ) {
-        courtAssignments[courtIndex].push(remainingPlayers[playerIndex]);
-        playerIndex++;
-      }
-    });
-
-    return courtAssignments;
-  }
-
-  private assignTeamsForCourt(
-    players: Player[],
-    court: Court,
-  ): {
-    serveTeam: Team;
-    receiveTeam: Team;
-  } {
-    // If we have ratings for all players, try to balance teams
-    const allHaveRatings = players.every((p) => p.rating !== undefined);
-
-    if (allHaveRatings && court.minimumRating) {
-      return this.createBalancedTeams(players);
-    }
-
-    // Otherwise, prioritize partner diversity
-    return this.createDiversePartnerTeams(players);
   }
 
   private createBalancedTeams(players: Player[]): {
