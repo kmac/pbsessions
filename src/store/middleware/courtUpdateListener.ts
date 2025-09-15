@@ -10,12 +10,12 @@ export const registerCourtUpdateCallback = (
   sessionId: string,
   callback: () => void,
 ) => {
-  console.log("REGISTER CALLBACK");
+  // console.log("REGISTER CALLBACK");
   courtUpdateCallbacks.set(sessionId, callback);
 };
 
 export const unregisterCourtUpdateCallback = (sessionId: string) => {
-  console.log("DELETE CALLBACK");
+  // console.log("DELETE CALLBACK");
   courtUpdateCallbacks.delete(sessionId);
 };
 
@@ -29,7 +29,7 @@ courtUpdateListenerMiddleware.startListening({
     if (callback) {
       // Small delay to ensure Redux state has propagated
       setTimeout(() => {
-        console.log("IN CALLBACK");
+        // console.log("IN CALLBACK");
         callback();
       }, 200);
     }
