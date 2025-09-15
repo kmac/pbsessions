@@ -12,6 +12,8 @@ import {
   Surface,
   Text,
   useTheme,
+  Modal,
+  TextInput,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateSession } from "@/src/store/slices/sessionsSlice";
@@ -50,7 +52,12 @@ export default function LiveSessionScreen() {
   const [betweenRoundsVisible, setBetweenRoundsVisible] = useState(false);
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [roundStartTime, setRoundStartTime] = useState<Date | null>(null);
-  const [menuVisible, setMenuVisible] = useState(false);
+  const [pulldownMenuVisible, setPulldownMenuVisible] = useState(false);
+  const [generateRoundsMenuVisible, setGenerateRoundsMenuVisible] =
+    useState(false);
+  const [generateRoundsModalVisible, setGenerateRoundsModalVisible] =
+    useState(false);
+  const [numberOfRounds, setNumberOfRounds] = useState("1");
 
   // TODO we should have a way to look this up - probably need to use redux since it will be global
   const liveSession = sessions.find((s) => s.state === SessionState.Live);
@@ -336,6 +343,93 @@ export default function LiveSessionScreen() {
     );
   };
 
+  const openGenerateRoundsModal = () => {
+    setGenerateRoundsModalVisible(true);
+  };
+
+  const closeGenerateRoundsModal = () => {
+    setGenerateRoundsModalVisible(false);
+    setNumberOfRounds("1");
+  };
+
+  const handleGenerateMultipleRounds = () => {
+    const numRounds = parseInt(numberOfRounds);
+    if (isNaN(numRounds) || numRounds < 1 || numRounds > 20) {
+      Alert.alert(
+        "Invalid Number",
+        "Please enter a valid number of rounds (1-20).",
+        [{ text: "OK" }],
+      );
+      return;
+    }
+
+    let successfulRounds = 0;
+    let currentSession = { ...liveSession };
+
+    const generateNextRound = () => {
+      if (successfulRounds >= numRounds) {
+        // All rounds generated successfully
+        Alert.alert(
+          "Rounds Generated",
+          `Successfully generated ${successfulRounds} round${successfulRounds > 1 ? "s" : ""}. You can view them using the session history.`,
+          [{ text: "OK" }],
+        );
+        closeGenerateRoundsModal();
+        return;
+      }
+
+      try {
+        const sessionCoordinator = new SessionCoordinator(
+          currentSession,
+          liveSessionPlayers,
+        );
+        const roundAssignment = sessionCoordinator.generateRoundAssignment();
+
+        if (roundAssignment.gameAssignments.length === 0) {
+          Alert.alert(
+            "Round Generation Stopped",
+            `Successfully generated ${successfulRounds} rounds. Cannot generate more rounds - unable to create valid game assignments.`,
+            [{ text: "OK" }],
+          );
+          closeGenerateRoundsModal();
+          return;
+        }
+
+        // Use the proper Redux thunk to apply the round
+        dispatch(
+          applyNextRoundThunk({
+            sessionId: liveSession.id,
+            assignment: roundAssignment,
+          }),
+        ).then((result) => {
+          if (applyNextRoundThunk.fulfilled.match(result)) {
+            successfulRounds++;
+            currentSession = result.payload;
+            // Generate the next round
+            generateNextRound();
+          } else {
+            Alert.alert(
+              "Round Generation Error",
+              `Successfully generated ${successfulRounds} rounds. Error generating round ${successfulRounds + 1}.`,
+              [{ text: "OK" }],
+            );
+            closeGenerateRoundsModal();
+          }
+        });
+      } catch (error) {
+        Alert.alert(
+          "Round Generation Error",
+          `Successfully generated ${successfulRounds} rounds. Error generating round ${successfulRounds + 1}: ${error}`,
+          [{ text: "OK" }],
+        );
+        closeGenerateRoundsModal();
+      }
+    };
+
+    // Start generating rounds
+    generateNextRound();
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header>
@@ -353,18 +447,18 @@ export default function LiveSessionScreen() {
           }
         />
         <Menu
-          visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
+          visible={pulldownMenuVisible}
+          onDismiss={() => setPulldownMenuVisible(false)}
           anchor={
             <Appbar.Action
               icon="dots-vertical"
-              onPress={() => setMenuVisible(true)}
+              onPress={() => setPulldownMenuVisible(true)}
             />
           }
         >
           <Menu.Item
             onPress={() => {
-              setMenuVisible(false);
+              setPulldownMenuVisible(false);
               openEditSessionModal();
             }}
             title="Edit Session"
@@ -372,10 +466,18 @@ export default function LiveSessionScreen() {
           />
           <Menu.Item
             onPress={() => {
-              setMenuVisible(false);
+              setPulldownMenuVisible(false);
               endSession();
             }}
             title="End Session"
+            leadingIcon="stop"
+          />
+          <Menu.Item
+            onPress={() => {
+              setPulldownMenuVisible(false);
+              openGenerateRoundsModal();
+            }}
+            title="Generate Rounds"
             leadingIcon="stop"
           />
         </Menu>
@@ -646,6 +748,70 @@ export default function LiveSessionScreen() {
         stats={liveData.playerStats}
         onClose={() => setStatsModalVisible(false)}
       />
+
+      <Modal
+        visible={generateRoundsModalVisible}
+        onDismiss={closeGenerateRoundsModal}
+        contentContainerStyle={{
+          backgroundColor: theme.colors.surface,
+          margin: 20,
+          borderRadius: 8,
+          padding: 20,
+        }}
+      >
+        <Text
+          variant="headlineSmall"
+          style={{
+            marginBottom: 20,
+            textAlign: "center",
+          }}
+        >
+          Generate Rounds
+        </Text>
+
+        <Text
+          variant="bodyMedium"
+          style={{
+            marginBottom: 16,
+            color: theme.colors.onSurfaceVariant,
+          }}
+        >
+          Enter the number of rounds to generate. All rounds will be created
+          without scores entered.
+        </Text>
+
+        <TextInput
+          label="Number of Rounds"
+          value={numberOfRounds}
+          onChangeText={setNumberOfRounds}
+          keyboardType="numeric"
+          mode="outlined"
+          style={{ marginBottom: 20 }}
+        />
+
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <Button
+            mode="outlined"
+            onPress={closeGenerateRoundsModal}
+            style={{ flex: 1 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            mode="contained"
+            onPress={handleGenerateMultipleRounds}
+            style={{ flex: 1 }}
+          >
+            Generate Rounds
+          </Button>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
