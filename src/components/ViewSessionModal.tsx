@@ -37,6 +37,8 @@ export default function ViewSessionModal({
 
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set());
+  const [allExpanded, setAllExpanded] = useState(false);
   const { players } = useAppSelector((state) => state.players);
 
   if (!session) {
@@ -251,7 +253,7 @@ export default function ViewSessionModal({
 
       //console.log(htmlContent);
 
-      const { uri } = await Print.printToFileAsync({html: htmlContent });
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
 
       // // Create a better filename
       const fileName = `${session.name.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
@@ -271,24 +273,53 @@ export default function ViewSessionModal({
     }
   };
 
+  const rounds = session.liveData?.rounds || [];
+  const playerStats = session.liveData?.playerStats || [];
+
+  // Toggle individual round expansion
+  const toggleRound = (roundIndex: number) => {
+    const newExpanded = new Set(expandedRounds);
+    if (newExpanded.has(roundIndex)) {
+      newExpanded.delete(roundIndex);
+    } else {
+      newExpanded.add(roundIndex);
+    }
+    setExpandedRounds(newExpanded);
+
+    // Update allExpanded state based on whether all rounds are now expanded
+    setAllExpanded(newExpanded.size === rounds.length);
+  };
+
+  // Toggle all rounds
+  const toggleAllRounds = () => {
+    if (allExpanded) {
+      setExpandedRounds(new Set());
+      setAllExpanded(false);
+    } else {
+      setExpandedRounds(new Set(rounds.map((_, index) => index)));
+      setAllExpanded(true);
+    }
+  };
+
   const renderRound = ({ item, index }: { item: Round; index: number }) => (
     <List.Accordion
       title={`Round ${index + 1}`}
+      expanded={expandedRounds.has(index)}
+      onPress={() => toggleRound(index)}
       right={(props) => (
         <View style={{ flexDirection: "row" }}>
           <Text style={{ marginRight: 10 }}>{item.games.length} games</Text>
-          <List.Icon {...props} icon="chevron-down" />
+          <List.Icon
+            {...props}
+            icon={expandedRounds.has(index) ? "chevron-up" : "chevron-down"}
+          />
         </View>
       )}
       left={(props) => <List.Icon {...props} icon="view-list" />}
-      id={index}
     >
       <RoundComponent editing={false} session={session} roundNumber={index} />
     </List.Accordion>
   );
-
-  const rounds = session.liveData?.rounds || [];
-  const playerStats = session.liveData?.playerStats || [];
 
   return (
     <>
@@ -315,10 +346,7 @@ export default function ViewSessionModal({
                 </Text>
               }
             />
-            <Appbar.Action
-              icon="file-pdf-box"
-              onPress={() => exportToPDF()}
-            />
+            <Appbar.Action icon="file-pdf-box" onPress={() => exportToPDF()} />
           </Appbar.Header>
 
           <Surface style={styles.headerContainer}>
@@ -373,18 +401,33 @@ export default function ViewSessionModal({
                 </View>
               </View>
             </View>
-            {playerStats.length > 0 && (
-              <Button
-                icon="chart-box"
-                mode="outlined"
-                onPress={() => setStatsModalVisible(true)}
-                style={{
-                  marginBottom: 2,
-                }}
-              >
-                Player Stats
-              </Button>
-            )}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {playerStats.length > 0 && (
+                <Button
+                  icon="chart-box"
+                  mode="outlined"
+                  onPress={() => setStatsModalVisible(true)}
+                  style={{
+                    marginBottom: 2,
+                    //flex: 1,
+                  }}
+                >
+                  Player Stats
+                </Button>
+              )}
+              {rounds.length > 0 && (
+                <Button
+                  icon={allExpanded ? "collapse-all" : "expand-all"}
+                  mode="outlined"
+                  onPress={toggleAllRounds}
+                  style={{
+                    marginBottom: 2,
+                  }}
+                >
+                  {allExpanded ? "Collapse All" : "Expand All"}
+                </Button>
+              )}
+            </View>
           </Surface>
 
           {rounds.length === 0 && (
@@ -401,34 +444,32 @@ export default function ViewSessionModal({
           )}
 
           {rounds.length > 0 && (
-            <List.AccordionGroup>
-              <FlatList
-                data={rounds}
-                renderItem={renderRound}
-                keyExtractor={(item) => item.roundNumber.toString()}
-                contentContainerStyle={styles.listContainer}
-                ListFooterComponent={
-                  <View>
-                    <Text
-                      variant="titleSmall"
-                      style={{
-                        color: theme.colors.onSurfaceVariant,
-                        marginTop: 12,
-                        marginHorizontal: 22,
-                      }}
-                    >
-                      Players:
-                    </Text>
-                    <Text variant="bodySmall" style={{ marginHorizontal: 22 }}>
-                      {sessionPlayers
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map((p) => p.name)
-                        .join(", ")}
-                    </Text>
-                  </View>
-                }
-              />
-            </List.AccordionGroup>
+            <FlatList
+              data={rounds}
+              renderItem={renderRound}
+              keyExtractor={(item) => item.roundNumber.toString()}
+              contentContainerStyle={styles.listContainer}
+              ListFooterComponent={
+                <View>
+                  <Text
+                    variant="titleSmall"
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                      marginTop: 12,
+                      marginHorizontal: 22,
+                    }}
+                  >
+                    Players:
+                  </Text>
+                  <Text variant="bodySmall" style={{ marginHorizontal: 22 }}>
+                    {sessionPlayers
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((p) => p.name)
+                      .join(", ")}
+                  </Text>
+                </View>
+              }
+            />
           )}
         </SafeAreaView>
       </Modal>
