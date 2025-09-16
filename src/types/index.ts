@@ -72,6 +72,7 @@ export interface Session {
   name: string;
   dateTime: string;
   playerIds: string[];
+  pausedPlayerIds?: string[];
   courts: Court[];
   state: SessionState;
   scoring: boolean;

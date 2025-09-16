@@ -19,7 +19,7 @@ import RoundComponent from "@/src/components/RoundComponent";
 import TopDescription from "@/src/components/TopDescription";
 import { SessionCoordinator } from "@/src/services/sessionCoordinator";
 import { getCurrentRoundInfo } from "@/src/services/sessionService";
-import { getSessionPlayers } from "@/src/utils/util";
+import { getSessionPlayers, getSessionPausedPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 import { updateCurrentRoundThunk } from "@/src/store/actions/sessionActions";
 import {
@@ -70,7 +70,7 @@ export default function BetweenRoundsModal({
   // Use useCallback to ensure we always get fresh session data
   const handleReshufflePlayers = useCallback(
     (excludeSitting = false) => {
-      console.debug("handleReshufflePlayers: in callback")
+      console.debug("handleReshufflePlayers: in callback");
 
       // Get fresh session data on each call
       const currentSession = sessions.find((s) => s.id === sessionId);
@@ -83,6 +83,7 @@ export default function BetweenRoundsModal({
         currentSession,
         players,
       );
+
       const { currentRound } = getCurrentRoundInfo(currentSession.liveData);
 
       let sittingOut = undefined;
@@ -96,6 +97,7 @@ export default function BetweenRoundsModal({
       const sessionCoordinator = new SessionCoordinator(
         currentSession,
         sessionPlayers,
+        getSessionPausedPlayers(currentSession, players),
       );
       const roundAssignment =
         sessionCoordinator.generateRoundAssignment(sittingOut);

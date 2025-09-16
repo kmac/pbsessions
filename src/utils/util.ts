@@ -60,6 +60,19 @@ export function getSessionPlayers(
   });
 }
 
+export function getSessionPausedPlayers(
+  session: Session,
+  allPlayers: Player[],
+): Player[] {
+  if (!session || !allPlayers || !session.pausedPlayerIds) {
+    return [];
+  }
+  return session.pausedPlayerIds.flatMap((pid) => {
+    const player = allPlayers.find((p) => p.id === pid);
+    return player ? [player] : [];
+  });
+}
+
 export function getPlayer(players: Player[], playerId: string): Player {
   const player = players.find((p) => p.id === playerId);
   if (player) {
@@ -86,7 +99,6 @@ export function getCourt(courts: Court[], courtId: string): Court {
     : {
         id: courtId,
         name: "UNKNOWN",
-        number: 99,
         isActive: false,
       };
 }

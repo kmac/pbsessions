@@ -23,7 +23,7 @@ import RoundScoreEntryModal from "@/src/components/RoundScoreEntryModal";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import BetweenRoundsModal from "@/src/components/BetweenRoundsModal";
 import EditSessionModal from "@/src/components/EditSessionModal";
-import { getSessionPlayers, logSession } from "@/src/utils/util";
+import { getSessionPlayers, getSessionPausedPlayers, logSession } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 import { Player, Results, Session, SessionState } from "@/src/types";
 
@@ -44,7 +44,7 @@ export default function LiveSessionScreen() {
 
   // useAppSelector, useAppDispatch is redux
   const { sessions } = useAppSelector((state) => state.sessions);
-  const { players } = useAppSelector((state) => state.players);
+  const { players : allPlayers } = useAppSelector((state) => state.players);
 
   // useState is react
   const [scoreModalVisible, setScoreModalVisible] = useState(false);
@@ -125,7 +125,11 @@ export default function LiveSessionScreen() {
     : 0;
 
   const liveSessionPlayers: Player[] = liveSession
-    ? getSessionPlayers(liveSession, players)
+    ? getSessionPlayers(liveSession, allPlayers)
+    : [];
+
+  const liveSessionPausedPlayers: Player[] = liveSession
+    ? getSessionPausedPlayers(liveSession, allPlayers)
     : [];
 
   const liveData = liveSession.liveData;
@@ -156,6 +160,7 @@ export default function LiveSessionScreen() {
     const sessionCoordinator = new SessionCoordinator(
       liveSession,
       liveSessionPlayers,
+      liveSessionPausedPlayers,
     );
     const roundAssignment = sessionCoordinator.generateRoundAssignment();
     if (roundAssignment.gameAssignments.length === 0) {
@@ -200,6 +205,7 @@ export default function LiveSessionScreen() {
     const sessionCoordinator = new SessionCoordinator(
       liveSession,
       liveSessionPlayers,
+      liveSessionPausedPlayers,
     );
     const updatedPlayerStats = sessionCoordinator.updateStatsForRound(
       currentRound.games,
@@ -382,6 +388,7 @@ export default function LiveSessionScreen() {
         const sessionCoordinator = new SessionCoordinator(
           currentSession,
           liveSessionPlayers,
+          liveSessionPausedPlayers,
         );
         const roundAssignment = sessionCoordinator.generateRoundAssignment();
 

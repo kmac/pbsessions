@@ -31,13 +31,14 @@ interface PartnershipConstraints {
 export class SessionCoordinator {
   private activeCourts: Court[];
   private players: Player[];
+  private pausedPlayers: Player[];
   private playerStats: Map<string, PlayerStats> = new Map();
   private liveData: NonNullable<Session["liveData"]>;
   private currentRound: Round;
   private currentRoundNumber: number;
   private partnershipConstraint?: PartnershipConstraint;
 
-  constructor(session: Session, players: Player[]) {
+  constructor(session: Session, players: Player[], pausedPlayers: Player[]) {
     if (!session.liveData) {
       throw new Error(
         `Invalid session: missing required live data. session: ${session}`,
@@ -46,6 +47,7 @@ export class SessionCoordinator {
     this.liveData = session.liveData;
     this.activeCourts = session.courts.filter((c) => c.isActive);
     this.players = players;
+    this.pausedPlayers = pausedPlayers;
     this.partnershipConstraint = session.partnershipConstraint;
     this.currentRoundNumber = this.liveData.rounds.length;
     this.currentRound = this.liveData.rounds[this.currentRoundNumber - 1];

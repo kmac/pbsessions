@@ -13,7 +13,7 @@ import {
   useSelector,
 } from "react-redux";
 import { Stack } from "expo-router";
-import * as SplashScreen from 'expo-splash-screen';
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import {
   adaptNavigationTheme,
@@ -157,8 +157,8 @@ const RootLayoutNav = () => {
           : { ...DarkTheme, fonts: NavDarkTheme.fonts }
       }
     >
+      <StorageLoader />
       <PaperProvider theme={theme}>
-        <StorageLoader />
         <Stack
           screenOptions={
             {
@@ -176,9 +176,8 @@ const RootLayoutNav = () => {
             }}
           />
         </Stack>
+        <StatusBar style="auto" />
       </PaperProvider>
-
-      <StatusBar style="auto" />
     </ThemeProvider>
   );
 };

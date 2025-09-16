@@ -12,14 +12,16 @@ import {
   Text,
   useTheme,
   FAB,
+  Chip,
 } from "react-native-paper";
 import { useAppSelector, useAppDispatch } from "@/src/store";
 import { addPlayer } from "@/src/store/slices/playersSlice";
-import { Player } from "@/src/types";
+import { Player, FixedPartnership, PartnershipConstraint } from "@/src/types";
 import PlayerCard from "./PlayerCard";
 import PlayerForm from "./PlayerForm";
 import { Alert } from "@/src/utils/alert";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
+import { v4 as uuidv4 } from "uuid";
 
 interface GroupPlayerManagerProps {
   visible: boolean;
@@ -27,6 +29,10 @@ interface GroupPlayerManagerProps {
   groupPlayers: Player[];
   onSave: (groupPlayers: Player[]) => void;
   onCancel: () => void;
+  pausedPlayerIds?: string[];
+  partnershipConstraint?: PartnershipConstraint;
+  onPausedPlayersChange?: (pausedPlayerIds: string[]) => void;
+  onPartnershipConstraintChange?: (constraint?: PartnershipConstraint) => void;
 }
 
 type ViewMode = "select" | "add";
@@ -37,6 +43,10 @@ export default function GroupPlayerManager({
   groupPlayers,
   onSave,
   onCancel,
+  pausedPlayerIds = [],
+  partnershipConstraint,
+  onPausedPlayersChange,
+  onPartnershipConstraintChange,
 }: GroupPlayerManagerProps) {
   const theme = useTheme();
   const dispatch = useAppDispatch();
@@ -53,6 +63,7 @@ export default function GroupPlayerManager({
   }, [groupPlayers]);
 
   const selectedPlayerIds = selectedPlayers.map((item) => item.id);
+  const partnerships = partnershipConstraint?.partnerships || [];
 
   const [viewMode, setViewMode] = useState<ViewMode>("select");
   const [groupPlayerSearchQuery, setGroupPlayerSearchQuery] = useState("");
@@ -61,6 +72,37 @@ export default function GroupPlayerManager({
   function isPlayerSelected(player: Player) {
     return selectedPlayerIds.includes(player.id);
   }
+
+  function isPlayerPaused(playerId: string) {
+    return pausedPlayerIds.includes(playerId);
+  }
+
+  const getPlayerPartner = (playerId: string): Player | undefined => {
+    const partnership = partnerships.find(
+      (p) => p.player1Id === playerId || p.player2Id === playerId
+    );
+    if (!partnership) return undefined;
+    
+    const partnerId = partnership.player1Id === playerId 
+      ? partnership.player2Id 
+      : partnership.player1Id;
+    
+    return allPlayers.find((p) => p.id === partnerId);
+  };
+
+  const getAvailableForLinking = (playerId: string): Player[] => {
+    const currentPartner = getPlayerPartner(playerId);
+    if (currentPartner) return [];
+    
+    const partneredPlayerIds = new Set(
+      partnerships.flatMap(p => [p.player1Id, p.player2Id])
+    );
+    
+    return selectedPlayers.filter(p => 
+      p.id !== playerId && 
+      !partneredPlayerIds.has(p.id)
+    );
+  };
 
   function addPlayerToSelected(player: Player) {
     setSelectedPlayers([...selectedPlayers, player]);
@@ -71,10 +113,60 @@ export default function GroupPlayerManager({
       setSelectedPlayers(
         selectedPlayers.filter((item) => item.id !== player.id),
       );
+      // Remove from paused if unselected
+      if (isPlayerPaused(player.id)) {
+        onPausedPlayersChange?.(pausedPlayerIds.filter(id => id !== player.id));
+      }
+      // Remove any partnerships involving this player
+      handlePlayerAction(player, 'unlink');
     } else {
       addPlayerToSelected(player);
     }
   }
+
+  const handlePlayerAction = (player: Player, action: 'pause' | 'unpause' | 'link' | 'unlink') => {
+    const playerId = player.id;
+    
+    switch (action) {
+      case 'pause':
+        if (!isPlayerPaused(playerId)) {
+          onPausedPlayersChange?.([...pausedPlayerIds, playerId]);
+        }
+        break;
+      case 'unpause':
+        if (isPlayerPaused(playerId)) {
+          onPausedPlayersChange?.(pausedPlayerIds.filter(id => id !== playerId));
+        }
+        break;
+      case 'unlink':
+        const updatedPartnerships = partnerships.filter(
+          p => p.player1Id !== playerId && p.player2Id !== playerId
+        );
+        onPartnershipConstraintChange?.(
+          updatedPartnerships.length > 0 
+            ? { partnerships: updatedPartnerships, enforceAllPairings: partnershipConstraint?.enforceAllPairings || false }
+            : undefined
+        );
+        break;
+    }
+  };
+
+  const handleLinkPartner = (player1: Player, player2: Player) => {
+    const newPartnership: FixedPartnership = {
+      id: uuidv4(),
+      player1Id: player1.id,
+      player2Id: player2.id,
+      name: `${player1.name} & ${player2.name}`,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedPartnerships = [...partnerships, newPartnership];
+    onPartnershipConstraintChange?.({
+      partnerships: updatedPartnerships,
+      enforceAllPairings: partnershipConstraint?.enforceAllPairings || false,
+    });
+  };
 
   const filteredPlayers = allPlayers.filter(
     (player) =>
@@ -123,6 +215,37 @@ export default function GroupPlayerManager({
 
   const SelectExistingView = () => (
     <>
+      {/* Partnership Summary */}
+      {partnerships.length > 0 && (
+        <Surface style={{ 
+          margin: 16, 
+          padding: 12, 
+          backgroundColor: theme.colors.surfaceVariant, 
+          borderRadius: 8 
+        }}>
+          <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 8 }}>
+            Fixed Partnerships:
+          </Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {partnerships.map((partnership) => {
+              const player1 = allPlayers.find(p => p.id === partnership.player1Id);
+              const player2 = allPlayers.find(p => p.id === partnership.player2Id);
+              return (
+                <Chip
+                  key={partnership.id}
+                  icon="account-heart"
+                  compact
+                  mode="outlined"
+                  style={{ backgroundColor: theme.colors.tertiaryContainer }}
+                >
+                  {player1?.name} & {player2?.name}
+                </Chip>
+              );
+            })}
+          </View>
+        </Surface>
+      )}
+
       {selectedPlayers.length > 0 && (
         <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
           <Text
@@ -133,19 +256,30 @@ export default function GroupPlayerManager({
             }}
           >
             Selected Players ({selectedPlayers.length})
+            {pausedPlayerIds.length > 0 && ` (${pausedPlayerIds.length} paused)`}
           </Text>
           <View>
             {[...filteredSelectedPlayers]
               .sort((a, b) => a.name.localeCompare(b.name))
-              .map((item) => (
-                <PlayerCard
-                  key={`selected-${item.id}`}
-                  player={item}
-                  isSelected={selectedPlayerIds.includes(item.id)}
-                  onToggle={handleTogglePlayer}
-                  showActions={true}
-                />
-              ))}
+              .map((item) => {
+                const partner = getPlayerPartner(item.id);
+                const availableForLinking = getAvailableForLinking(item.id);
+
+                return (
+                  <PlayerCard
+                    key={`selected-${item.id}`}
+                    player={item}
+                    isSelected={selectedPlayerIds.includes(item.id)}
+                    onToggle={handleTogglePlayer}
+                    showActions={true}
+                    isPaused={isPlayerPaused(item.id)}
+                    partnerName={partner?.name}
+                    onPlayerAction={handlePlayerAction}
+                    availableForLinking={onPartnershipConstraintChange ? availableForLinking : []}
+                    onLinkPartner={onPartnershipConstraintChange ? handleLinkPartner : undefined}
+                  />
+                );
+              })}
           </View>
         </View>
       )}
@@ -203,15 +337,25 @@ export default function GroupPlayerManager({
           <View>
             {[...availablePlayers]
               .sort((a, b) => a.name.localeCompare(b.name))
-              .map((item) => (
-                <PlayerCard
-                  key={`available-${item.id}`}
-                  player={item}
-                  isSelected={selectedPlayerIds.includes(item.id)}
-                  onToggle={handleTogglePlayer}
-                  showActions={true}
-                />
-              ))}
+              .map((item) => {
+                const partner = getPlayerPartner(item.id);
+                const availableForLinking = getAvailableForLinking(item.id);
+
+                return (
+                  <PlayerCard
+                    key={`available-${item.id}`}
+                    player={item}
+                    isSelected={selectedPlayerIds.includes(item.id)}
+                    onToggle={handleTogglePlayer}
+                    showActions={true}
+                    isPaused={isPlayerPaused(item.id)}
+                    partnerName={partner?.name}
+                    onPlayerAction={handlePlayerAction}
+                    availableForLinking={onPartnershipConstraintChange ? availableForLinking : []}
+                    onLinkPartner={onPartnershipConstraintChange ? handleLinkPartner : undefined}
+                  />
+                );
+              })}
           </View>
         )}
       </View>
@@ -330,7 +474,6 @@ export default function GroupPlayerManager({
             icon="content-save"
             mode="contained"
             onPress={handleSave}
-            //contentStyle={{ paddingVertical: 12 }}
           >
             Save Changes
           </Button>
@@ -338,7 +481,6 @@ export default function GroupPlayerManager({
             icon="cancel"
             mode="outlined"
             onPress={onCancel}
-            //contentStyle={{ paddingVertical: 12 }}
           >
             Cancel
           </Button>
@@ -351,7 +493,6 @@ export default function GroupPlayerManager({
             mode="outlined"
             onPress={onCancel}
             style={{ flex: 1 }}
-            //contentStyle={{ paddingVertical: 8 }}
           >
             Cancel
           </Button>
@@ -360,7 +501,6 @@ export default function GroupPlayerManager({
             mode="contained"
             onPress={handleSave}
             style={{ flex: 1 }}
-            //contentStyle={{ paddingVertical: 8 }}
           >
             Save Changes
           </Button>
@@ -432,22 +572,6 @@ export default function GroupPlayerManager({
           {viewMode === "select" ? <SelectExistingView /> : <AddNewView />}
         </ScrollView>
 
-        {false && narrowScreen && (
-          <FAB
-            icon="content-save"
-            onPress={handleSave}
-            color={theme.colors.onPrimary}
-            size="medium"
-            style={{
-              position: "absolute",
-              margin: 16,
-              right: 0,
-              bottom: 100, // Above the bottom action bar
-              backgroundColor: theme.colors.primary,
-            }}
-          />
-        )}
-
         <BottomActionBar />
 
         <Modal
@@ -458,7 +582,6 @@ export default function GroupPlayerManager({
           <PlayerForm
             onSave={handleQuickAddPlayer}
             onCancel={() => setShowQuickAdd(false)}
-            //groupName={groupName}
           />
         </Modal>
       </SafeAreaView>

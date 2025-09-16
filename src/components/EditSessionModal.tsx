@@ -16,7 +16,7 @@ import {
   Dialog,
 } from "react-native-paper";
 import { useAppSelector } from "../store";
-import { createCourt, Session, Court } from "../types";
+import { createCourt, Court, PartnershipConstraint, Session } from "../types";
 import { validateSessionSize } from "../utils/validation";
 import CourtManager from "./CourtManager";
 import SessionPlayerManager from "./SessionPlayerManager";
@@ -51,6 +51,7 @@ export default function EditSessionModal({
     name: `${new Date().toDateString()}`,
     dateTime: new Date().toISOString(),
     playerIds: [] as string[],
+    pausedPlayerIds: [] as string[],
     courts: [] as Court[],
     scoring: scoring,
     showRatings: useRatings,
@@ -59,6 +60,7 @@ export default function EditSessionModal({
   // Track initial values for change detection
   const initialFormData = useRef({
     playerIds: [] as string[],
+    pausedPlayerIds: [] as string[],
     courts: [] as Court[],
   });
 
@@ -75,6 +77,9 @@ export default function EditSessionModal({
           name: session.name,
           dateTime: session.dateTime,
           playerIds: [...session.playerIds],
+          pausedPlayerIds: session.pausedPlayerIds
+            ? [...session.pausedPlayerIds]
+            : [],
           courts: [...session.courts],
           scoring: session.scoring,
           showRatings: session.showRatings,
@@ -92,6 +97,7 @@ export default function EditSessionModal({
       // Store initial values for change detection
       initialFormData.current = {
         playerIds: [...formData.playerIds],
+        pausedPlayerIds: [...formData.pausedPlayerIds],
         courts: [...formData.courts],
       };
     },
@@ -106,6 +112,13 @@ export default function EditSessionModal({
       formData.playerIds.length !== initialFormData.current.playerIds.length ||
       !formData.playerIds.every((id) =>
         initialFormData.current.playerIds.includes(id),
+      );
+
+    const pausedPlayerIdsChanged =
+      formData.pausedPlayerIds.length !==
+        initialFormData.current.pausedPlayerIds.length ||
+      !formData.pausedPlayerIds.every((id) =>
+        initialFormData.current.pausedPlayerIds.includes(id),
       );
 
     // Compare courts arrays (check both length and content)
@@ -123,7 +136,7 @@ export default function EditSessionModal({
         );
       });
 
-    return playerIdsChanged || courtsChanged;
+    return playerIdsChanged || pausedPlayerIdsChanged || courtsChanged;
   };
 
   const handleBackPress = () => {
@@ -163,6 +176,7 @@ export default function EditSessionModal({
       name: formData.name.trim(),
       dateTime: formData.dateTime,
       playerIds: formData.playerIds,
+      pausedPlayerIds: formData.pausedPlayerIds,
       courts: formData.courts,
       scoring: formData.scoring,
       showRatings: formData.showRatings,
@@ -171,6 +185,7 @@ export default function EditSessionModal({
     // Update initial values after successful save
     initialFormData.current = {
       playerIds: [...formData.playerIds],
+      pausedPlayerIds: [...formData.pausedPlayerIds],
       courts: [...formData.courts],
     };
 
@@ -194,6 +209,19 @@ export default function EditSessionModal({
 
   const updatePlayerIds = (playerIds: string[]) => {
     setFormData({ ...formData, playerIds });
+  };
+
+  const handlePausedPlayers = (pausedPlayerIds: string[]) => {
+    setFormData({ ...formData, pausedPlayerIds });
+  };
+
+  const handlePartnershipConstraintChange = (
+    constraint?: PartnershipConstraint,
+  ) => {
+    if (!constraint) {
+      return;
+    }
+    // TODO
   };
 
   const updateCourts = (courts: Court[]) => {
@@ -649,7 +677,10 @@ export default function EditSessionModal({
           <SessionPlayerManager
             visible={showPlayerManager}
             selectedPlayerIds={formData.playerIds}
+            pausedPlayerIds={formData.pausedPlayerIds}
             onSelectionChange={updatePlayerIds}
+            onPausedPlayersChange={handlePausedPlayers}
+            onPartnershipConstraintChange={handlePartnershipConstraintChange}
             onClose={() => setShowPlayerManager(false)}
           />
 
