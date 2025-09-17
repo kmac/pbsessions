@@ -52,6 +52,10 @@ export default function EditSessionModal({
     dateTime: new Date().toISOString(),
     playerIds: [] as string[],
     pausedPlayerIds: [] as string[],
+    partnershipConstraint: {
+      partnerships: [],
+      enforceAllPairings: true,
+    } as PartnershipConstraint,
     courts: [] as Court[],
     scoring: scoring,
     showRatings: useRatings,
@@ -61,6 +65,11 @@ export default function EditSessionModal({
   const initialFormData = useRef({
     playerIds: [] as string[],
     pausedPlayerIds: [] as string[],
+    partnershipConstraint: {
+      partnerships: [],
+      enforceAllPairings: true,
+    } as PartnershipConstraint,
+    //partnershipConstraint?: undefined,
     courts: [] as Court[],
   });
 
@@ -80,6 +89,16 @@ export default function EditSessionModal({
           pausedPlayerIds: session.pausedPlayerIds
             ? [...session.pausedPlayerIds]
             : [],
+          partnershipConstraint: session.partnershipConstraint
+            ? ({
+                partnerships: session.partnershipConstraint.partnerships,
+                enforceAllPairings:
+                  session.partnershipConstraint.enforceAllPairings,
+              } as PartnershipConstraint)
+            : ({
+                partnerships: [],
+                enforceAllPairings: true,
+              } as PartnershipConstraint),
           courts: [...session.courts],
           scoring: session.scoring,
           showRatings: session.showRatings,
@@ -98,6 +117,10 @@ export default function EditSessionModal({
       initialFormData.current = {
         playerIds: [...formData.playerIds],
         pausedPlayerIds: [...formData.pausedPlayerIds],
+        partnershipConstraint: {
+          partnerships: [...formData.partnershipConstraint.partnerships],
+          enforceAllPairings: formData.partnershipConstraint.enforceAllPairings,
+        } as PartnershipConstraint,
         courts: [...formData.courts],
       };
     },
@@ -121,6 +144,12 @@ export default function EditSessionModal({
         initialFormData.current.pausedPlayerIds.includes(id),
       );
 
+    const partnershipConstraintChanged =
+      formData.partnershipConstraint.partnerships.length !==
+        initialFormData.current.partnershipConstraint.partnerships.length ||
+      formData.partnershipConstraint.enforceAllPairings !==
+        initialFormData.current.partnershipConstraint.enforceAllPairings;
+
     // Compare courts arrays (check both length and content)
     const courtsChanged =
       formData.courts.length !== initialFormData.current.courts.length ||
@@ -136,7 +165,12 @@ export default function EditSessionModal({
         );
       });
 
-    return playerIdsChanged || pausedPlayerIdsChanged || courtsChanged;
+    return (
+      playerIdsChanged ||
+      pausedPlayerIdsChanged ||
+      partnershipConstraintChanged ||
+      courtsChanged
+    );
   };
 
   const handleBackPress = () => {
@@ -177,6 +211,7 @@ export default function EditSessionModal({
       dateTime: formData.dateTime,
       playerIds: formData.playerIds,
       pausedPlayerIds: formData.pausedPlayerIds,
+      partnershipConstraint: formData.partnershipConstraint,
       courts: formData.courts,
       scoring: formData.scoring,
       showRatings: formData.showRatings,
@@ -186,6 +221,10 @@ export default function EditSessionModal({
     initialFormData.current = {
       playerIds: [...formData.playerIds],
       pausedPlayerIds: [...formData.pausedPlayerIds],
+      partnershipConstraint: {
+        partnerships: [...formData.partnershipConstraint.partnerships],
+        enforceAllPairings: formData.partnershipConstraint.enforceAllPairings,
+      } as PartnershipConstraint,
       courts: [...formData.courts],
     };
 
@@ -221,7 +260,10 @@ export default function EditSessionModal({
     if (!constraint) {
       return;
     }
-    // TODO
+    setFormData({
+      ...formData,
+      partnershipConstraint: constraint,
+    });
   };
 
   const updateCourts = (courts: Court[]) => {
@@ -678,6 +720,7 @@ export default function EditSessionModal({
             visible={showPlayerManager}
             selectedPlayerIds={formData.playerIds}
             pausedPlayerIds={formData.pausedPlayerIds}
+            partnershipConstraint={formData.partnershipConstraint}
             onSelectionChange={updatePlayerIds}
             onPausedPlayersChange={handlePausedPlayers}
             onPartnershipConstraintChange={handlePartnershipConstraintChange}

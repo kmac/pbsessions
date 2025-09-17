@@ -8,7 +8,9 @@ import {
 } from "react-native";
 import {
   Appbar,
+  Button,
   Chip,
+  Dialog,
   Divider,
   IconButton,
   Menu,
@@ -16,12 +18,14 @@ import {
   Searchbar,
   SegmentedButtons,
   Surface,
+  Switch,
   Text,
   useTheme,
 } from "react-native-paper";
+import { Dropdown } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppSelector } from "../store";
-import PlayerCard from "./PlayerCard";
+import { renderPlayerCard } from "./render/playerCardRenderer";
 import {
   Player,
   Group,
@@ -30,6 +34,7 @@ import {
 } from "../types";
 import TopDescription from "./TopDescription";
 import { v4 as uuidv4 } from "uuid";
+import { getPlayer } from "../utils/util";
 
 const useStyles = () => {
   const theme = useTheme();
@@ -40,78 +45,6 @@ const useStyles = () => {
         container: {
           flex: 1,
           backgroundColor: theme.colors.background,
-        },
-        header: {
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          borderBottomWidth: 1,
-          backgroundColor: "white",
-        },
-        closeButton: {
-          padding: 8,
-        },
-        headerInfo: {
-          alignItems: "center",
-          flex: 1,
-        },
-        title: {
-          fontSize: 18,
-          fontWeight: "600",
-        },
-        subtitle: {
-          fontSize: 14,
-          marginTop: 2,
-        },
-        placeholder: {
-          width: 40,
-        },
-        viewModeSelector: {
-          flexDirection: "row",
-          margin: 16,
-          borderRadius: 8,
-          padding: 4,
-        },
-        viewModeButton: {
-          flex: 1,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingVertical: 8,
-          paddingHorizontal: 16,
-          borderRadius: 6,
-          gap: 8,
-        },
-        viewModeButtonActive: {
-          backgroundColor: theme.colors.primaryContainer,
-        },
-        viewModeButtonText: {
-          fontSize: 14,
-          fontWeight: "500",
-          color: theme.colors.onSurface,
-        },
-        viewModeButtonTextActive: {
-          color: theme.colors.onSurfaceVariant,
-        },
-        searchContainer: {
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 12,
-          paddingVertical: 4,
-          borderRadius: 8,
-          borderWidth: 0,
-          gap: 8,
-        },
-        searchBar: {
-          flexDirection: "row",
-          alignItems: "center",
-          marginHorizontal: 16,
-        },
-        searchInput: {
-          flex: 1,
-          fontSize: 14,
         },
         content: {
           flex: 1,
@@ -129,56 +62,6 @@ const useStyles = () => {
         divider: {
           marginBottom: 15,
         },
-        playerItem: {
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: "white",
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 8,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
-          elevation: 1,
-        },
-        playerItemSelected: {
-          shadowOpacity: 0.1,
-        },
-        playerInfo: {
-          flex: 1,
-        },
-        playerHeader: {
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 4,
-        },
-        playerName: {
-          fontSize: 16,
-          fontWeight: "600",
-          flex: 1,
-        },
-        playerNameSelected: {},
-        ratingBadge: {
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 6,
-          paddingVertical: 2,
-          borderRadius: 8,
-          gap: 2,
-        },
-        ratingText: {
-          fontSize: 12,
-          fontWeight: "500",
-        },
-        playerDetails: {
-          gap: 2,
-        },
-        detailText: {
-          fontSize: 12,
-        },
-        detailTextSelected: {},
         groupItem: {
           flexDirection: "row",
           alignItems: "center",
@@ -189,6 +72,7 @@ const useStyles = () => {
           shadowOpacity: 0.05,
           shadowRadius: 2,
           elevation: 1,
+          backgroundColor: "white",
         },
         groupItemSelected: {
           backgroundColor: theme.colors.primaryContainer,
@@ -211,7 +95,6 @@ const useStyles = () => {
           fontWeight: "600",
           flex: 1,
         },
-        groupNameSelected: {},
         groupStats: {
           alignItems: "flex-end",
         },
@@ -219,36 +102,12 @@ const useStyles = () => {
           fontSize: 14,
           fontWeight: "500",
         },
-        groupPlayerCountSelected: {},
         groupDescription: {
           fontSize: 12,
           marginBottom: 4,
         },
-        groupDescriptionSelected: {},
         groupPlayersPreview: {
           fontSize: 12,
-        },
-        groupPlayersPreviewSelected: {},
-        checkbox: {
-          width: 24,
-          height: 24,
-          borderRadius: 12,
-          borderWidth: 2,
-          alignItems: "center",
-          justifyContent: "center",
-          marginLeft: 12,
-        },
-        checkboxSelected: {
-          backgroundColor: theme.colors.primary,
-          borderColor: theme.colors.primary,
-        },
-        checkboxPartial: {
-          borderColor: theme.colors.primary,
-        },
-        partialIndicator: {
-          width: 8,
-          height: 8,
-          borderRadius: 4,
         },
         emptyState: {
           alignItems: "center",
@@ -282,6 +141,20 @@ const useStyles = () => {
           flexWrap: "wrap",
           gap: 8,
         },
+        searchContainer: {
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 12,
+          paddingVertical: 4,
+          borderRadius: 8,
+          borderWidth: 0,
+          gap: 8,
+        },
+        searchBar: {
+          flexDirection: "row",
+          alignItems: "center",
+          marginHorizontal: 16,
+        },
       }),
     [theme],
   );
@@ -314,20 +187,21 @@ export default function SessionPlayerManager({
   const theme = useTheme();
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
+
   const [viewMode, setViewMode] = useState<ViewMode>("groups");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeMenuPlayer, setActiveMenuPlayer] = useState<Player | null>(null);
+  const [detailsDialogPlayer, setDetailsDialogPlayer] = useState<Player | null>(
+    null,
+  );
+  const [detailsDialogPlayerPaused, setDetailsDialogPlayerPaused] = useState<
+    boolean | null
+  >(null);
+  const [detailsDialogPartnerId, setDetailsDialogPartnerId] = useState<
+    string | null
+  >(null);
 
   const partnerships = partnershipConstraint?.partnerships || [];
-
-  const [activeMenuPlayer, setActiveMenuPlayer] = useState<Player | null>(null);
-
-  const handleMenuPress = (player: Player) => {
-    setActiveMenuPlayer(player);
-  };
-
-  const closeMenu = () => {
-    setActiveMenuPlayer(null);
-  };
 
   const isPlayerSelected = (playerId: string) => {
     return selectedPlayerIds.includes(playerId);
@@ -337,11 +211,20 @@ export default function SessionPlayerManager({
     return pausedPlayerIds.includes(playerId);
   };
 
+  const getPauseIconState = (playerId: string): boolean => {
+    if (detailsDialogPlayerPaused === null) {
+      return isPlayerPaused(playerId);
+    }
+    return detailsDialogPlayerPaused;
+  };
+
   const getPlayerPartner = (playerId: string): Player | undefined => {
     const partnership = partnerships.find(
       (p) => p.player1Id === playerId || p.player2Id === playerId,
     );
-    if (!partnership) return undefined;
+    if (!partnership) {
+      return undefined;
+    }
 
     const partnerId =
       partnership.player1Id === playerId
@@ -421,6 +304,7 @@ export default function SessionPlayerManager({
   };
 
   const handleLinkPartner = (player1: Player, player2: Player) => {
+    console.log(`handleLinkPartner: ${player1.name} and ${player2.name}`);
     const newPartnership: FixedPartnership = {
       id: uuidv4(),
       player1Id: player1.id,
@@ -503,28 +387,71 @@ export default function SessionPlayerManager({
         player.email.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
-  const renderPlayer = ({ item }: { item: Player }) => {
-    const partner = getPlayerPartner(item.id);
-    const availableForLinking = getAvailableForLinking(item.id);
+  const closeMenu = () => setActiveMenuPlayer(null);
 
-    return (
-      <PlayerCard
-        player={item}
-        isSelected={selectedPlayerIds.includes(item.id)}
-        onToggle={togglePlayer}
-        compact={true}
-        showActions={true}
-        isPaused={isPlayerPaused(item.id)}
-        partnerName={partner?.name}
-        onPlayerAction={handlePlayerAction}
-        availableForLinking={availableForLinking}
-        onLinkPartner={handleLinkPartner}
-      />
+  const closeDetailsDialog = () => {
+    setDetailsDialogPlayer(null);
+    setDetailsDialogPlayerPaused(null);
+    setDetailsDialogPartnerId(null);
+  };
+
+  const savePlayerSessionDetails = (player: Player) => {
+    // Handle pause/unpause
+    if (detailsDialogPlayerPaused !== null) {
+      if (detailsDialogPlayerPaused && !isPlayerPaused(player.id)) {
+        handlePlayerAction(player, "pause");
+      } else if (!detailsDialogPlayerPaused && isPlayerPaused(player.id)) {
+        handlePlayerAction(player, "unpause");
+      }
+    }
+
+    const currentPartner = getPlayerPartner(player.id);
+
+    // Handle partner changes
+    if (detailsDialogPartnerId) {
+      const dialogPartnerPlayer = getPlayer(players, detailsDialogPartnerId);
+      if (currentPartner && currentPartner.name !== dialogPartnerPlayer.name) {
+        handlePlayerAction(player, "unlink");
+      }
+      handleLinkPartner(player, dialogPartnerPlayer);
+    } else {
+      if (currentPartner) {
+        handlePlayerAction(player, "unlink");
+      }
+    }
+    setDetailsDialogPlayer(null);
+    setDetailsDialogPartnerId(null);
+  };
+
+  const renderPlayer = (player: Player) => {
+    const partner = getPlayerPartner(player.id);
+    const availableForLinking = getAvailableForLinking(player.id);
+
+    return renderPlayerCard(
+      {
+        player,
+        isSelected: isPlayerSelected(player.id),
+        isPaused: isPlayerPaused(player.id),
+        partnerName: partner?.name,
+        availableForLinking,
+        showActions: true,
+        showPauseButton: true,
+        showDetailsButton: true,
+        showPartnershipMenu: true,
+      },
+      {
+        onToggle: togglePlayer,
+        onPlayerAction: handlePlayerAction,
+        onLinkPartner: handleLinkPartner,
+        onShowDetails: setDetailsDialogPlayer,
+        onShowPartnershipMenu: setActiveMenuPlayer,
+      },
+      theme,
     );
   };
 
-  const renderGroup = ({ item }: { item: Group }) => {
-    const groupPlayers = getGroupPlayers(item);
+  const renderGroup = (group: Group) => {
+    const groupPlayers = getGroupPlayers(group);
     const selectedCount = groupPlayers.filter((p) =>
       isPlayerSelected(p.id),
     ).length;
@@ -535,58 +462,30 @@ export default function SessionPlayerManager({
 
     return (
       <TouchableOpacity
+        key={group.id}
         style={[
           styles.groupItem,
           isFullySelected && styles.groupItemSelected,
           isPartiallySelected && styles.groupItemPartial,
         ]}
-        onPress={() => toggleGroup(item)}
+        onPress={() => toggleGroup(group)}
       >
         <View style={styles.groupInfo}>
           <View style={styles.groupHeader}>
-            <Text
-              style={[
-                styles.groupName,
-                (isFullySelected || isPartiallySelected) &&
-                  styles.groupNameSelected,
-              ]}
-            >
-              {item.name}
-            </Text>
+            <Text style={styles.groupName}>{group.name}</Text>
             <View style={styles.groupStats}>
-              <Text
-                style={[
-                  styles.groupPlayerCount,
-                  (isFullySelected || isPartiallySelected) &&
-                    styles.groupPlayerCountSelected,
-                ]}
-              >
+              <Text style={styles.groupPlayerCount}>
                 {selectedCount}/{groupPlayers.length}
               </Text>
             </View>
           </View>
 
-          {item.description && (
-            <Text
-              style={[
-                styles.groupDescription,
-                (isFullySelected || isPartiallySelected) &&
-                  styles.groupDescriptionSelected,
-              ]}
-            >
-              {item.description}
-            </Text>
+          {group.description && (
+            <Text style={styles.groupDescription}>{group.description}</Text>
           )}
 
           {groupPlayers.length > 0 && (
-            <Text
-              style={[
-                styles.groupPlayersPreview,
-                (isFullySelected || isPartiallySelected) &&
-                  styles.groupPlayersPreviewSelected,
-              ]}
-              numberOfLines={1}
-            >
+            <Text style={styles.groupPlayersPreview} numberOfLines={1}>
               {groupPlayers.map((p) => p.name).join(", ")}
             </Text>
           )}
@@ -602,11 +501,7 @@ export default function SessionPlayerManager({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      //presentationStyle="pageSheet"
-    >
+    <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container}>
         <Appbar.Header>
           <Appbar.BackAction onPress={onClose} />
@@ -624,9 +519,10 @@ export default function SessionPlayerManager({
             }
           />
         </Appbar.Header>
+
         <TopDescription
           visible={true}
-          description="Select Players for Session (Use ⋮ menu for partnerships & pausing)"
+          description="Select Players for Session (Use details menu for partnerships & pausing)"
         />
 
         {/* Partnership Summary */}
@@ -692,32 +588,15 @@ export default function SessionPlayerManager({
             <Surface style={styles.section}>
               <Text style={styles.sectionTitle}>
                 Selected Players ({selectedPlayers.length})
-                {pausedPlayerIds.length > 0 &&
-                  ` (${pausedPlayerIds.length} paused)`}
               </Text>
               <View>
                 {filteredSelectedPlayers
                   .sort((a, b) => a.name.localeCompare(b.name))
-                  .map((item) => {
-                    const partner = getPlayerPartner(item.id);
-                    const availableForLinking = getAvailableForLinking(item.id);
-
-                    return (
-                      <PlayerCard
-                        key={`selected-${item.id}`}
-                        player={item}
-                        isSelected={selectedPlayerIds.includes(item.id)}
-                        onToggle={togglePlayer}
-                        compact={true}
-                        showActions={true}
-                        isPaused={isPlayerPaused(item.id)}
-                        partnerName={partner?.name}
-                        onPlayerAction={handlePlayerAction}
-                        availableForLinking={availableForLinking}
-                        onLinkPartner={handleLinkPartner}
-                      />
-                    );
-                  })}
+                  .map((player) => (
+                    <View key={`selected-${player.id}`}>
+                      {renderPlayer(player)}
+                    </View>
+                  ))}
               </View>
             </Surface>
           )}
@@ -742,90 +621,7 @@ export default function SessionPlayerManager({
                 <View>
                   {[...groups]
                     .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((item) => {
-                      const groupPlayers = getGroupPlayers(item);
-                      const selectedCount = groupPlayers.filter((p) =>
-                        isPlayerSelected(p.id),
-                      ).length;
-                      const isFullySelected =
-                        selectedCount === groupPlayers.length &&
-                        groupPlayers.length > 0;
-                      const isPartiallySelected =
-                        selectedCount > 0 &&
-                        selectedCount < groupPlayers.length;
-
-                      return (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={[
-                            styles.groupItem,
-                            isFullySelected && styles.groupItemSelected,
-                            isPartiallySelected && styles.groupItemPartial,
-                          ]}
-                          onPress={() => toggleGroup(item)}
-                        >
-                          <View style={styles.groupInfo}>
-                            <View style={styles.groupHeader}>
-                              <Text
-                                style={[
-                                  styles.groupName,
-                                  (isFullySelected || isPartiallySelected) &&
-                                    styles.groupNameSelected,
-                                ]}
-                              >
-                                {item.name}
-                              </Text>
-                              <View style={styles.groupStats}>
-                                <Text
-                                  style={[
-                                    styles.groupPlayerCount,
-                                    (isFullySelected || isPartiallySelected) &&
-                                      styles.groupPlayerCountSelected,
-                                  ]}
-                                >
-                                  {selectedCount}/{groupPlayers.length}
-                                </Text>
-                              </View>
-                            </View>
-
-                            {item.description && (
-                              <Text
-                                style={[
-                                  styles.groupDescription,
-                                  (isFullySelected || isPartiallySelected) &&
-                                    styles.groupDescriptionSelected,
-                                ]}
-                              >
-                                {item.description}
-                              </Text>
-                            )}
-
-                            {groupPlayers.length > 0 && (
-                              <Text
-                                style={[
-                                  styles.groupPlayersPreview,
-                                  (isFullySelected || isPartiallySelected) &&
-                                    styles.groupPlayersPreviewSelected,
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {groupPlayers.map((p) => p.name).join(", ")}
-                              </Text>
-                            )}
-                          </View>
-
-                          {!isFullySelected && !isPartiallySelected && (
-                            <IconButton icon="circle-outline" />
-                          )}
-                          {isPartiallySelected && (
-                            <IconButton icon="circle-slice-5" />
-                          )}
-                          {isFullySelected && (
-                            <IconButton icon="circle-slice-8" />
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
+                    .map((group) => renderGroup(group))}
                 </View>
               )
             ) : (
@@ -846,76 +642,215 @@ export default function SessionPlayerManager({
                   filteredPlayers
                     .filter((player) => !isPlayerSelected(player.id))
                     .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((item) => {
-                      const partner = getPlayerPartner(item.id);
-                      const availableForLinking = getAvailableForLinking(
-                        item.id,
-                      );
-
-                      return (
-                        <PlayerCard
-                          key={item.id}
-                          player={item}
-                          isSelected={selectedPlayerIds.includes(item.id)}
-                          onToggle={togglePlayer}
-                          compact={true}
-                          showActions={true}
-                          isPaused={isPlayerPaused(item.id)}
-                          partnerName={partner?.name}
-                          onPlayerAction={handlePlayerAction}
-                          availableForLinking={availableForLinking}
-                          onLinkPartner={handleLinkPartner}
-                          onMenuPress={handleMenuPress}
-                          showMenu={true}
-                        />
-                      );
-                    })
+                    .map((player) => renderPlayer(player))
                 )}
               </View>
             )}
           </Surface>
         </ScrollView>
 
-        {/* Global menu at the end */}
-        {activeMenuPlayer && (
-          // <Portal>
-            <Menu
-              visible={!!activeMenuPlayer}
-              onDismiss={closeMenu}
-              anchor={<View />} // Dummy anchor
-              contentStyle={{
-                position: "absolute",
-                top: 200, // Adjust as needed
-                right: 20,
-                backgroundColor: theme.colors.surface,
-                elevation: 16,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.44,
-                shadowRadius: 10.32,
-              }}
-            >
-              <Menu.Item
-                onPress={() => {
-                  handlePlayerAction(
-                    activeMenuPlayer,
-                    isPlayerPaused(activeMenuPlayer.id) ? "unpause" : "pause",
-                  );
-                  closeMenu();
+        {/* <Portal> */}
+        <Dialog
+          visible={!!detailsDialogPlayer}
+          onDismiss={closeDetailsDialog}
+          style={{
+            alignSelf: "center",
+            width: "80%",
+            maxWidth: 400,
+            position: "absolute",
+            margin: 16,
+            right: 16,
+            top: 200, // Adjust based on your bottom navigation/safe area
+            zIndex: 4000,
+          }}
+        >
+          <Dialog.Title>Session Player Configuration</Dialog.Title>
+          {detailsDialogPlayer && (
+            <Dialog.Content>
+              <Text
+                variant="titleLarge"
+                style={{
+                  marginBottom: 16,
+                  color: theme.colors.onSecondaryContainer,
+                  backgroundColor: theme.colors.secondaryContainer,
                 }}
-                title={
-                  isPlayerPaused(activeMenuPlayer.id)
-                    ? "Resume Player"
-                    : "Pause Player"
-                }
-                leadingIcon={
-                  isPlayerPaused(activeMenuPlayer.id) ? "play" : "pause"
-                }
-              />
-              {/* ...other menu items... */}
-            </Menu>
-          // </Portal>
-        )}
+              >
+                {detailsDialogPlayer.name}
+              </Text>
+              {/* <Text variant="labelSmall">Player options for this session</Text> */}
+              <View
+                style={{
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  marginBottom: 16,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 24,
+                    gap: 16,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text variant="bodyMedium" style={{ marginRight: 8 }}>
+                      Paused:
+                    </Text>
+                    <Switch
+                      value={getPauseIconState(detailsDialogPlayer.id)}
+                      onValueChange={(value) =>
+                        setDetailsDialogPlayerPaused(value)
+                      }
+                    />
+                  </View>
+                  {getPauseIconState(detailsDialogPlayer.id) && (
+                    <Text variant="labelSmall" style={{ fontStyle: "italic" }}>
+                      Player wil be excluded from any new games.
+                    </Text>
+                  )}
+                </View>
+                <Divider />
+                <View
+                  style={{
+                    flexDirection: "column",
+                  }}
+                >
+                  <Text variant="titleSmall">Fixed Partnership</Text>
+                  <Text variant="labelSmall">
+                    Select a player to partner with for this session.
+                  </Text>
+                  <Dropdown
+                    style={{
+                      margin: 8,
+                      marginTop: 16,
+                      height: 40,
+                      backgroundColor: theme.colors.secondaryContainer,
+                      borderBottomColor: theme.colors.secondary,
+                      borderBottomWidth: 0.5,
+                      minWidth: 200,
+                    }}
+                    containerStyle={{
+                      margin: 8,
+                      backgroundColor: theme.colors.onSecondary,
+                    }}
+                    itemTextStyle={{
+                      color: theme.colors.secondary,
+                      // backgroundColor: theme.colors.secondary,
+                      fontSize: 14,
+                    }}
+                    placeholderStyle={{
+                      color: theme.colors.primary,
+                      fontSize: 14,
+                    }}
+                    selectedTextStyle={{
+                      color: theme.colors.primary,
+                      margin: 8,
+                      fontSize: 16,
+                    }}
+                    inputSearchStyle={{
+                      height: 40,
+                      fontSize: 14,
+                      color: theme.colors.primary,
+                    }}
+                    iconStyle={{
+                      width: 20,
+                      height: 20,
+                    }}
+                    data={getAvailableForLinking(detailsDialogPlayer.id).map(
+                      (player) => {
+                        return { label: player.name, value: player.id };
+                      },
+                    )}
+                    search
+                    maxHeight={300}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Select partner"
+                    searchPlaceholder="Search..."
+                    value={detailsDialogPartnerId}
+                    onChange={(item) => {
+                      setDetailsDialogPartnerId(item.value);
+                    }}
+                    renderLeftIcon={() => (
+                      <IconButton
+                        icon="close"
+                        size={14}
+                        onPress={() => setDetailsDialogPartnerId(null)}
+                      />
+                    )}
+                  />
+                </View>
+              </View>
+            </Dialog.Content>
+          )}
+          <Dialog.Actions>
+            <Button onPress={closeDetailsDialog}>Cancel</Button>
+            <Button
+              onPress={() =>
+                detailsDialogPlayer &&
+                savePlayerSessionDetails(detailsDialogPlayer)
+              }
+            >
+              Save
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Partnership Menu 
+
+
+          TODO remove this
+
+        */}
+        <Menu
+          visible={!!activeMenuPlayer}
+          onDismiss={closeMenu}
+          anchor={<View />} // Will be positioned absolutely
+          contentStyle={{
+            position: "absolute",
+            top: 200,
+            right: 20,
+            backgroundColor: theme.colors.surface,
+            //elevation: 20,
+            zIndex: 5000,
+          }}
+        >
+          {activeMenuPlayer && (
+            <>
+              {getPlayerPartner(activeMenuPlayer.id) ? (
+                <Menu.Item
+                  onPress={() => {
+                    handlePlayerAction(activeMenuPlayer, "unlink");
+                    closeMenu();
+                  }}
+                  title={`Unlink from ${getPlayerPartner(activeMenuPlayer.id)?.name}`}
+                  leadingIcon="account-heart-outline"
+                />
+              ) : (
+                getAvailableForLinking(activeMenuPlayer.id).map(
+                  (availablePlayer) => (
+                    <Menu.Item
+                      key={availablePlayer.id}
+                      onPress={() => {
+                        handleLinkPartner(activeMenuPlayer, availablePlayer);
+                        closeMenu();
+                      }}
+                      title={availablePlayer.name}
+                      leadingIcon="account"
+                    />
+                  ),
+                )
+              )}
+            </>
+          )}
+        </Menu>
+        {/* </Portal> */}
       </SafeAreaView>
     </Modal>
   );

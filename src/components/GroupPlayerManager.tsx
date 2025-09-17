@@ -18,6 +18,7 @@ import { useAppSelector, useAppDispatch } from "@/src/store";
 import { addPlayer } from "@/src/store/slices/playersSlice";
 import { Player, FixedPartnership, PartnershipConstraint } from "@/src/types";
 import PlayerCard from "./PlayerCard";
+import PlayerCardRenderer from "./PlayerCardRenderer";
 import PlayerForm from "./PlayerForm";
 import { Alert } from "@/src/utils/alert";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
@@ -79,28 +80,28 @@ export default function GroupPlayerManager({
 
   const getPlayerPartner = (playerId: string): Player | undefined => {
     const partnership = partnerships.find(
-      (p) => p.player1Id === playerId || p.player2Id === playerId
+      (p) => p.player1Id === playerId || p.player2Id === playerId,
     );
     if (!partnership) return undefined;
-    
-    const partnerId = partnership.player1Id === playerId 
-      ? partnership.player2Id 
-      : partnership.player1Id;
-    
+
+    const partnerId =
+      partnership.player1Id === playerId
+        ? partnership.player2Id
+        : partnership.player1Id;
+
     return allPlayers.find((p) => p.id === partnerId);
   };
 
   const getAvailableForLinking = (playerId: string): Player[] => {
     const currentPartner = getPlayerPartner(playerId);
     if (currentPartner) return [];
-    
+
     const partneredPlayerIds = new Set(
-      partnerships.flatMap(p => [p.player1Id, p.player2Id])
+      partnerships.flatMap((p) => [p.player1Id, p.player2Id]),
     );
-    
-    return selectedPlayers.filter(p => 
-      p.id !== playerId && 
-      !partneredPlayerIds.has(p.id)
+
+    return selectedPlayers.filter(
+      (p) => p.id !== playerId && !partneredPlayerIds.has(p.id),
     );
   };
 
@@ -115,37 +116,48 @@ export default function GroupPlayerManager({
       );
       // Remove from paused if unselected
       if (isPlayerPaused(player.id)) {
-        onPausedPlayersChange?.(pausedPlayerIds.filter(id => id !== player.id));
+        onPausedPlayersChange?.(
+          pausedPlayerIds.filter((id) => id !== player.id),
+        );
       }
       // Remove any partnerships involving this player
-      handlePlayerAction(player, 'unlink');
+      handlePlayerAction(player, "unlink");
     } else {
       addPlayerToSelected(player);
     }
   }
 
-  const handlePlayerAction = (player: Player, action: 'pause' | 'unpause' | 'link' | 'unlink') => {
+  const handlePlayerAction = (
+    player: Player,
+    action: "pause" | "unpause" | "link" | "unlink",
+  ) => {
     const playerId = player.id;
-    
+
     switch (action) {
-      case 'pause':
+      case "pause":
         if (!isPlayerPaused(playerId)) {
           onPausedPlayersChange?.([...pausedPlayerIds, playerId]);
         }
         break;
-      case 'unpause':
+      case "unpause":
         if (isPlayerPaused(playerId)) {
-          onPausedPlayersChange?.(pausedPlayerIds.filter(id => id !== playerId));
+          onPausedPlayersChange?.(
+            pausedPlayerIds.filter((id) => id !== playerId),
+          );
         }
         break;
-      case 'unlink':
+      case "unlink":
         const updatedPartnerships = partnerships.filter(
-          p => p.player1Id !== playerId && p.player2Id !== playerId
+          (p) => p.player1Id !== playerId && p.player2Id !== playerId,
         );
         onPartnershipConstraintChange?.(
-          updatedPartnerships.length > 0 
-            ? { partnerships: updatedPartnerships, enforceAllPairings: partnershipConstraint?.enforceAllPairings || false }
-            : undefined
+          updatedPartnerships.length > 0
+            ? {
+                partnerships: updatedPartnerships,
+                enforceAllPairings:
+                  partnershipConstraint?.enforceAllPairings || false,
+              }
+            : undefined,
         );
         break;
     }
@@ -217,19 +229,25 @@ export default function GroupPlayerManager({
     <>
       {/* Partnership Summary */}
       {partnerships.length > 0 && (
-        <Surface style={{ 
-          margin: 16, 
-          padding: 12, 
-          backgroundColor: theme.colors.surfaceVariant, 
-          borderRadius: 8 
-        }}>
+        <Surface
+          style={{
+            margin: 16,
+            padding: 12,
+            backgroundColor: theme.colors.surfaceVariant,
+            borderRadius: 8,
+          }}
+        >
           <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 8 }}>
             Fixed Partnerships:
           </Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {partnerships.map((partnership) => {
-              const player1 = allPlayers.find(p => p.id === partnership.player1Id);
-              const player2 = allPlayers.find(p => p.id === partnership.player2Id);
+              const player1 = allPlayers.find(
+                (p) => p.id === partnership.player1Id,
+              );
+              const player2 = allPlayers.find(
+                (p) => p.id === partnership.player2Id,
+              );
               return (
                 <Chip
                   key={partnership.id}
@@ -256,27 +274,36 @@ export default function GroupPlayerManager({
             }}
           >
             Selected Players ({selectedPlayers.length})
-            {pausedPlayerIds.length > 0 && ` (${pausedPlayerIds.length} paused)`}
+            {pausedPlayerIds.length > 0 &&
+              ` (${pausedPlayerIds.length} paused)`}
           </Text>
           <View>
             {[...filteredSelectedPlayers]
               .sort((a, b) => a.name.localeCompare(b.name))
-              .map((item) => {
-                const partner = getPlayerPartner(item.id);
-                const availableForLinking = getAvailableForLinking(item.id);
+              .map((player) => {
+                const partner = getPlayerPartner(player.id);
+                const availableForLinking = getAvailableForLinking(player.id);
 
                 return (
-                  <PlayerCard
-                    key={`selected-${item.id}`}
-                    player={item}
-                    isSelected={selectedPlayerIds.includes(item.id)}
+                  <PlayerCardRenderer
+                    key={`selected-${player.id}`}
+                    player={player}
+                    isSelected={selectedPlayerIds.includes(player.id)}
                     onToggle={handleTogglePlayer}
-                    showActions={true}
-                    isPaused={isPlayerPaused(item.id)}
+                    isPaused={isPlayerPaused(player.id)}
                     partnerName={partner?.name}
                     onPlayerAction={handlePlayerAction}
-                    availableForLinking={onPartnershipConstraintChange ? availableForLinking : []}
-                    onLinkPartner={onPartnershipConstraintChange ? handleLinkPartner : undefined}
+                    availableForLinking={
+                      onPartnershipConstraintChange ? availableForLinking : []
+                    }
+                    onLinkPartner={
+                      onPartnershipConstraintChange
+                        ? handleLinkPartner
+                        : undefined
+                    }
+                    showActions={true}
+                    showMenu={true}
+                    showDetailsDialog={true}
                   />
                 );
               })}
@@ -337,22 +364,30 @@ export default function GroupPlayerManager({
           <View>
             {[...availablePlayers]
               .sort((a, b) => a.name.localeCompare(b.name))
-              .map((item) => {
-                const partner = getPlayerPartner(item.id);
-                const availableForLinking = getAvailableForLinking(item.id);
+              .map((player) => {
+                const partner = getPlayerPartner(player.id);
+                const availableForLinking = getAvailableForLinking(player.id);
 
                 return (
-                  <PlayerCard
-                    key={`available-${item.id}`}
-                    player={item}
-                    isSelected={selectedPlayerIds.includes(item.id)}
+                  <PlayerCardRenderer
+                    key={`available-${player.id}`}
+                    player={player}
+                    isSelected={selectedPlayerIds.includes(player.id)}
                     onToggle={handleTogglePlayer}
-                    showActions={true}
-                    isPaused={isPlayerPaused(item.id)}
+                    isPaused={isPlayerPaused(player.id)}
                     partnerName={partner?.name}
                     onPlayerAction={handlePlayerAction}
-                    availableForLinking={onPartnershipConstraintChange ? availableForLinking : []}
-                    onLinkPartner={onPartnershipConstraintChange ? handleLinkPartner : undefined}
+                    availableForLinking={
+                      onPartnershipConstraintChange ? availableForLinking : []
+                    }
+                    onLinkPartner={
+                      onPartnershipConstraintChange
+                        ? handleLinkPartner
+                        : undefined
+                    }
+                    showActions={true}
+                    showMenu={true}
+                    showDetailsDialog={true}
                   />
                 );
               })}
@@ -470,18 +505,10 @@ export default function GroupPlayerManager({
       {narrowScreen ? (
         // Stack buttons vertically on narrow screens
         <>
-          <Button
-            icon="content-save"
-            mode="contained"
-            onPress={handleSave}
-          >
+          <Button icon="content-save" mode="contained" onPress={handleSave}>
             Save Changes
           </Button>
-          <Button
-            icon="cancel"
-            mode="outlined"
-            onPress={onCancel}
-          >
+          <Button icon="cancel" mode="outlined" onPress={onCancel}>
             Cancel
           </Button>
         </>
