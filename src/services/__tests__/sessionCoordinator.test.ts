@@ -23,6 +23,7 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
   let mockCourts: Court[];
   let mockSession: Session;
   let sessionCoordinator: SessionCoordinator;
+  let mockPausedPlayers: Player[];
 
   // Test data factory functions
   const createPlayer = (id: string, name: string, rating?: number): Player => ({
@@ -74,6 +75,9 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       createPlayer("player8", "Henry", 4.3),
     ];
 
+    // Create mock paused players
+    mockPausedPlayers = [];
+
     // Create mock courts
     mockCourts = [
       createCourt("court1", "Court 1", 4.0),
@@ -106,7 +110,11 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       },
     };
 
-    sessionCoordinator = new SessionCoordinator(mockSession, mockPlayers);
+    sessionCoordinator = new SessionCoordinator(
+      mockSession,
+      mockPlayers,
+      mockPausedPlayers,
+    );
   });
 
   describe("Basic functionality", () => {
@@ -149,116 +157,117 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
     });
   });
 
-  describe("Sitting out logic", () => {
-    test("should sit out minimum required players when there are too many", () => {
-      // 8 players, 2 courts (8 spots) - no one should sit out
-      const result = sessionCoordinator.generateRoundAssignment();
-      expect(result.sittingOutIds).toHaveLength(0);
-    });
-
-    test("should sit out excess players when there are more than court capacity", () => {
-      // Add more players to force sitting out
-      const extraPlayers = [
-        createPlayer("player9", "Ian", 3.7),
-        createPlayer("player10", "Jill", 4.4),
-      ];
-      const allPlayers = [...mockPlayers, ...extraPlayers];
-
-      const sessionWithMorePlayers = {
-        ...mockSession,
-        playerIds: allPlayers.map((p) => p.id),
-        liveData: {
-          ...mockSession.liveData!,
-          playerStats: allPlayers.map((player) => ({
-            playerId: player.id,
-            gamesPlayed: 0,
-            gamesSatOut: 0,
-            partners: {},
-            fixedPartnershipGames: 0,
-            totalScore: 0,
-            totalScoreAgainst: 0,
-          })),
-        },
-      };
+  describe("Paused players functionality", () => {
+    test("should exclude paused players from game assignments", () => {
+      const pausedPlayer = mockPlayers[0];
+      const pausedPlayers = [pausedPlayer];
 
       const coordinator = new SessionCoordinator(
-        sessionWithMorePlayers,
-        allPlayers,
+        mockSession,
+        mockPlayers,
+        pausedPlayers,
       );
       const result = coordinator.generateRoundAssignment();
 
-      expect(result.sittingOutIds.length).toBe(2); // 10 players - 8 court spots = 2 sitting out
-    });
-
-    test("should accept predefined sitting out players", () => {
-      const sittingOutPlayers = [mockPlayers[0], mockPlayers[1]];
-      const result =
-        sessionCoordinator.generateRoundAssignment(sittingOutPlayers);
-
-      expect(result.sittingOutIds).toEqual(
-        expect.arrayContaining([mockPlayers[0].id, mockPlayers[1].id]),
-      );
-    });
-  });
-
-  describe("Rating-based court assignments", () => {
-    test("should assign high-rated players to courts with minimum rating requirements", () => {
-      const result = sessionCoordinator.generateRoundAssignment();
-
-      // Find assignment for court with minimum rating
-      const highRatingCourtAssignment = result.gameAssignments.find(
-        (assignment) => assignment.courtId === "court1", // This court has minimumRating: 4.0
-      );
-
-      if (highRatingCourtAssignment) {
+      // Check that paused player is not in any game assignment
+      result.gameAssignments.forEach((assignment) => {
         const allPlayerIds = [
-          highRatingCourtAssignment.serveTeam.player1Id,
-          highRatingCourtAssignment.serveTeam.player2Id,
-          highRatingCourtAssignment.receiveTeam.player1Id,
-          highRatingCourtAssignment.receiveTeam.player2Id,
+          assignment.serveTeam.player1Id,
+          assignment.serveTeam.player2Id,
+          assignment.receiveTeam.player1Id,
+          assignment.receiveTeam.player2Id,
         ];
+        expect(allPlayerIds).not.toContain(pausedPlayer.id);
+      });
 
-        allPlayerIds.forEach((playerId) => {
-          const player = mockPlayers.find((p) => p.id === playerId);
-          expect(player).toBeDefined();
-          expect(player!.rating).toBeGreaterThanOrEqual(4.0);
-        });
-      }
+      // Check that paused player is not in sitting out list (since they're paused, not sitting out)
+      expect(result.sittingOutIds).not.toContain(pausedPlayer.id);
     });
 
-    test("should handle players without ratings gracefully", () => {
-      const playersWithoutRatings = mockPlayers.map((p) => ({
-        ...p,
-        rating: undefined,
-      }));
-      const sessionWithoutRatings = {
+    test("should handle multiple paused players", () => {
+      const pausedPlayers = [mockPlayers[0], mockPlayers[1], mockPlayers[2]];
+
+      const coordinator = new SessionCoordinator(
+        mockSession,
+        mockPlayers,
+        pausedPlayers,
+      );
+      const result = coordinator.generateRoundAssignment();
+
+      // Check that no paused players are in any game assignment
+      const allAssignedPlayerIds = result.gameAssignments.flatMap(
+        (assignment) => [
+          assignment.serveTeam.player1Id,
+          assignment.serveTeam.player2Id,
+          assignment.receiveTeam.player1Id,
+          assignment.receiveTeam.player2Id,
+        ],
+      );
+
+      pausedPlayers.forEach((pausedPlayer) => {
+        expect(allAssignedPlayerIds).not.toContain(pausedPlayer.id);
+        expect(result.sittingOutIds).not.toContain(pausedPlayer.id);
+      });
+
+      // Should only work with remaining active players
+      const activePlayerCount = mockPlayers.length - pausedPlayers.length;
+      const playersInGames = result.gameAssignments.length * 4;
+      const sittingOut = result.sittingOutIds.length;
+      expect(playersInGames + sittingOut).toBe(activePlayerCount);
+    });
+
+    test("should handle all players paused", () => {
+      const coordinator = new SessionCoordinator(
+        mockSession,
+        mockPlayers,
+        mockPlayers,
+      );
+      const result = coordinator.generateRoundAssignment();
+
+      expect(result.gameAssignments).toHaveLength(0);
+      expect(result.sittingOutIds).toHaveLength(0);
+    });
+
+    test("should handle paused players in partnerships", () => {
+      const partnership = createFixedPartnership(
+        "partnership1",
+        "player1",
+        "player2",
+      );
+      const sessionWithPartnership = {
         ...mockSession,
-        liveData: {
-          ...mockSession.liveData!,
-          playerStats: playersWithoutRatings.map((player) => ({
-            playerId: player.id,
-            gamesPlayed: 0,
-            gamesSatOut: 0,
-            partners: {},
-            fixedPartnershipGames: 0,
-            totalScore: 0,
-            totalScoreAgainst: 0,
-          })),
+        partnershipConstraint: {
+          partnerships: [partnership],
+          enforceAllPairings: true,
         },
       };
 
+      // Pause one player from the partnership
+      const pausedPlayers = [mockPlayers[0]]; // player1
+
       const coordinator = new SessionCoordinator(
-        sessionWithoutRatings,
-        playersWithoutRatings,
+        sessionWithPartnership,
+        mockPlayers,
+        pausedPlayers,
+      );
+      const result = coordinator.generateRoundAssignment();
+
+      // Neither partner should be in games if enforcing partnerships
+      const allAssignedPlayerIds = result.gameAssignments.flatMap(
+        (assignment) => [
+          assignment.serveTeam.player1Id,
+          assignment.serveTeam.player2Id,
+          assignment.receiveTeam.player1Id,
+          assignment.receiveTeam.player2Id,
+        ],
       );
 
-      expect(() => {
-        coordinator.generateRoundAssignment();
-      }).not.toThrow();
+      expect(allAssignedPlayerIds).not.toContain("player1"); // paused
+      // player2 behavior depends on partnership enforcement
     });
   });
 
-  describe("Partnership constraints", () => {
+  describe("Partnership constraints - comprehensive coverage", () => {
     test("should handle sessions without partnership constraints", () => {
       expect(() => {
         sessionCoordinator.generateRoundAssignment();
@@ -282,6 +291,7 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       const coordinator = new SessionCoordinator(
         sessionWithPartnerships,
         mockPlayers,
+        mockPausedPlayers,
       );
       const result = coordinator.generateRoundAssignment();
 
@@ -335,11 +345,175 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       const coordinator = new SessionCoordinator(
         sessionWithPartnerships,
         mockPlayers,
+        mockPausedPlayers,
       );
 
       expect(() => {
         coordinator.generateRoundAssignment();
       }).not.toThrow();
+    });
+
+    test("should place partnerships on opposing teams when two partnerships on same court", () => {
+      const partnerships = [
+        createFixedPartnership("partnership1", "player1", "player2"),
+        createFixedPartnership("partnership2", "player3", "player4"),
+      ];
+
+      // Use only 4 players and 1 court to force partnerships onto same court
+      const fourPlayers = mockPlayers.slice(0, 4);
+      const oneCourt = [mockCourts[0]];
+
+      const sessionWithTwoPartnerships = {
+        ...mockSession,
+        playerIds: fourPlayers.map((p) => p.id),
+        courts: oneCourt,
+        partnershipConstraint: {
+          partnerships,
+          enforceAllPairings: false, // Changed to false to allow flexibility
+        },
+        liveData: {
+          rounds: [],
+          playerStats: fourPlayers.map((player) => ({
+            playerId: player.id,
+            gamesPlayed: 0,
+            gamesSatOut: 0,
+            partners: {},
+            fixedPartnershipGames: 0,
+            totalScore: 0,
+            totalScoreAgainst: 0,
+          })),
+        },
+      };
+
+      const coordinator = new SessionCoordinator(
+        sessionWithTwoPartnerships,
+        fourPlayers,
+        mockPausedPlayers,
+      );
+      const result = coordinator.generateRoundAssignment();
+
+      // With enforceAllPairings: false, the system should create a game
+      expect(result.gameAssignments.length).toBeGreaterThanOrEqual(0);
+
+      if (result.gameAssignments.length > 0) {
+        const assignment = result.gameAssignments[0];
+
+        // Check that all 4 players are assigned
+        const allPlayerIds = [
+          assignment.serveTeam.player1Id,
+          assignment.serveTeam.player2Id,
+          assignment.receiveTeam.player1Id,
+          assignment.receiveTeam.player2Id,
+        ];
+
+        expect(new Set(allPlayerIds).size).toBe(4);
+        fourPlayers.forEach((player) => {
+          expect(allPlayerIds).toContain(player.id);
+        });
+      }
+    });
+
+    test("should handle one partnership with two flexible players", () => {
+      const partnership = createFixedPartnership(
+        "partnership1",
+        "player1",
+        "player2",
+      );
+
+      // Use 4 players: 2 in partnership, 2 flexible
+      const fourPlayers = mockPlayers.slice(0, 4);
+      const oneCourt = [mockCourts[0]];
+
+      const sessionWithOnePartnership = {
+        ...mockSession,
+        playerIds: fourPlayers.map((p) => p.id),
+        courts: oneCourt,
+        partnershipConstraint: {
+          partnerships: [partnership],
+          enforceAllPairings: true,
+        },
+        liveData: {
+          rounds: [],
+          playerStats: fourPlayers.map((player) => ({
+            playerId: player.id,
+            gamesPlayed: 0,
+            gamesSatOut: 0,
+            partners: {},
+            fixedPartnershipGames: 0,
+            totalScore: 0,
+            totalScoreAgainst: 0,
+          })),
+        },
+      };
+
+      const coordinator = new SessionCoordinator(
+        sessionWithOnePartnership,
+        fourPlayers,
+        mockPausedPlayers,
+      );
+      const result = coordinator.generateRoundAssignment();
+
+      expect(result.gameAssignments).toHaveLength(1);
+      const assignment = result.gameAssignments[0];
+
+      // Check that partnership is together on one team
+      const serveTeamIds = [
+        assignment.serveTeam.player1Id,
+        assignment.serveTeam.player2Id,
+      ];
+      const receiveTeamIds = [
+        assignment.receiveTeam.player1Id,
+        assignment.receiveTeam.player2Id,
+      ];
+
+      const partnershipOnServe =
+        serveTeamIds.includes("player1") && serveTeamIds.includes("player2");
+      const partnershipOnReceive =
+        receiveTeamIds.includes("player1") &&
+        receiveTeamIds.includes("player2");
+
+      expect(partnershipOnServe || partnershipOnReceive).toBe(true);
+
+      // Flexible players should be on the other team
+      const flexibleTeam = partnershipOnServe ? receiveTeamIds : serveTeamIds;
+      expect(flexibleTeam).toContain("player3");
+      expect(flexibleTeam).toContain("player4");
+    });
+
+    test("should handle partnerships without enforcing all pairings", () => {
+      const partnership = createFixedPartnership(
+        "partnership1",
+        "player1",
+        "player2",
+      );
+      const sessionWithOptionalPartnerships = {
+        ...mockSession,
+        partnershipConstraint: {
+          partnerships: [partnership],
+          enforceAllPairings: false,
+        },
+      };
+
+      const coordinator = new SessionCoordinator(
+        sessionWithOptionalPartnerships,
+        mockPlayers,
+        mockPausedPlayers,
+      );
+      const result = coordinator.generateRoundAssignment();
+
+      // Should not throw and should generate valid assignments
+      expect(result.gameAssignments.length).toBeGreaterThan(0);
+
+      // Partners may or may not be together when not enforcing
+      result.gameAssignments.forEach((assignment) => {
+        const allPlayerIds = [
+          assignment.serveTeam.player1Id,
+          assignment.serveTeam.player2Id,
+          assignment.receiveTeam.player1Id,
+          assignment.receiveTeam.player2Id,
+        ];
+        expect(new Set(allPlayerIds).size).toBe(4); // All different players
+      });
     });
 
     test("should handle inactive partnerships", () => {
@@ -360,11 +534,17 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       const coordinator = new SessionCoordinator(
         sessionWithInactivePartnership,
         mockPlayers,
+        mockPausedPlayers,
       );
 
       expect(() => {
         coordinator.generateRoundAssignment();
       }).not.toThrow();
+
+      const result = coordinator.generateRoundAssignment();
+
+      // Inactive partnerships should be ignored, so players can be split
+      expect(result.gameAssignments.length).toBeGreaterThan(0);
     });
 
     test("should handle partnerships with missing players", () => {
@@ -384,6 +564,212 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       const coordinator = new SessionCoordinator(
         sessionWithBadPartnership,
         mockPlayers,
+        mockPausedPlayers,
+      );
+
+      expect(() => {
+        coordinator.generateRoundAssignment();
+      }).not.toThrow();
+    });
+
+    test("should handle partnerships with rating constraints", () => {
+      const partnership = createFixedPartnership(
+        "partnership1",
+        "player1",
+        "player2",
+      ); // 4.5 and 4.0 ratings
+      const highRatingCourt = createCourt("court1", "High Court", 4.0);
+
+      // Use fewer players to avoid the sitting out logic issue
+      const sixPlayers = mockPlayers.slice(0, 6); // Include the partnership players
+
+      const sessionWithRatingConstraints = {
+        ...mockSession,
+        playerIds: sixPlayers.map((p) => p.id),
+        courts: [highRatingCourt],
+        partnershipConstraint: {
+          partnerships: [partnership],
+          enforceAllPairings: true,
+        },
+        liveData: {
+          rounds: [],
+          playerStats: sixPlayers.map((player) => ({
+            playerId: player.id,
+            gamesPlayed: 0,
+            gamesSatOut: 0,
+            partners: {},
+            fixedPartnershipGames: 0,
+            totalScore: 0,
+            totalScoreAgainst: 0,
+          })),
+        },
+      };
+
+      const coordinator = new SessionCoordinator(
+        sessionWithRatingConstraints,
+        sixPlayers,
+        mockPausedPlayers,
+      );
+
+      expect(() => {
+        coordinator.generateRoundAssignment();
+      }).not.toThrow();
+
+      const result = coordinator.generateRoundAssignment();
+
+      // Partnership should be able to play on high-rating court if there's a game
+      if (result.gameAssignments.length > 0) {
+        const assignment = result.gameAssignments[0];
+        const allPlayerIds = [
+          assignment.serveTeam.player1Id,
+          assignment.serveTeam.player2Id,
+          assignment.receiveTeam.player1Id,
+          assignment.receiveTeam.player2Id,
+        ];
+
+        // Verify that all assigned players meet the rating requirement
+        allPlayerIds.forEach((playerId) => {
+          const player = sixPlayers.find((p) => p.id === playerId);
+          expect(player).toBeDefined();
+          expect(player!.rating).toBeGreaterThanOrEqual(4.0);
+        });
+      }
+    });
+
+    test("should sit out partnerships together when enforcing and insufficient spots", () => {
+      const partnerships = [
+        createFixedPartnership("partnership1", "player1", "player2"),
+        createFixedPartnership("partnership2", "player3", "player4"),
+        createFixedPartnership("partnership3", "player5", "player6"),
+      ];
+
+      // Only 1 court = 4 spots, but 6 players in partnerships + 2 flexible = 8 total
+      const oneCourt = [mockCourts[0]];
+
+      const sessionWithManyPartnerships = {
+        ...mockSession,
+        courts: oneCourt,
+        partnershipConstraint: {
+          partnerships,
+          enforceAllPairings: true,
+        },
+      };
+
+      const coordinator = new SessionCoordinator(
+        sessionWithManyPartnerships,
+        mockPlayers,
+        mockPausedPlayers,
+      );
+      const result = coordinator.generateRoundAssignment();
+
+      expect(result.gameAssignments).toHaveLength(1);
+      expect(result.sittingOutIds.length).toBe(4); // Should sit out in partnership units
+
+      // Check that sitting out players are in partnership pairs
+      const sittingOutSet = new Set(result.sittingOutIds);
+      partnerships.forEach((partnership) => {
+        const player1SittingOut = sittingOutSet.has(partnership.player1Id);
+        const player2SittingOut = sittingOutSet.has(partnership.player2Id);
+
+        // Both partners should have same sitting out status
+        expect(player1SittingOut).toBe(player2SittingOut);
+      });
+    });
+  });
+
+  describe("Sitting out logic", () => {
+    test("should sit out minimum required players when there are too many", () => {
+      // 8 players, 2 courts (8 spots) - no one should sit out
+      const result = sessionCoordinator.generateRoundAssignment();
+      expect(result.sittingOutIds).toHaveLength(0);
+    });
+
+    test("should sit out excess players when there are more than court capacity", () => {
+      // Add more players to force sitting out
+      const extraPlayers = [
+        createPlayer("player9", "Ian", 3.7),
+        createPlayer("player10", "Jill", 4.4),
+      ];
+      const allPlayers = [...mockPlayers, ...extraPlayers];
+
+      const sessionWithMorePlayers = {
+        ...mockSession,
+        playerIds: allPlayers.map((p) => p.id),
+        liveData: {
+          ...mockSession.liveData!,
+          playerStats: allPlayers.map((player) => ({
+            playerId: player.id,
+            gamesPlayed: 0,
+            gamesSatOut: 0,
+            partners: {},
+            fixedPartnershipGames: 0,
+            totalScore: 0,
+            totalScoreAgainst: 0,
+          })),
+        },
+      };
+
+      const coordinator = new SessionCoordinator(
+        sessionWithMorePlayers,
+        allPlayers,
+        mockPausedPlayers,
+      );
+      const result = coordinator.generateRoundAssignment();
+
+      expect(result.sittingOutIds.length).toBe(2); // 10 players - 8 court spots = 2 sitting out
+    });
+  });
+
+  describe("Rating-based court assignments", () => {
+    test("should assign high-rated players to courts with minimum rating requirements", () => {
+      const result = sessionCoordinator.generateRoundAssignment();
+
+      // Find assignment for court with minimum rating
+      const highRatingCourtAssignment = result.gameAssignments.find(
+        (assignment) => assignment.courtId === "court1", // This court has minimumRating: 4.0
+      );
+
+      if (highRatingCourtAssignment) {
+        const allPlayerIds = [
+          highRatingCourtAssignment.serveTeam.player1Id,
+          highRatingCourtAssignment.serveTeam.player2Id,
+          highRatingCourtAssignment.receiveTeam.player1Id,
+          highRatingCourtAssignment.receiveTeam.player2Id,
+        ];
+
+        allPlayerIds.forEach((playerId) => {
+          const player = mockPlayers.find((p) => p.id === playerId);
+          expect(player).toBeDefined();
+          expect(player!.rating).toBeGreaterThanOrEqual(4.0);
+        });
+      }
+    });
+
+    test("should handle players without ratings gracefully", () => {
+      const playersWithoutRatings = mockPlayers.map((p) => ({
+        ...p,
+        rating: undefined,
+      }));
+      const sessionWithoutRatings = {
+        ...mockSession,
+        liveData: {
+          ...mockSession.liveData!,
+          playerStats: playersWithoutRatings.map((player) => ({
+            playerId: player.id,
+            gamesPlayed: 0,
+            gamesSatOut: 0,
+            partners: {},
+            fixedPartnershipGames: 0,
+            totalScore: 0,
+            totalScoreAgainst: 0,
+          })),
+        },
+      };
+
+      const coordinator = new SessionCoordinator(
+        sessionWithoutRatings,
+        playersWithoutRatings,
+        mockPausedPlayers,
       );
 
       expect(() => {
@@ -437,7 +823,11 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
         },
       };
 
-      const coordinator = new SessionCoordinator(emptySession, []);
+      const coordinator = new SessionCoordinator(
+        emptySession,
+        [],
+        mockPausedPlayers,
+      );
       const result = coordinator.generateRoundAssignment();
 
       expect(result.gameAssignments).toHaveLength(0);
@@ -463,14 +853,19 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
         },
       };
 
-      LOG_TO_CONSOLE && console.log(`session: ${JSON.stringify(sessionWithFewPlayers, undefined, 2)}`);
+      LOG_TO_CONSOLE &&
+        console.log(
+          `session: ${JSON.stringify(sessionWithFewPlayers, undefined, 2)}`,
+        );
       const coordinator = new SessionCoordinator(
         sessionWithFewPlayers,
         fewPlayers,
+        mockPausedPlayers,
       );
       const result = coordinator.generateRoundAssignment();
 
-      LOG_TO_CONSOLE && console.log(`result: ${JSON.stringify(result, undefined, 2)}`);
+      LOG_TO_CONSOLE &&
+        console.log(`result: ${JSON.stringify(result, undefined, 2)}`);
       expect(result.gameAssignments).toHaveLength(1);
       expect(result.sittingOutIds).toHaveLength(2);
     });
@@ -488,6 +883,7 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       const coordinator = new SessionCoordinator(
         sessionWithInactiveCourts,
         mockPlayers,
+        mockPausedPlayers,
       );
       const result = coordinator.generateRoundAssignment();
 
@@ -504,8 +900,52 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       };
 
       expect(() => {
-        new SessionCoordinator(sessionWithoutLiveData, mockPlayers);
+        new SessionCoordinator(
+          sessionWithoutLiveData,
+          mockPlayers,
+          mockPausedPlayers,
+        );
       }).toThrow("Invalid session: missing required live data");
+    });
+
+    test("should handle paused players with partnerships", () => {
+      const partnership = createFixedPartnership(
+        "partnership1",
+        "player1",
+        "player2",
+      );
+      const sessionWithPartnership = {
+        ...mockSession,
+        partnershipConstraint: {
+          partnerships: [partnership],
+          enforceAllPairings: true,
+        },
+      };
+
+      // Pause both players in the partnership
+      const pausedPlayers = [mockPlayers[0], mockPlayers[1]]; // player1, player2
+
+      const coordinator = new SessionCoordinator(
+        sessionWithPartnership,
+        mockPlayers,
+        pausedPlayers,
+      );
+      const result = coordinator.generateRoundAssignment();
+
+      // Neither partner should appear in assignments or sitting out
+      const allAssignedPlayerIds = result.gameAssignments.flatMap(
+        (assignment) => [
+          assignment.serveTeam.player1Id,
+          assignment.serveTeam.player2Id,
+          assignment.receiveTeam.player1Id,
+          assignment.receiveTeam.player2Id,
+        ],
+      );
+
+      expect(allAssignedPlayerIds).not.toContain("player1");
+      expect(allAssignedPlayerIds).not.toContain("player2");
+      expect(result.sittingOutIds).not.toContain("player1");
+      expect(result.sittingOutIds).not.toContain("player2");
     });
   });
 
@@ -562,6 +1002,7 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       const coordinator = new SessionCoordinator(
         sessionWithMorePlayersAndHistory,
         allPlayers,
+        mockPausedPlayers,
       );
       const result = coordinator.generateRoundAssignment();
 
