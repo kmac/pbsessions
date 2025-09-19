@@ -69,7 +69,7 @@ export default function BetweenRoundsModal({
 
   // Use useCallback to ensure we always get fresh session data
   const handleReshufflePlayers = useCallback(
-    (excludeSitting = false) => {
+    () => {
       console.debug("handleReshufflePlayers: in callback");
 
       // Get fresh session data on each call
@@ -86,21 +86,13 @@ export default function BetweenRoundsModal({
 
       const { currentRound } = getCurrentRoundInfo(currentSession.liveData);
 
-      let sittingOut = undefined;
-      if (excludeSitting) {
-        const sittingOutPlayers: Player[] = currentRound.sittingOutIds
-          .map((id) => sessionPlayers.find((p) => p.id === id))
-          .filter((p) => p != undefined);
-        sittingOut = sittingOutPlayers;
-      }
-
       const sessionCoordinator = new SessionCoordinator(
         currentSession,
         sessionPlayers,
         getSessionPausedPlayers(currentSession, players),
       );
       const roundAssignment =
-        sessionCoordinator.generateRoundAssignment(sittingOut);
+        sessionCoordinator.generateRoundAssignment();
 
       if (roundAssignment.gameAssignments.length === 0) {
         Alert.alert(
@@ -125,8 +117,7 @@ export default function BetweenRoundsModal({
   // Register court update callback when component mounts
   useEffect(() => {
     const handleCourtUpdate = () => {
-      //console.log("CALLING RESHUFFLE");
-      handleReshufflePlayers(false);
+      handleReshufflePlayers();
     };
 
     registerCourtUpdateCallback(sessionId, handleCourtUpdate);
@@ -232,7 +223,7 @@ export default function BetweenRoundsModal({
                     icon="refresh"
                     mode="outlined"
                     onPress={() => {
-                      handleReshufflePlayers(false);
+                      handleReshufflePlayers();
                     }}
                     contentStyle={{ padding: 2 }}
                     style={isSmallScreen ? { flex: 1 } : undefined}

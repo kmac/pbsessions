@@ -49,7 +49,9 @@ export class SessionCoordinator {
     this.activeCourts = session.courts.filter((c) => c.isActive);
     this.players = players;
     this.pausedPlayers = pausedPlayers;
-    this.pausedPlayerIds = new Set<string>(pausedPlayers.map(player => player.id));
+    this.pausedPlayerIds = new Set<string>(
+      pausedPlayers.map((player) => player.id),
+    );
     this.partnershipConstraint = session.partnershipConstraint;
     this.currentRoundNumber = this.liveData.rounds.length;
     this.currentRound = this.liveData.rounds[this.currentRoundNumber - 1];
@@ -76,7 +78,7 @@ export class SessionCoordinator {
 
   public generateRoundAssignment(sittingOut?: Player[]): RoundAssignment {
     const gameAssignments: GameAssignment[] = [];
-    const availablePlayers = [...this.players].filter(player => {
+    const availablePlayers = [...this.players].filter((player) => {
       return !this.pausedPlayerIds.has(player.id);
     });
     const playersPerRound =
@@ -133,8 +135,7 @@ export class SessionCoordinator {
 
     const log_for_console = false;
     const log_for_browser = false;
-    if (log_for_console) {
-      // console friendly:
+    if (log_for_console) { // console friendly
       console.log(
         `generateRoundAssignment ${this.currentRoundNumber}: ${JSON.stringify(
           {
@@ -149,8 +150,7 @@ export class SessionCoordinator {
         )}`,
       );
     }
-    if (log_for_browser) {
-      // browser friendly:
+    if (log_for_browser) { // browser friendly
       console.log("generateRoundAssignment ${this.currentRoundNumber}:", {
         courtAssignments,
         gameAssignments,
@@ -159,7 +159,6 @@ export class SessionCoordinator {
         assignedPlayers,
       });
     }
-
     return {
       roundNumber: this.currentRoundNumber,
       gameAssignments: gameAssignments,
@@ -237,8 +236,9 @@ export class SessionCoordinator {
       constraints.flexiblePlayers.length +
       constraints.partnershipUnits.length * 2;
 
-    if (totalPlayers <= neededPlayers) return [];
-
+    if (totalPlayers <= neededPlayers) {
+      return [];
+    }
     const sittingOutCount = totalPlayers - neededPlayers;
     const sittingOut: Player[] = [];
 
@@ -327,6 +327,7 @@ export class SessionCoordinator {
 
     // Step 1: Assign partnership units to courts
     const remainingUnits = [...playingPartnershipUnits];
+    //const remainingUnits = this.shuffleArray(playingPartnershipUnits);
 
     for (const { court, index: courtIndex } of sortedCourts) {
       if (remainingUnits.length === 0) break;
@@ -560,10 +561,10 @@ export class SessionCoordinator {
     players: Player[],
     neededPlayers: number,
   ): Player[] {
-    if (players.length <= neededPlayers) return [];
-
+    if (players.length <= neededPlayers) {
+      return [];
+    }
     const sittingOutCount = players.length - neededPlayers;
-
     const randomPlayers = this.shuffleArray(players);
 
     // Sort by: 1) sit-out count (ascending), 2) games played (descending)
