@@ -32,6 +32,7 @@ export class SessionCoordinator {
   private activeCourts: Court[];
   private players: Player[];
   private pausedPlayers: Player[];
+  private pausedPlayerIds: Set<string>;
   private playerStats: Map<string, PlayerStats> = new Map();
   private liveData: NonNullable<Session["liveData"]>;
   private currentRound: Round;
@@ -48,6 +49,7 @@ export class SessionCoordinator {
     this.activeCourts = session.courts.filter((c) => c.isActive);
     this.players = players;
     this.pausedPlayers = pausedPlayers;
+    this.pausedPlayerIds = new Set<string>(pausedPlayers.map(player => player.id));
     this.partnershipConstraint = session.partnershipConstraint;
     this.currentRoundNumber = this.liveData.rounds.length;
     this.currentRound = this.liveData.rounds[this.currentRoundNumber - 1];
@@ -74,7 +76,9 @@ export class SessionCoordinator {
 
   public generateRoundAssignment(sittingOut?: Player[]): RoundAssignment {
     const gameAssignments: GameAssignment[] = [];
-    const availablePlayers = [...this.players];
+    const availablePlayers = [...this.players].filter(player => {
+      return !this.pausedPlayerIds.has(player.id);
+    });
     const playersPerRound =
       this.activeCourts.length * APP_CONFIG.MIN_PLAYERS_PER_GAME;
 

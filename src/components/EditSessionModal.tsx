@@ -69,7 +69,6 @@ export default function EditSessionModal({
       partnerships: [],
       enforceAllPairings: true,
     } as PartnershipConstraint,
-    //partnershipConstraint?: undefined,
     courts: [] as Court[],
   });
 
@@ -258,6 +257,11 @@ export default function EditSessionModal({
     constraint?: PartnershipConstraint,
   ) => {
     if (!constraint) {
+      setFormData({
+        ...formData,
+        // clear all:
+        partnershipConstraint: { partnerships: [], enforceAllPairings: true },
+      });
       return;
     }
     setFormData({
@@ -503,6 +507,45 @@ export default function EditSessionModal({
                         .join(", ")}
                     </Text>
                   </Surface>
+                )}
+                {formData.partnershipConstraint?.partnerships.length > 0 && (
+                  <>
+                    <Text
+                      variant="titleMedium"
+                      style={{
+                        fontWeight: "600",
+                        marginTop: 12,
+                        marginBottom: 12,
+                      }}
+                    >
+                      Fixed Partners (
+                      {formData.partnershipConstraint.partnerships.length})
+                    </Text>
+                    <Surface
+                      style={{
+                        padding: 12,
+                        borderRadius: 8,
+                        backgroundColor: theme.colors.surfaceVariant,
+                      }}
+                    >
+                      <Text
+                        variant="bodyMedium"
+                        style={{ color: theme.colors.onSurfaceVariant }}
+                      >
+                        {formData.partnershipConstraint.partnerships
+                          .map((partnership) => {
+                            const player1 = players.find(
+                              (p) => p.id === partnership.player1Id,
+                            );
+                            const player2 = players.find(
+                              (p) => p.id === partnership.player2Id,
+                            );
+                            return `${player1?.name} & ${player2?.name}`;
+                          })
+                          .join(', ')}
+                      </Text>
+                    </Surface>
+                  </>
                 )}
               </Card.Content>
             </Card>

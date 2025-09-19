@@ -29,9 +29,10 @@ import {
 import {
   getPlayerText,
   getPlayerRating,
+  getPartnerDecoration,
   RoundGameCard,
 } from "@/src/components/RoundGameCard";
-import { getSessionPlayers } from "@/src/utils/util";
+import { getSessionPlayers, getSessionPausedPlayers } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
 
@@ -69,6 +70,10 @@ export default function RoundComponent({
   const sessionPlayers: Player[] = session
     ? getSessionPlayers(session, players)
     : [];
+  const sessionPausedPlayers: Player[] = session
+    ? getSessionPausedPlayers(session, players)
+    : [];
+
   const currentRound = getCurrentRound(session, false, roundNumber);
 
   const showRating = session?.showRatings ?? false;
@@ -85,6 +90,27 @@ export default function RoundComponent({
       return { id: playerId, name: "UNKNOWN", createdAt: now, updatedAt: now };
     }
     return player;
+  };
+
+  const getPartner = (playerId: string): Player | undefined => {
+    if (
+      !session.partnershipConstraint ||
+      session.partnershipConstraint.partnerships.length <= 0
+    ) {
+      return undefined;
+    }
+    const partnership = session.partnershipConstraint.partnerships.find(
+      (p) => p.player1Id === playerId || p.player2Id === playerId,
+    );
+    if (!partnership) {
+      return undefined;
+    }
+    const partnerId =
+      partnership.player1Id === playerId
+        ? partnership.player2Id
+        : partnership.player1Id;
+
+    return players.find((p) => p.id === partnerId);
   };
 
   const getPlayerStats = (
@@ -135,6 +161,14 @@ export default function RoundComponent({
     currentRound.games.length > 0
       ? (currentRound.sittingOutIds.map(getPlayer).filter(Boolean) as Player[])
       : [];
+
+  const pausedPlayers: Player[] = session.pausedPlayerIds
+    ? session.pausedPlayerIds.map((playerId) => getPlayer(playerId))
+    : [];
+
+  const isPlayerPaused = (playerId: string) => {
+    return session.pausedPlayerIds?.includes(playerId);
+  };
 
   const playerSelectDisabled = (player: Player | undefined) => {
     if (!player) {
@@ -350,6 +384,7 @@ export default function RoundComponent({
       <RoundGameCard
         servePlayer1Data={{
           player: servePlayer1,
+          partner: getPartner(servePlayer1.id),
           stats: getPlayerStats(session, servePlayer1.id),
           selected: getPlayerSelected(servePlayer1),
           selectDisabled: playerSelectDisabled(servePlayer1),
@@ -357,6 +392,7 @@ export default function RoundComponent({
         }}
         servePlayer2Data={{
           player: servePlayer2,
+          partner: getPartner(servePlayer2.id),
           stats: getPlayerStats(session, servePlayer2.id),
           selected: getPlayerSelected(servePlayer2),
           selectDisabled: playerSelectDisabled(servePlayer2),
@@ -364,6 +400,7 @@ export default function RoundComponent({
         }}
         receivePlayer1Data={{
           player: receivePlayer1,
+          partner: getPartner(receivePlayer1.id),
           stats: getPlayerStats(session, receivePlayer1.id),
           selected: getPlayerSelected(receivePlayer1),
           selectDisabled: playerSelectDisabled(receivePlayer1),
@@ -371,6 +408,7 @@ export default function RoundComponent({
         }}
         receivePlayer2Data={{
           player: receivePlayer2,
+          partner: getPartner(receivePlayer2.id),
           stats: getPlayerStats(session, receivePlayer2.id),
           selected: getPlayerSelected(receivePlayer2),
           selectDisabled: playerSelectDisabled(receivePlayer2),
@@ -505,6 +543,54 @@ export default function RoundComponent({
                   {getPlayerText(
                     `${player.name} (${getPlayerStats(session, player.id)?.gamesSatOut || 0})`,
                   )}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignSelf: "flex-end",
+                      gap: 2,
+                    }}
+                  >
+                    {getPartner(player.id) && getPartnerDecoration(theme)}
+                    {showRatingEnabled &&
+                      player.rating &&
+                      getPlayerRating(player.rating, theme)}
+                  </View>
+                </View>
+              </Chip>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {pausedPlayers.length > 0 && (
+        <View style={{ marginBottom: 24 }}>
+          <Text
+            variant="titleMedium"
+            style={{
+              fontWeight: "600",
+              marginBottom: 12,
+            }}
+          >
+            Unavailable
+          </Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {pausedPlayers.map((player) => (
+              <Chip
+                icon="pause"
+                mode={chipMode}
+                disabled={true}
+                selected={false}
+                onPress={() => {}}
+              >
+                <View
+                  style={{
+                    // flexDirection: isNarrowScreen() ? "column" : "row",
+                    flexDirection: "column",
+                  }}
+                >
+                  {getPlayerText(
+                    `${player.name} (${getPlayerStats(session, player.id)?.gamesSatOut || 0})`,
+                  )}
                   {showRatingEnabled &&
                     player.rating &&
                     getPlayerRating(player.rating, theme)}
@@ -514,7 +600,6 @@ export default function RoundComponent({
           </View>
         </View>
       )}
-
       {editing && (
         <Portal>
           <FAB

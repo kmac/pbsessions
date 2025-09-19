@@ -4,9 +4,7 @@ import {
   Card,
   Chip,
   IconButton,
-  Menu,
   Text,
-  useTheme,
 } from "react-native-paper";
 import { Player } from "@/src/types";
 import { getShortGender } from "@/src/utils/util";
@@ -20,8 +18,6 @@ export interface PlayerCardConfig {
   showActions?: boolean;
   showPauseButton?: boolean;
   showDetailsButton?: boolean;
-  showPartnershipMenu?: boolean;
-  availableForLinking?: Player[];
 }
 
 export interface PlayerCardHandlers {
@@ -32,7 +28,6 @@ export interface PlayerCardHandlers {
   ) => void;
   onLinkPartner?: (player1: Player, player2: Player) => void;
   onShowDetails?: (player: Player) => void;
-  onShowPartnershipMenu?: (player: Player) => void;
 }
 
 export function renderPlayerCard(
@@ -48,8 +43,6 @@ export function renderPlayerCard(
     showActions = true,
     showPauseButton = true,
     showDetailsButton = true,
-    showPartnershipMenu = true,
-    availableForLinking = [],
   } = config;
 
   const {
@@ -57,7 +50,6 @@ export function renderPlayerCard(
     onPlayerAction,
     onLinkPartner,
     onShowDetails,
-    onShowPartnershipMenu,
   } = handlers;
 
   return (
@@ -102,17 +94,17 @@ export function renderPlayerCard(
                 <Text variant="bodySmall">{getShortGender(player.gender)}</Text>
 
                 {/* Status chips */}
-                <View style={{ flexDirection: "row", gap: 4, marginTop: 4 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
                   {partnerName && (
                     <Chip
                       icon="account-heart"
                       compact
-                      mode="outlined"
-                      textStyle={{ fontSize: 10 }}
-                      style={{
-                        backgroundColor: theme.colors.tertiaryContainer,
-                        borderColor: theme.colors.tertiary,
-                      }}
+                      mode="flat"
+                      textStyle={{ fontSize: 12 }}
+                      // style={{
+                      //   backgroundColor: theme.colors.tertiaryContainer,
+                      //   borderColor: theme.colors.tertiary,
+                      // }}
                     >
                       {partnerName}
                     </Chip>
@@ -156,7 +148,7 @@ export function renderPlayerCard(
               />
             )}
 
-            {false && showDetailsButton && onShowDetails && (
+            {/* {false && showDetailsButton && onShowDetails && (
               <Chip
                 icon="view-dashboard-edit-outline"
                 compact
@@ -165,11 +157,11 @@ export function renderPlayerCard(
                 style={{
                   backgroundColor: theme.colors.secondaryContainer,
                 }}
-                onPress={() => onShowDetails(player)}
+                onPress={() => onShowDetails && onShowDetails(player)}
               >
                 Details
               </Chip>
-            )}
+            )} */}
             {showDetailsButton && onShowDetails && (
               <IconButton
                 icon="circle-edit-outline"
@@ -181,36 +173,6 @@ export function renderPlayerCard(
                 onPress={() => onShowDetails(player)}
               />
             )}
-
-            {false && showPauseButton && onPlayerAction && (
-              <Chip
-                icon={isPaused ? "play" : "pause"}
-                compact
-                mode="outlined"
-                textStyle={{ fontSize: 10 }}
-                style={{
-                  backgroundColor: theme.colors.secondaryContainer,
-                }}
-                onPress={() => {
-                  onPlayerAction(player, isPaused ? "unpause" : "pause");
-                }}
-              >
-                {isPaused ? "Paused" : "Pause"}
-              </Chip>
-            )}
-
-            {/* Partnership button */}
-            {false &&
-              showPartnershipMenu &&
-              (partnerName || availableForLinking.length > 0) &&
-              onShowPartnershipMenu && (
-                <IconButton
-                  icon="account-heart-outline"
-                  size={20}
-                  iconColor={theme.colors.onSurfaceVariant}
-                  onPress={() => onShowPartnershipMenu(player)}
-                />
-              )}
           </View>
         </View>
       </Card.Content>

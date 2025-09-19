@@ -9,12 +9,10 @@ import {
 import {
   Appbar,
   Button,
-  Chip,
   Dialog,
   Divider,
   IconButton,
   Menu,
-  Portal,
   Searchbar,
   SegmentedButtons,
   Surface,
@@ -190,7 +188,6 @@ export default function SessionPlayerManager({
 
   const [viewMode, setViewMode] = useState<ViewMode>("groups");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeMenuPlayer, setActiveMenuPlayer] = useState<Player | null>(null);
   const [detailsDialogPlayer, setDetailsDialogPlayer] = useState<Player | null>(
     null,
   );
@@ -218,6 +215,20 @@ export default function SessionPlayerManager({
     return detailsDialogPlayerPaused;
   };
 
+  const getDialogPartnerId = (player: Player): string | null => {
+    if (detailsDialogPartnerId == "NULL") {
+      return null;
+    }
+    if (detailsDialogPartnerId) {
+      return detailsDialogPartnerId;
+    }
+    const partner = getPlayerPartner(player.id);
+    if (partner) {
+      return partner.id;
+    }
+    return null;
+  };
+
   const getPlayerPartner = (playerId: string): Player | undefined => {
     const partnership = partnerships.find(
       (p) => p.player1Id === playerId || p.player2Id === playerId,
@@ -225,7 +236,6 @@ export default function SessionPlayerManager({
     if (!partnership) {
       return undefined;
     }
-
     const partnerId =
       partnership.player1Id === playerId
         ? partnership.player2Id
@@ -234,20 +244,39 @@ export default function SessionPlayerManager({
     return players.find((p) => p.id === partnerId);
   };
 
-  const getAvailableForLinking = (playerId: string): Player[] => {
+  // const getAvailableForLinking = (playerId: string): Player[] => {
+  //   const currentPartner = getPlayerPartner(playerId);
+  //   // if (currentPartner) {
+  //   //   return [];
+  //   // }
+  //
+  //   const partneredPlayerIds = new Set(
+  //     partnerships.flatMap((p) => [p.player1Id, p.player2Id]),
+  //   );
+  //
+  //   return players.filter(
+  //     (p) =>
+  //       p.id !== playerId &&
+  //       //isPlayerSelected(p.id) &&
+  //       !partneredPlayerIds.has(p.id),
+  //   );
+  // };
+  const getAvailablePartners = (playerId: string): Player[] => {
     const currentPartner = getPlayerPartner(playerId);
-    if (currentPartner) return [];
 
-    const partneredPlayerIds = new Set(
+    const allPartneredPlayerIds = new Set(
       partnerships.flatMap((p) => [p.player1Id, p.player2Id]),
     );
 
-    return players.filter(
-      (p) =>
-        p.id !== playerId &&
-        isPlayerSelected(p.id) &&
-        !partneredPlayerIds.has(p.id),
-    );
+    return players.filter((p) => {
+      if (p.id === playerId) {
+        return false;
+      }
+      if (p.id === currentPartner?.id) {
+        return true;
+      }
+      return !allPartneredPlayerIds.has(p.id);
+    });
   };
 
   const togglePlayer = (player: Player) => {
@@ -387,8 +416,6 @@ export default function SessionPlayerManager({
         player.email.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
-  const closeMenu = () => setActiveMenuPlayer(null);
-
   const closeDetailsDialog = () => {
     setDetailsDialogPlayer(null);
     setDetailsDialogPlayerPaused(null);
@@ -408,12 +435,18 @@ export default function SessionPlayerManager({
     const currentPartner = getPlayerPartner(player.id);
 
     // Handle partner changes
-    if (detailsDialogPartnerId) {
-      const dialogPartnerPlayer = getPlayer(players, detailsDialogPartnerId);
-      if (currentPartner && currentPartner.name !== dialogPartnerPlayer.name) {
+    // "NULL" is a hack here to handle when the user clears the partner via the dialog
+    const effectivePartnerId =
+      detailsDialogPartnerId === null || detailsDialogPartnerId === "NULL"
+        ? null
+        : detailsDialogPartnerId;
+
+    if (effectivePartnerId) {
+      const partnerPlayer = getPlayer(players, effectivePartnerId);
+      if (currentPartner && currentPartner.name !== partnerPlayer.name) {
         handlePlayerAction(player, "unlink");
       }
-      handleLinkPartner(player, dialogPartnerPlayer);
+      handleLinkPartner(player, partnerPlayer);
     } else {
       if (currentPartner) {
         handlePlayerAction(player, "unlink");
@@ -425,7 +458,6 @@ export default function SessionPlayerManager({
 
   const renderPlayer = (player: Player) => {
     const partner = getPlayerPartner(player.id);
-    const availableForLinking = getAvailableForLinking(player.id);
 
     return renderPlayerCard(
       {
@@ -433,18 +465,15 @@ export default function SessionPlayerManager({
         isSelected: isPlayerSelected(player.id),
         isPaused: isPlayerPaused(player.id),
         partnerName: partner?.name,
-        availableForLinking,
         showActions: true,
         showPauseButton: true,
         showDetailsButton: true,
-        showPartnershipMenu: true,
       },
       {
         onToggle: togglePlayer,
         onPlayerAction: handlePlayerAction,
         onLinkPartner: handleLinkPartner,
         onShowDetails: setDetailsDialogPlayer,
-        onShowPartnershipMenu: setActiveMenuPlayer,
       },
       theme,
     );
@@ -526,7 +555,7 @@ export default function SessionPlayerManager({
         />
 
         {/* Partnership Summary */}
-        {partnerships.length > 0 && (
+        {false && partnerships.length > 0 && (
           <Surface style={styles.partnershipSummary}>
             <Text style={styles.partnershipTitle}>Fixed Partnerships:</Text>
             <View style={styles.partnershipChips}>
@@ -538,15 +567,18 @@ export default function SessionPlayerManager({
                   (p) => p.id === partnership.player2Id,
                 );
                 return (
-                  <Chip
-                    key={partnership.id}
-                    icon="account-heart"
-                    compact
-                    mode="outlined"
-                    style={{ backgroundColor: theme.colors.tertiaryContainer }}
-                  >
+                  <Text>
                     {player1?.name} & {player2?.name}
-                  </Chip>
+                  </Text>
+                  //   <Chip
+                  //   key={partnership.id}
+                  //   icon="account-heart"
+                  //   compact
+                  //   mode="outlined"
+                  //   style={{ backgroundColor: theme.colors.tertiaryContainer }}
+                  // >
+                  //   {player1?.name} & {player2?.name}
+                  // </Chip>
                 );
               })}
             </View>
@@ -649,7 +681,6 @@ export default function SessionPlayerManager({
           </Surface>
         </ScrollView>
 
-        {/* <Portal> */}
         <Dialog
           visible={!!detailsDialogPlayer}
           onDismiss={closeDetailsDialog}
@@ -762,7 +793,7 @@ export default function SessionPlayerManager({
                       width: 20,
                       height: 20,
                     }}
-                    data={getAvailableForLinking(detailsDialogPlayer.id).map(
+                    data={getAvailablePartners(detailsDialogPlayer.id).map(
                       (player) => {
                         return { label: player.name, value: player.id };
                       },
@@ -773,7 +804,7 @@ export default function SessionPlayerManager({
                     valueField="value"
                     placeholder="Select partner"
                     searchPlaceholder="Search..."
-                    value={detailsDialogPartnerId}
+                    value={getDialogPartnerId(detailsDialogPlayer)}
                     onChange={(item) => {
                       setDetailsDialogPartnerId(item.value);
                     }}
@@ -781,7 +812,10 @@ export default function SessionPlayerManager({
                       <IconButton
                         icon="close"
                         size={14}
-                        onPress={() => setDetailsDialogPartnerId(null)}
+                        onPress={() => {
+                          // special case: flag this for removing any partner on save
+                          setDetailsDialogPartnerId("NULL");
+                        }}
                       />
                     )}
                   />
@@ -801,56 +835,6 @@ export default function SessionPlayerManager({
             </Button>
           </Dialog.Actions>
         </Dialog>
-
-        {/* Partnership Menu 
-
-
-          TODO remove this
-
-        */}
-        <Menu
-          visible={!!activeMenuPlayer}
-          onDismiss={closeMenu}
-          anchor={<View />} // Will be positioned absolutely
-          contentStyle={{
-            position: "absolute",
-            top: 200,
-            right: 20,
-            backgroundColor: theme.colors.surface,
-            //elevation: 20,
-            zIndex: 5000,
-          }}
-        >
-          {activeMenuPlayer && (
-            <>
-              {getPlayerPartner(activeMenuPlayer.id) ? (
-                <Menu.Item
-                  onPress={() => {
-                    handlePlayerAction(activeMenuPlayer, "unlink");
-                    closeMenu();
-                  }}
-                  title={`Unlink from ${getPlayerPartner(activeMenuPlayer.id)?.name}`}
-                  leadingIcon="account-heart-outline"
-                />
-              ) : (
-                getAvailableForLinking(activeMenuPlayer.id).map(
-                  (availablePlayer) => (
-                    <Menu.Item
-                      key={availablePlayer.id}
-                      onPress={() => {
-                        handleLinkPartner(activeMenuPlayer, availablePlayer);
-                        closeMenu();
-                      }}
-                      title={availablePlayer.name}
-                      leadingIcon="account"
-                    />
-                  ),
-                )
-              )}
-            </>
-          )}
-        </Menu>
-        {/* </Portal> */}
       </SafeAreaView>
     </Modal>
   );

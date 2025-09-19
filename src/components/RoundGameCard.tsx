@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { Badge, Card, Chip, Text, useTheme } from "react-native-paper";
+import { Badge, Card, Chip, Icon, Text, useTheme } from "react-native-paper";
 import { Court, Player, PlayerStats, Score } from "@/src/types";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 
@@ -72,8 +72,29 @@ export const getPlayerRating = (rating: number, theme: any) => {
   );
 };
 
+export const getPartnerDecoration = (theme: any) => {
+  const useIcon = true;
+  if (useIcon) {
+    return <Icon source="vector-link" size={12} color={theme.colors.primary} />;
+  } else {
+    return (
+      <Badge
+        size={12}
+        style={{
+          //fontSize: 10,
+          color: theme.colors.onPrimary,
+          backgroundColor: theme.colors.primary,
+        }}
+      >
+        P
+      </Badge>
+    );
+  }
+};
+
 export type PlayerRenderData = {
   player: Player;
+  partner?: Player;
   stats?: PlayerStats;
   selected: boolean;
   selectDisabled: boolean;
@@ -153,9 +174,14 @@ const GameSide: React.FC<{
                 ? `${player1Data.player.name} (${player1Data.stats?.gamesSatOut || 0})`
                 : player1Data.player.name,
             )}
-            {showRating &&
-              player1Data.player.rating &&
-              getPlayerRating(player1Data.player.rating, theme)}
+            <View
+              style={{ flexDirection: "row", alignSelf: "flex-end", gap: 2 }}
+            >
+              {player1Data.partner && getPartnerDecoration(theme)}
+              {showRating &&
+                player1Data.player.rating &&
+                getPlayerRating(player1Data.player.rating, theme)}
+            </View>
           </View>
         </Chip>
         <Chip
@@ -179,9 +205,14 @@ const GameSide: React.FC<{
                 ? `${player2Data.player.name} (${player2Data.stats?.gamesSatOut || 0})`
                 : player2Data.player.name,
             )}
-            {showRating &&
-              player2Data.player.rating &&
-              getPlayerRating(player2Data.player.rating, theme)}
+            <View
+              style={{ flexDirection: "row", alignSelf: "flex-end", gap: 2 }}
+            >
+              {player2Data.partner && getPartnerDecoration(theme)}
+              {showRating &&
+                player2Data.player.rating &&
+                getPlayerRating(player2Data.player.rating, theme)}
+            </View>
           </View>
         </Chip>
       </View>
