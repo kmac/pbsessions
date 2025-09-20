@@ -18,7 +18,7 @@ import { useAppSelector, useAppDispatch } from "@/src/store";
 import { addPlayer } from "@/src/store/slices/playersSlice";
 import { Player, FixedPartnership, PartnershipConstraint } from "@/src/types";
 import PlayerCard from "./PlayerCard";
-import PlayerCardRenderer from "./PlayerCardRenderer";
+import { renderPlayerCard } from "./render/playerCardRenderer";
 import PlayerForm from "./PlayerForm";
 import { Alert } from "@/src/utils/alert";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
@@ -225,6 +225,28 @@ export default function GroupPlayerManager({
     onSave(selectedPlayers);
   };
 
+  const renderPlayer = (player: Player) => {
+    const partner = getPlayerPartner(player.id);
+
+    return renderPlayerCard(
+      {
+        player,
+        isSelected: isPlayerSelected(player),
+        isPaused: isPlayerPaused(player.id),
+        partnerName: partner?.name,
+        showActions: true,
+        showPauseButton: true,
+        showDetailsButton: false, // Disabled for GroupPlayerManager for now
+      },
+      {
+        onToggle: handleTogglePlayer,
+        onPlayerAction: handlePlayerAction,
+        onLinkPartner: handleLinkPartner,
+      },
+      theme,
+    );
+  };
+
   const SelectExistingView = () => (
     <>
       {/* Partnership Summary */}
@@ -280,33 +302,11 @@ export default function GroupPlayerManager({
           <View>
             {[...filteredSelectedPlayers]
               .sort((a, b) => a.name.localeCompare(b.name))
-              .map((player) => {
-                const partner = getPlayerPartner(player.id);
-                const availableForLinking = getAvailableForLinking(player.id);
-
-                return (
-                  <PlayerCardRenderer
-                    key={`selected-${player.id}`}
-                    player={player}
-                    isSelected={selectedPlayerIds.includes(player.id)}
-                    onToggle={handleTogglePlayer}
-                    isPaused={isPlayerPaused(player.id)}
-                    partnerName={partner?.name}
-                    onPlayerAction={handlePlayerAction}
-                    availableForLinking={
-                      onPartnershipConstraintChange ? availableForLinking : []
-                    }
-                    onLinkPartner={
-                      onPartnershipConstraintChange
-                        ? handleLinkPartner
-                        : undefined
-                    }
-                    showActions={true}
-                    showMenu={true}
-                    showDetailsDialog={true}
-                  />
-                );
-              })}
+              .map((player) => (
+                <View key={`selected-${player.id}`}>
+                  {renderPlayer(player)}
+                </View>
+              ))}
           </View>
         </View>
       )}
@@ -364,33 +364,11 @@ export default function GroupPlayerManager({
           <View>
             {[...availablePlayers]
               .sort((a, b) => a.name.localeCompare(b.name))
-              .map((player) => {
-                const partner = getPlayerPartner(player.id);
-                const availableForLinking = getAvailableForLinking(player.id);
-
-                return (
-                  <PlayerCardRenderer
-                    key={`available-${player.id}`}
-                    player={player}
-                    isSelected={selectedPlayerIds.includes(player.id)}
-                    onToggle={handleTogglePlayer}
-                    isPaused={isPlayerPaused(player.id)}
-                    partnerName={partner?.name}
-                    onPlayerAction={handlePlayerAction}
-                    availableForLinking={
-                      onPartnershipConstraintChange ? availableForLinking : []
-                    }
-                    onLinkPartner={
-                      onPartnershipConstraintChange
-                        ? handleLinkPartner
-                        : undefined
-                    }
-                    showActions={true}
-                    showMenu={true}
-                    showDetailsDialog={true}
-                  />
-                );
-              })}
+              .map((player) => (
+                <View key={`available-${player.id}`}>
+                  {renderPlayer(player)}
+                </View>
+              ))}
           </View>
         )}
       </View>
