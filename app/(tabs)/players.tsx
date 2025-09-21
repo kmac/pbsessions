@@ -19,7 +19,6 @@ import {
   Dialog,
 } from "react-native-paper";
 import { useSelector, useDispatch } from "react-redux";
-import { Users } from "lucide-react-native";
 import { RootState } from "@/src/store";
 import {
   addPlayer,
@@ -42,9 +41,6 @@ import BulkAddPlayersModal from "@/src/components/BulkAddPlayersModal";
 import { Alert } from "@/src/utils/alert";
 import { APP_CONFIG } from "@/src/constants";
 
-import * as FileSystem from "expo-file-system";
-import * as Sharing from "expo-sharing";
-
 import { useTheme } from "react-native-paper";
 
 export default function PlayersTab() {
@@ -52,8 +48,6 @@ export default function PlayersTab() {
   const dispatch = useDispatch();
   const allPlayers = useSelector(selectAllPlayers);
   const groups = useSelector((state: RootState) => state.groups.groups);
-
-  const narrowScreen = true; // isNarrowScreen();
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [playerAddModalVisible, setPlayerAddModalVisible] = useState(false);
@@ -150,7 +144,6 @@ export default function PlayersTab() {
         Alert.alert("No Data", "No players to export.");
         return;
       }
-
       // CSV headers for user-editable fields only
       const headers = ["name", "email", "phone", "gender", "rating", "notes"];
 
@@ -170,32 +163,9 @@ export default function PlayersTab() {
         ...csvRows.map((row) => row.join(",")),
       ].join("\n");
 
-      // Generate filename with timestamp
-      const timestamp = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace(/:/g, "-");
-      const fileName = `players_export_${timestamp}.csv`;
-      const filePath = `${FileSystem.documentDirectory}${fileName}`;
-
       if (Platform.OS !== "web") {
-        // Write file
-        // Export error: Error: The method or property
-        // expo-file-system.writeAsStringAsync is not available on web, are you
-        // sure you've linked all the native dependencies properly?
-        await FileSystem.writeAsStringAsync(filePath, csvContent, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
-
-        // Share the file
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(filePath, {
-            mimeType: "text/csv",
-            dialogTitle: "Export Players",
-          });
-        } else {
-          Alert.alert("Export Complete", `File saved as ${fileName}`);
-        }
+        const fileName = `${APP_CONFIG.NAME}-players-${new Date().toISOString().split("T")[0]}.csv`;
+        await saveToFile(csvContent, fileName);
       } else {
         setExportCsvContent(csvContent);
         setExportDialogVisible(true);
@@ -426,10 +396,6 @@ export default function PlayersTab() {
   }
 
   const handlePlayerSelection = (playerId: string) => {
-    if (!narrowScreen) {
-      return;
-    }
-
     setSelectedPlayerIds((prev) => {
       if (prev.includes(playerId)) {
         return prev.filter((id) => id !== playerId);
@@ -565,8 +531,8 @@ export default function PlayersTab() {
     setSelectedGroupIds([]);
   };
 
-  const renderPlayerList = ({ item }: { item: Player }) => {
-    const isSelected = narrowScreen && selectedPlayerIds.includes(item.id);
+  const renderPlayerList = ({ item: player }: { item: Player }) => {
+    const isSelected = selectedPlayerIds.includes(player.id);
 
     return (
       <Surface
@@ -589,7 +555,7 @@ export default function PlayersTab() {
                   : theme.colors.onSurface,
               }}
             >
-              {item.name}
+              {player.name}
             </Text>
           )}
           description={() => (
@@ -602,7 +568,7 @@ export default function PlayersTab() {
                 }}
               >
                 <View style={{ flexDirection: "row", flex: 3 }}>
-                  {item.gender && (
+                  {player.gender && (
                     <Text
                       style={{
                         fontSize: 12,
@@ -612,10 +578,10 @@ export default function PlayersTab() {
                           : theme.colors.onSurfaceVariant,
                       }}
                     >
-                      {getShortGender(item.gender)}
+                      {getShortGender(player.gender)}
                     </Text>
                   )}
-                  {item.email && (
+                  {player.email && (
                     <Text
                       style={{
                         fontSize: 12,
@@ -625,10 +591,10 @@ export default function PlayersTab() {
                           : theme.colors.onSurfaceVariant,
                       }}
                     >
-                      {item.email}
+                      {player.email}
                     </Text>
                   )}
-                  {item.phone && (
+                  {player.phone && (
                     <Text
                       style={{
                         fontSize: 12,
@@ -638,11 +604,11 @@ export default function PlayersTab() {
                           : theme.colors.onSurfaceVariant,
                       }}
                     >
-                      {item.phone}
+                      {player.phone}
                     </Text>
                   )}
                 </View>
-                {item.rating && (
+                {player.rating && (
                   <Chip
                     icon="star-outline"
                     elevated={true}
@@ -653,7 +619,7 @@ export default function PlayersTab() {
                       alignItems: "center",
                     }}
                   >
-                    {item.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}
+                    {player.rating.toFixed(APP_CONFIG.RATING_DECIMAL_PLACES)}
                   </Chip>
                 )}
               </View>
@@ -664,7 +630,7 @@ export default function PlayersTab() {
                   marginRight: 20,
                 }}
               >
-                {getPlayerGroupNames(item.id).length > 0 && (
+                {getPlayerGroupNames(player.id).length > 0 && (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <Icon
                       source="account-group"
@@ -685,51 +651,33 @@ export default function PlayersTab() {
                           : theme.colors.onSurfaceVariant,
                       }}
                     >
-                      {getPlayerGroupNames(item.id)}
+                      {getPlayerGroupNames(player.id)}
                     </Text>
                   </View>
                 )}
               </View>
             </View>
           )}
-          left={
-            narrowScreen
-              ? isSelected
-                ? () => (
+          right={
+            isSelected
+              ? () => (
+                  <View
+                    style={{
+                      marginLeft: 4,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
                     <Icon
                       source="check-circle"
                       size={24}
                       color={theme.colors.primary}
                     />
-                  )
-                : undefined
-              : (props) => getAvatarName(item.name, props)
-          }
-          right={
-            narrowScreen
-              ? undefined
-              : (props) => (
-                  <View
-                    {...props}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                    }}
-                  >
-                    <IconButton
-                      icon="pencil"
-                      onPress={() => handleEditPlayer(item)}
-                    />
-                    <IconButton
-                      icon="delete"
-                      onPress={() => handleDeletePlayer(item)}
-                    />
                   </View>
                 )
+              : undefined
           }
-          onPress={
-            narrowScreen ? () => handlePlayerSelection(item.id) : undefined
-          }
+          onPress={() => handlePlayerSelection(player.id)}
           style={{
             borderRadius: isSelected ? 8 : 0,
           }}
@@ -740,7 +688,7 @@ export default function PlayersTab() {
 
   // Mobile selection action bar
   const SelectionActionBar = () => {
-    if (!narrowScreen || selectedPlayerIds.length === 0) return null;
+    if (selectedPlayerIds.length === 0) return null;
 
     return (
       <Portal>
@@ -831,32 +779,31 @@ export default function PlayersTab() {
         </Text>
       </View>
 
-      {narrowScreen ? (
-        selectedPlayerIds.length > 0 ? (
-          <Button mode="elevated" onPress={() => clearSelection()} compact>
-            Cancel
+      {selectedPlayerIds.length > 0 ? (
+        <Button mode="elevated" onPress={() => clearSelection()} compact>
+          Cancel
+        </Button>
+      ) : (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Button
+            icon="account-multiple-plus-outline"
+            mode="contained"
+            onPress={() => setBulkPlayerAddModalVisible(true)}
+            compact={false}
+          >
+            Add
           </Button>
-        ) : (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Button
-              icon="account-multiple-plus-outline"
-              mode="contained"
-              onPress={() => setBulkPlayerAddModalVisible(true)}
-              compact={false}
-            >
-              Add
-            </Button>
-            <Menu
-              visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
-              anchor={
-                <IconButton
-                  icon="dots-vertical"
-                  onPress={() => setMenuVisible(true)}
-                />
-              }
-            >
-              {/*<Menu.Item
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <IconButton
+                icon="dots-vertical"
+                onPress={() => setMenuVisible(true)}
+              />
+            }
+          >
+            {/*<Menu.Item
                 leadingIcon="account-multiple-plus-outline"
                 onPress={() => {
                   setMenuVisible(false);
@@ -865,73 +812,29 @@ export default function PlayersTab() {
                 title="Bulk Add"
               />
               <Divider />*/}
-              <Menu.Item
-                leadingIcon="import"
-                onPress={() => {
-                  setMenuVisible(false);
-                  //handleImportPlayers();
-                  setImportDialogVisible(true);
-                }}
-                title="Import"
-              />
-              <Menu.Item
-                leadingIcon="export"
-                onPress={() => {
-                  setMenuVisible(false);
-                  handleExportPlayers();
-                  //setExportDialogVisible(true);
-                }}
-                title="Export"
-              />
-            </Menu>
-          </View>
-        )
-      ) : (
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <Button
-            icon="account-multiple-plus-outline"
-            mode="elevated"
-            onPress={() => setBulkPlayerAddModalVisible(true)}
-          >
-            Bulk Add
-          </Button>
-          <Button icon="import" mode="elevated" onPress={handleImportPlayers}>
-            Import
-          </Button>
-          <Button icon="export" mode="elevated" onPress={handleExportPlayers}>
-            Export
-          </Button>
-          <Button
-            icon="account-plus-outline"
-            mode="contained-tonal"
-            onPress={() => setPlayerAddModalVisible(true)}
-          >
-            Add Player
-          </Button>
+            <Menu.Item
+              leadingIcon="import"
+              onPress={() => {
+                setMenuVisible(false);
+                //handleImportPlayers();
+                setImportDialogVisible(true);
+              }}
+              title="Import"
+            />
+            <Menu.Item
+              leadingIcon="export"
+              onPress={() => {
+                setMenuVisible(false);
+                handleExportPlayers();
+                //setExportDialogVisible(true);
+              }}
+              title="Export"
+            />
+          </Menu>
         </View>
       )}
     </Surface>
   );
-
-  const PrimaryFAB = () => {
-    if (!narrowScreen || selectedPlayerIds.length > 0) {
-      return null;
-    }
-    return (
-      <FAB
-        icon="account-plus"
-        onPress={() => setPlayerAddModalVisible(true)}
-        color={theme.colors.onSecondary}
-        style={{
-          position: "absolute",
-          margin: 16,
-          right: 0,
-          bottom: 0,
-          backgroundColor: theme.colors.secondary,
-        }}
-      />
-    );
-  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -958,11 +861,7 @@ export default function PlayersTab() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           padding: 16,
-          paddingBottom: narrowScreen
-            ? selectedPlayerIds.length > 0
-              ? 100
-              : 80
-            : 16,
+          paddingBottom: selectedPlayerIds.length > 0 ? 100 : 80,
         }}
         showsVerticalScrollIndicator={true}
         ListHeaderComponent={
@@ -979,7 +878,7 @@ export default function PlayersTab() {
               paddingVertical: 64,
             }}
           >
-            <Users size={48} />
+            <Icon source="account-multiple" size={48} />
             <Text
               style={{
                 fontSize: 18,
@@ -1001,7 +900,6 @@ export default function PlayersTab() {
         }
       />
 
-      <PrimaryFAB />
       <SelectionActionBar />
 
       <Modal
@@ -1115,43 +1013,22 @@ export default function PlayersTab() {
 
             <View
               style={{
-                flexDirection: narrowScreen ? "column" : "row",
+                flexDirection: "column",
                 justifyContent: "flex-end",
                 gap: 12,
                 marginTop: 16,
               }}
             >
-              {narrowScreen ? (
-                <>
-                  <Button
-                    mode="contained"
-                    onPress={() => handleConfirmAddToGroups()}
-                    disabled={
-                      selectedGroupIds.length === 0 || groups.length === 0
-                    }
-                  >
-                    Add to Groups
-                  </Button>
-                  <Button mode="outlined" onPress={handleCancelGroupSelection}>
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button mode="outlined" onPress={handleCancelGroupSelection}>
-                    Cancel
-                  </Button>
-                  <Button
-                    mode="contained"
-                    onPress={() => handleConfirmAddToGroups()}
-                    disabled={
-                      selectedGroupIds.length === 0 || groups.length === 0
-                    }
-                  >
-                    Add to Groups
-                  </Button>
-                </>
-              )}
+              <Button
+                mode="contained"
+                onPress={() => handleConfirmAddToGroups()}
+                disabled={selectedGroupIds.length === 0 || groups.length === 0}
+              >
+                Add to Groups
+              </Button>
+              <Button mode="outlined" onPress={handleCancelGroupSelection}>
+                Cancel
+              </Button>
             </View>
           </View>
         </SafeAreaView>

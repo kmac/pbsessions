@@ -135,7 +135,8 @@ export class SessionCoordinator {
 
     const log_for_console = false;
     const log_for_browser = false;
-    if (log_for_console) { // console friendly
+    if (log_for_console) {
+      // console friendly
       console.log(
         `generateRoundAssignment ${this.currentRoundNumber}: ${JSON.stringify(
           {
@@ -150,7 +151,8 @@ export class SessionCoordinator {
         )}`,
       );
     }
-    if (log_for_browser) { // browser friendly
+    if (log_for_browser) {
+      // browser friendly
       console.log("generateRoundAssignment ${this.currentRoundNumber}:", {
         courtAssignments,
         gameAssignments,
@@ -173,7 +175,10 @@ export class SessionCoordinator {
     const partnershipUnits: PartnershipUnit[] = [];
     const playerSet = new Set(players.map((p) => p.id));
 
-    if (this.partnershipConstraint) {
+    if (
+      this.partnershipConstraint &&
+      this.partnershipConstraint.partnerships.length > 0
+    ) {
       // Process active partnerships
       this.partnershipConstraint.partnerships
         .filter((p) => p.isActive)
@@ -243,7 +248,11 @@ export class SessionCoordinator {
     const sittingOut: Player[] = [];
 
     // If enforcing partnerships, we need to sit out in units
-    if (this.partnershipConstraint?.enforceAllPairings) {
+    if (
+      this.partnershipConstraint &&
+      this.partnershipConstraint.partnerships.length > 0 &&
+      this.partnershipConstraint.enforceAllPairings
+    ) {
       // Calculate how many partnership units need to sit out
       const partnershipUnitsToSitOut = Math.floor(sittingOutCount / 2);
       const remainingSittingOut = sittingOutCount % 2;

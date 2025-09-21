@@ -87,8 +87,8 @@ export default function GroupsTab() {
           <View
             style={{
               flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
+              // justifyContent: "space-between",
+              // alignItems: "flex-start",
               marginBottom: 12,
             }}
           >
@@ -113,7 +113,11 @@ export default function GroupsTab() {
                 </Text>
               )}
             </View>
-            <View style={{ flexDirection: "column", alignItems: "flex-end" }}>
+            <View style={{
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 4
+            }}>
               <Chip icon="account-group" elevated compact>
                 <Text variant="labelMedium">{groupPlayers.length}</Text>
               </Chip>
@@ -132,7 +136,7 @@ export default function GroupsTab() {
             </View>
           </View>
 
-          {false && groupPlayers.length > 0 && (
+          {groupPlayers.length > 0 && (
             <View style={{ marginVertical: 12 }}>
               <Text
                 variant="labelMedium"
@@ -164,15 +168,21 @@ export default function GroupsTab() {
             icon="account-multiple-plus-outline"
             //mode="contained-tonal"
             mode="outlined"
+            compact
             onPress={() => handleManagePlayers(group)}
           >
-            Players
+            Manage Players
           </Button>
 
           <View style={{ flexDirection: "row", gap: 4 }}>
-            <IconButton icon="pencil" onPress={() => handleEditGroup(group)} />
+            <IconButton
+              icon="pencil"
+              size={20}
+              onPress={() => handleEditGroup(group)}
+            />
             <IconButton
               icon="delete"
+              size={20}
               onPress={() => handleDeleteGroup(group)}
             />
           </View>

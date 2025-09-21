@@ -456,7 +456,7 @@ export default function GroupPlayerManager({
                         fontWeight: "500",
                       }}
                     >
-                      {player.rating.toFixed(1)}
+                      {player.rating.toFixed(2)}
                     </Text>
                   )}
                 </View>

@@ -198,8 +198,9 @@ export default function BetweenRoundsModal({
                 />
 
                 <RoundComponent
-                  editing={true}
                   session={currentSession}
+                  editing={true}
+                  ratingSwitch={true}
                   onSwapPlayersChange={handleSwapPlayersChange}
                 />
 
@@ -232,7 +233,7 @@ export default function BetweenRoundsModal({
                   </Button>
                   <Button
                     icon="chart-box"
-                    mode="elevated"
+                    mode="outlined"
                     onPress={() => {
                       setStatsModalVisible(true);
                     }}

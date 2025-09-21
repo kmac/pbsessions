@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import { View, Modal, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -16,7 +16,13 @@ import {
   Dialog,
 } from "react-native-paper";
 import { useAppSelector } from "../store";
-import { createCourt, Court, PartnershipConstraint, Session } from "../types";
+import {
+  createCourt,
+  Court,
+  PartnershipConstraint,
+  Session,
+  SessionState,
+} from "../types";
 import { validateSessionSize } from "../utils/validation";
 import CourtManager from "./CourtManager";
 import SessionPlayerManager from "./SessionPlayerManager";
@@ -63,6 +69,7 @@ export default function EditSessionModal({
 
   // Track initial values for change detection
   const initialFormData = useRef({
+    name: `${new Date().toDateString()}`,
     playerIds: [] as string[],
     pausedPlayerIds: [] as string[],
     partnershipConstraint: {
@@ -70,6 +77,8 @@ export default function EditSessionModal({
       enforceAllPairings: true,
     } as PartnershipConstraint,
     courts: [] as Court[],
+    scoring: scoring,
+    showRatings: useRatings,
   });
 
   const [showPlayerManager, setShowPlayerManager] = useState(false);
@@ -77,85 +86,122 @@ export default function EditSessionModal({
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
     useState(false);
 
-  useEffect(
-    // Effect function: contains side effect code
-    () => {
-      if (session) {
-        setFormData({
-          name: session.name,
-          dateTime: session.dateTime,
-          playerIds: [...session.playerIds],
-          pausedPlayerIds: session.pausedPlayerIds
-            ? [...session.pausedPlayerIds]
-            : [],
-          partnershipConstraint: session.partnershipConstraint
-            ? ({
-                partnerships: session.partnershipConstraint.partnerships,
-                enforceAllPairings:
-                  session.partnershipConstraint.enforceAllPairings,
-              } as PartnershipConstraint)
-            : ({
-                partnerships: [],
-                enforceAllPairings: true,
-              } as PartnershipConstraint),
-          courts: [...session.courts],
-          scoring: session.scoring,
-          showRatings: session.showRatings,
-        });
-      } else {
-        const now = new Date();
-        now.setHours(now.getHours() + 1, 0, 0, 0);
-        setFormData({
-          ...formData,
-          dateTime: now.toISOString(),
-          playerIds: [],
-          courts: [],
-        });
-      }
-      // Store initial values for change detection
-      initialFormData.current = {
-        playerIds: [...formData.playerIds],
-        pausedPlayerIds: [...formData.pausedPlayerIds],
-        partnershipConstraint: {
-          partnerships: [...formData.partnershipConstraint.partnerships],
-          enforceAllPairings: formData.partnershipConstraint.enforceAllPairings,
-        } as PartnershipConstraint,
-        courts: [...formData.courts],
+  useEffect(() => {
+    let newFormData;
+
+    if (session) {
+      newFormData = {
+        name: session.name,
+        dateTime: session.dateTime,
+        playerIds: [...session.playerIds],
+        pausedPlayerIds: session.pausedPlayerIds
+          ? [...session.pausedPlayerIds]
+          : [],
+        partnershipConstraint: session.partnershipConstraint
+          ? ({
+              partnerships: session.partnershipConstraint.partnerships,
+              enforceAllPairings:
+                session.partnershipConstraint.enforceAllPairings,
+            } as PartnershipConstraint)
+          : ({
+              partnerships: [],
+              enforceAllPairings: true,
+            } as PartnershipConstraint),
+        courts: [...session.courts],
+        scoring: session.scoring,
+        showRatings: session.showRatings,
       };
-    },
-    // Dependency array: effect function runs whenever any dependency changes
-    [session, visible],
-  );
+    } else {
+      const now = new Date();
+      now.setHours(now.getHours() + 1, 0, 0, 0);
+      newFormData = {
+        name: `${new Date().toDateString()}`,
+        dateTime: now.toISOString(),
+        playerIds: [],
+        pausedPlayerIds: [],
+        partnershipConstraint: {
+          partnerships: [],
+          enforceAllPairings: true,
+        } as PartnershipConstraint,
+        courts: [],
+        scoring: scoring,
+        showRatings: useRatings,
+      };
+    }
 
-  // Check if formData has been modified
+    setFormData(newFormData);
+
+    // Store initial values using the newFormData, not the stale formData
+    initialFormData.current = {
+      name: newFormData.name,
+      playerIds: [...newFormData.playerIds],
+      pausedPlayerIds: [...newFormData.pausedPlayerIds],
+      partnershipConstraint: {
+        partnerships: [...newFormData.partnershipConstraint.partnerships],
+        enforceAllPairings:
+          newFormData.partnershipConstraint.enforceAllPairings,
+      } as PartnershipConstraint,
+      courts: [...newFormData.courts],
+      scoring: newFormData.scoring,
+      showRatings: newFormData.showRatings,
+    };
+  }, [session, visible, scoring, useRatings]);
+
   const hasUnsavedChanges = () => {
-    // Compare playerIds arrays
+    const initial = initialFormData.current;
+
+    // Compare basic fields
+    const nameChanged = formData.name.trim() !== initial.name;
+    const scoringChanged = formData.scoring !== initial.scoring;
+    const showRatingsChanged = formData.showRatings !== initial.showRatings;
+
+    // Compare playerIds arrays (order-independent)
     const playerIdsChanged =
-      formData.playerIds.length !== initialFormData.current.playerIds.length ||
-      !formData.playerIds.every((id) =>
-        initialFormData.current.playerIds.includes(id),
-      );
+      formData.playerIds.length !== initial.playerIds.length ||
+      !formData.playerIds.every((id) => initial.playerIds.includes(id));
 
+    // Compare pausedPlayerIds arrays (order-independent)
     const pausedPlayerIdsChanged =
-      formData.pausedPlayerIds.length !==
-        initialFormData.current.pausedPlayerIds.length ||
+      formData.pausedPlayerIds.length !== initial.pausedPlayerIds.length ||
       !formData.pausedPlayerIds.every((id) =>
-        initialFormData.current.pausedPlayerIds.includes(id),
+        initial.pausedPlayerIds.includes(id),
       );
 
-    const partnershipConstraintChanged =
-      formData.partnershipConstraint.partnerships.length !==
-        initialFormData.current.partnershipConstraint.partnerships.length ||
-      formData.partnershipConstraint.enforceAllPairings !==
-        initialFormData.current.partnershipConstraint.enforceAllPairings;
+    // Compare partnership constraints more thoroughly
+    const partnershipConstraintChanged = (() => {
+      const current = formData.partnershipConstraint;
+      const initialPC = initial.partnershipConstraint;
 
-    // Compare courts arrays (check both length and content)
-    const courtsChanged =
-      formData.courts.length !== initialFormData.current.courts.length ||
-      !formData.courts.every((court) => {
-        const initialCourt = initialFormData.current.courts.find(
-          (c) => c.id === court.id,
-        );
+      // Check enforceAllPairings flag
+      if (current.enforceAllPairings !== initialPC.enforceAllPairings) {
+        return true;
+      }
+
+      // Check partnerships array length
+      if (current.partnerships.length !== initialPC.partnerships.length) {
+        return true;
+      }
+
+      // Check each partnership (order-independent)
+      return !current.partnerships.every((partnership) =>
+        initialPC.partnerships.some(
+          (initialPartnership) =>
+            (partnership.player1Id === initialPartnership.player1Id &&
+              partnership.player2Id === initialPartnership.player2Id) ||
+            (partnership.player1Id === initialPartnership.player2Id &&
+              partnership.player2Id === initialPartnership.player1Id),
+        ),
+      );
+    })();
+
+    // Compare courts arrays (order-independent but content-sensitive)
+    const courtsChanged = (() => {
+      if (formData.courts.length !== initial.courts.length) {
+        return true;
+      }
+
+      return !formData.courts.every((court) => {
+        const initialCourt = initial.courts.find((c) => c.id === court.id);
         return (
           initialCourt &&
           court.name === initialCourt.name &&
@@ -163,13 +209,31 @@ export default function EditSessionModal({
           court.minimumRating === initialCourt.minimumRating
         );
       });
+    })();
 
-    return (
+    const hasChanges =
+      nameChanged ||
+      scoringChanged ||
+      showRatingsChanged ||
       playerIdsChanged ||
       pausedPlayerIdsChanged ||
       partnershipConstraintChanged ||
-      courtsChanged
-    );
+      courtsChanged;
+
+    // Optional: Add debug logging only in development
+    if (__DEV__ && hasChanges) {
+      console.log("Changes detected:", {
+        nameChanged,
+        scoringChanged,
+        showRatingsChanged,
+        playerIdsChanged,
+        pausedPlayerIdsChanged,
+        partnershipConstraintChanged,
+        courtsChanged,
+      });
+    }
+
+    return hasChanges;
   };
 
   const handleBackPress = () => {
@@ -218,6 +282,7 @@ export default function EditSessionModal({
 
     // Update initial values after successful save
     initialFormData.current = {
+      name: formData.name.trim(),
       playerIds: [...formData.playerIds],
       pausedPlayerIds: [...formData.pausedPlayerIds],
       partnershipConstraint: {
@@ -225,6 +290,8 @@ export default function EditSessionModal({
         enforceAllPairings: formData.partnershipConstraint.enforceAllPairings,
       } as PartnershipConstraint,
       courts: [...formData.courts],
+      scoring: formData.scoring,
+      showRatings: formData.showRatings,
     };
 
     if (session) {
@@ -245,9 +312,14 @@ export default function EditSessionModal({
     return formData.courts.filter((c) => c.isActive);
   };
 
-  const updatePlayerIds = (playerIds: string[]) => {
+  const updatePlayerIdsOrig = (playerIds: string[]) => {
+    console.log(`updatePlayerIds: playerIds: ${playerIds}`);
     setFormData({ ...formData, playerIds });
   };
+  const updatePlayerIds = useCallback((playerIds: string[]) => {
+    console.log(`updatePlayerIds: playerIds: ${playerIds}`);
+    setFormData((prev) => ({ ...prev, playerIds }));
+  }, []);
 
   const handlePausedPlayers = (pausedPlayerIds: string[]) => {
     setFormData({ ...formData, pausedPlayerIds });
@@ -542,7 +614,7 @@ export default function EditSessionModal({
                             );
                             return `${player1?.name} & ${player2?.name}`;
                           })
-                          .join(', ')}
+                          .join(", ")}
                       </Text>
                     </Surface>
                   </>
@@ -573,7 +645,7 @@ export default function EditSessionModal({
                   </Button>
                 </View>
 
-                <Surface
+                {/* <Surface
                   style={{
                     alignItems: "center",
                     padding: 24,
@@ -581,6 +653,14 @@ export default function EditSessionModal({
                     borderWidth: 1,
                     borderColor: theme.colors.outline,
                     borderStyle: "dashed",
+                  }}
+                > */}
+                <Surface
+                  style={{
+                    padding: 12,
+                    alignItems: "center",
+                    borderRadius: 8,
+                    backgroundColor: theme.colors.surfaceVariant,
                   }}
                 >
                   {activeCourts.length === 0 && (
@@ -594,27 +674,6 @@ export default function EditSessionModal({
                       No courts configured
                     </Text>
                   )}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <IconButton
-                      icon="minus"
-                      size={20}
-                      mode="contained-tonal"
-                      onPress={() => adjustCourts("minus")}
-                    />
-                    <Text>{activeCourts.length}</Text>
-                    <IconButton
-                      icon="plus"
-                      size={20}
-                      mode="contained-tonal"
-                      onPress={() => adjustCourts("plus")}
-                    />
-                  </View>
                   <View
                     style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
                   >
@@ -630,11 +689,34 @@ export default function EditSessionModal({
                       >
                         {court.name}
                         {court.minimumRating
-                          ? ` (${court.minimumRating.toFixed(1)}+)`
+                          ? ` (${court.minimumRating.toFixed(2)}+)`
                           : ""}
                       </Chip>
                     ))}
                   </View>
+                  {false && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <IconButton
+                        icon="minus"
+                        size={20}
+                        mode="contained-tonal"
+                        onPress={() => adjustCourts("minus")}
+                      />
+                      <Text>{activeCourts.length}</Text>
+                      <IconButton
+                        icon="plus"
+                        size={20}
+                        mode="contained-tonal"
+                        onPress={() => adjustCourts("plus")}
+                      />
+                    </View>
+                  )}
                 </Surface>
               </Card.Content>
             </Card>
@@ -773,6 +855,17 @@ export default function EditSessionModal({
           <CourtManager
             visible={showCourtManager}
             courts={formData.courts}
+            addedCourts={
+              session?.courts
+                ? formData.courts.filter(
+                    (court) =>
+                      !session.courts.some(
+                        (sessionCourt) => sessionCourt.id === court.id,
+                      ),
+                  )
+                : formData.courts
+            }
+            sessionState={session ? session.state : SessionState.New}
             onCourtsChange={updateCourts}
             onClose={() => setShowCourtManager(false)}
           />

@@ -256,12 +256,7 @@ export default function SessionsTab() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    return date.toDateString();
   };
 
   const formatTime = (dateString: string) => {
@@ -555,7 +550,7 @@ export default function SessionsTab() {
                   onPress={() => router.navigate("/live-session")}
                   compact={narrowScreen}
                 >
-                  {narrowScreen ? "Continue" : "Continue Live Session"}
+                  {narrowScreen ? "Continue" : "Continue Session"}
                 </Button>
                 <Button
                   // icon={isNarrowScreen ? undefined : "stop"}
@@ -564,7 +559,7 @@ export default function SessionsTab() {
                   onPress={() => handleEndSession(session)}
                   compact={narrowScreen}
                 >
-                  End
+                  {narrowScreen ? "End" : "End Session"}
                 </Button>
               </>
             )}

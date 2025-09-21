@@ -97,7 +97,7 @@ export function renderPlayerCard(
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
                   {partnerName && (
                     <Chip
-                      icon="account-heart"
+                      icon="account-multiple-outline"
                       compact
                       mode="flat"
                       textStyle={{ fontSize: 12 }}
@@ -113,7 +113,7 @@ export function renderPlayerCard(
                     <Chip
                       icon="pause"
                       compact
-                      mode="outlined"
+                      mode="flat"
                       textStyle={{ fontSize: 10 }}
                       style={{
                         //backgroundColor: theme.colors.secondaryContainer,

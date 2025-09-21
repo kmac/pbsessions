@@ -11,6 +11,7 @@ import {
   Button,
   Dialog,
   Divider,
+  Icon,
   IconButton,
   Menu,
   Searchbar,
@@ -70,7 +71,8 @@ const useStyles = () => {
           shadowOpacity: 0.05,
           shadowRadius: 2,
           elevation: 1,
-          backgroundColor: "white",
+          backgroundColor: theme.colors.primaryContainer,
+          // backgroundColor: "white",
         },
         groupItemSelected: {
           backgroundColor: theme.colors.primaryContainer,
@@ -110,7 +112,7 @@ const useStyles = () => {
         emptyState: {
           alignItems: "center",
           paddingVertical: 32,
-          backgroundColor: "white",
+          //backgroundColor: "white",
           borderRadius: 8,
         },
         emptyText: {
@@ -319,6 +321,7 @@ export default function SessionPlayerManager({
         const updatedPartnerships = partnerships.filter(
           (p) => p.player1Id !== player.id && p.player2Id !== player.id,
         );
+        if (updatedPartnerships.length > 0) {  // TODO fix the condistion right below here
         onPartnershipConstraintChange?.(
           updatedPartnerships.length > 0
             ? {
@@ -328,6 +331,7 @@ export default function SessionPlayerManager({
               }
             : undefined,
         );
+        }
         break;
     }
   };
@@ -454,6 +458,7 @@ export default function SessionPlayerManager({
     }
     setDetailsDialogPlayer(null);
     setDetailsDialogPartnerId(null);
+    setDetailsDialogPlayerPaused(null);
   };
 
   const renderPlayer = (player: Player) => {
@@ -551,7 +556,7 @@ export default function SessionPlayerManager({
 
         <TopDescription
           visible={true}
-          description="Select Players for Session (Use details menu for partnerships & pausing)"
+          description="Select Players for Session (Use details menu to pause player or setup partnership)"
         />
 
         {/* Partnership Summary */}
@@ -752,19 +757,43 @@ export default function SessionPlayerManager({
                     flexDirection: "column",
                   }}
                 >
-                  <Text variant="titleSmall">Fixed Partnership</Text>
-                  <Text variant="labelSmall">
-                    Select a player to partner with for this session.
-                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <Icon source="account-multiple-outline" size={28} />
+                    <View
+                      style={{
+                        flexDirection: "column",
+                        flex: 1,
+                        flexShrink: 1,
+                      }}
+                    >
+                      <Text variant="titleSmall">Fixed Partnership</Text>
+                      <Text
+                        variant="labelSmall"
+                        style={{
+                          flexWrap: "wrap",
+                          flex: 1,
+                          flexShrink: 1,
+                        }}
+                      >
+                        Select a player to partner with for this session.
+                      </Text>
+                    </View>
+                  </View>
                   <Dropdown
                     style={{
-                      margin: 8,
+                      margin: 2,
                       marginTop: 16,
                       height: 40,
                       backgroundColor: theme.colors.secondaryContainer,
                       borderBottomColor: theme.colors.secondary,
                       borderBottomWidth: 0.5,
-                      minWidth: 200,
+                      minWidth: 160,
                     }}
                     containerStyle={{
                       margin: 8,

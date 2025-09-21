@@ -21,6 +21,7 @@ import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import RoundComponent from "@/src/components/RoundComponent";
 import { Session, SessionState, Game, Round } from "@/src/types";
 import { getPlayerName, getSessionPlayers } from "@/src/utils/util";
+import { isNarrowScreen } from "@/src/utils/screenUtil";
 
 interface ViewSessionModalProps {
   visible: boolean;
@@ -252,7 +253,6 @@ export default function ViewSessionModal({
       `;
 
       //console.log(htmlContent);
-
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
 
       // // Create a better filename
@@ -301,6 +301,16 @@ export default function ViewSessionModal({
     }
   };
 
+  const expandAllRounds = () => {
+    setExpandedRounds(new Set(rounds.map((_, index) => index)));
+    setAllExpanded(true);
+  };
+
+  const collapseAllRounds = () => {
+    setExpandedRounds(new Set());
+    setAllExpanded(false);
+  };
+
   const renderRound = ({ item, index }: { item: Round; index: number }) => (
     <List.Accordion
       title={`Round ${index + 1}`}
@@ -317,7 +327,12 @@ export default function ViewSessionModal({
       )}
       left={(props) => <List.Icon {...props} icon="view-list" />}
     >
-      <RoundComponent editing={false} session={session} roundNumber={index} />
+      <RoundComponent
+        session={session}
+        editing={false}
+        ratingSwitch={false}
+        roundNumber={index}
+      />
     </List.Accordion>
   );
 
@@ -346,7 +361,10 @@ export default function ViewSessionModal({
                 </Text>
               }
             />
+            {/*
+              This action is disabled until we can properly export to PDF...
             <Appbar.Action icon="file-pdf-box" onPress={() => exportToPDF()} />
+            */}
           </Appbar.Header>
 
           <Surface style={styles.headerContainer}>
@@ -401,31 +419,51 @@ export default function ViewSessionModal({
                 </View>
               </View>
             </View>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+            >
               {playerStats.length > 0 && (
                 <Button
                   icon="chart-box"
                   mode="outlined"
                   onPress={() => setStatsModalVisible(true)}
-                  style={{
-                    marginBottom: 2,
-                    //flex: 1,
-                  }}
+                  // style={{
+                  //   marginBottom: 2,
+                  //   //flex: 1,
+                  // }}
                 >
                   Player Stats
                 </Button>
               )}
               {rounds.length > 0 && (
-                <Button
-                  icon={allExpanded ? "collapse-all" : "expand-all"}
-                  mode="outlined"
-                  onPress={toggleAllRounds}
-                  style={{
-                    marginBottom: 2,
-                  }}
-                >
-                  {allExpanded ? "Collapse All" : "Expand All"}
-                </Button>
+                // <Button
+                //   icon={allExpanded ? "collapse-all" : "expand-all"}
+                //   mode="outlined"
+                //   onPress={toggleAllRounds}
+                //   style={{
+                //     marginBottom: 2,
+                //   }}
+                // >
+                //   {allExpanded ? "Collapse All" : "Expand All"}
+                // </Button>
+                <>
+                  <IconButton
+                    icon="expand-all"
+                    mode="contained"
+                    onPress={expandAllRounds}
+                    // style={{
+                    //   backgroundColor: theme.colors.primary,
+                    // }}
+                  />
+                  <IconButton
+                    icon="collapse-all"
+                    mode="contained"
+                    onPress={collapseAllRounds}
+                    // style={{
+                    //   backgroundColor: theme.colors.onPrimary,
+                    // }}
+                  />
+                </>
               )}
             </View>
           </Surface>

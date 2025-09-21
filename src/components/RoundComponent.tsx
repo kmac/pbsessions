@@ -37,15 +37,17 @@ import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
 
 interface RoundComponentProps {
-  editing: boolean;
   session: Session;
+  editing: boolean;
+  ratingSwitch: boolean;
   roundNumber?: number;
   onSwapPlayersChange?: (canSwap: boolean, swapHandler: () => void) => void;
 }
 
 export default function RoundComponent({
-  editing,
   session,
+  editing,
+  ratingSwitch = true,
   roundNumber,
   onSwapPlayersChange,
 }: RoundComponentProps) {
@@ -495,7 +497,7 @@ export default function RoundComponent({
           );
         })}
 
-      {showRating && (
+      {ratingSwitch && showRating && (
         <View
           style={{ flexDirection: "row", alignSelf: "center", marginBottom: 2 }}
         >

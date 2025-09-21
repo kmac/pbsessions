@@ -3,6 +3,7 @@ import { Alert } from "@/src/utils/alert";
 import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system";
 import * as DocumentPicker from "expo-document-picker";
+import * as Sharing from "expo-sharing";
 
 export const copyToClipboard = async (
   stringData: string,
@@ -23,8 +24,9 @@ export const copyToClipboard = async (
 export const saveToFile = async (
   stringData: string,
   fileName: string,
-  onSuccess: () => void,
+  onSuccess?: () => void,
 ): Promise<boolean> => {
+  let fileUri;
   try {
     if (Platform.OS === "web") {
       // Web: Use browser download
@@ -41,23 +43,31 @@ export const saveToFile = async (
       Alert.alert("Success", "File downloaded successfully");
     } else {
       // Mobile: Use file system
-      const fileUri = FileSystem.documentDirectory + fileName;
-      await FileSystem.writeAsStringAsync(fileUri, stringData);
+      fileUri = new FileSystem.File(FileSystem.Paths.document, fileName);
+      fileUri.write(stringData);
 
-      Alert.alert("Success", `File saved to: ${fileName}`, [
+      let triggerShare: boolean = false;
+      Alert.alert("Success", `File saved to: ${fileUri.uri}`, [
         { text: "OK" },
         {
           text: "Share",
           onPress: () => {
-            // Optional: Add sharing functionality here if needed
-            Linking.openURL(`file://${fileUri}`);
+            triggerShare = true;
+            //Linking.openURL(fileUri.uri);
           },
         },
       ]);
+      if (triggerShare && (await Sharing.isAvailableAsync())) {
+        await Sharing.shareAsync(fileUri.uri, {
+          mimeType: "text/csv",
+          dialogTitle: "Export Players",
+        });
+      } else {
+        Alert.alert("Export Complete", `File saved as ${fileName}`);
+      }
     }
-    onSuccess();
+    onSuccess?.();
     return true;
-
   } catch (error) {
     console.log(error);
     Alert.alert("Error", "Failed to save file");

@@ -10,6 +10,7 @@ import {
   Icon,
   Menu,
   Surface,
+  Switch,
   Text,
   useTheme,
   Modal,
@@ -23,9 +24,20 @@ import RoundScoreEntryModal from "@/src/components/RoundScoreEntryModal";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import BetweenRoundsModal from "@/src/components/BetweenRoundsModal";
 import EditSessionModal from "@/src/components/EditSessionModal";
-import { getSessionPlayers, getSessionPausedPlayers, logSession } from "@/src/utils/util";
+import {
+  getSessionPlayers,
+  getSessionPausedPlayers,
+  logSession,
+} from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
-import { Player, Results, Session, SessionState } from "@/src/types";
+import {
+  Game,
+  Player,
+  Results,
+  Score,
+  Session,
+  SessionState,
+} from "@/src/types";
 
 import {
   applyNextRoundThunk,
@@ -44,7 +56,7 @@ export default function LiveSessionScreen() {
 
   // useAppSelector, useAppDispatch is redux
   const { sessions } = useAppSelector((state) => state.sessions);
-  const { players : allPlayers } = useAppSelector((state) => state.players);
+  const { players: allPlayers } = useAppSelector((state) => state.players);
 
   // useState is react
   const [scoreModalVisible, setScoreModalVisible] = useState(false);
@@ -57,7 +69,9 @@ export default function LiveSessionScreen() {
     useState(false);
   const [generateRoundsModalVisible, setGenerateRoundsModalVisible] =
     useState(false);
-  const [numberOfRounds, setNumberOfRounds] = useState("1");
+  const [generateNumberOfRounds, setGenerateNumberOfRounds] = useState("10");
+  const [generateSimulateScoring, setGenerateSimulateScoring] =
+    useState<boolean>(false);
 
   // TODO we should have a way to look this up - probably need to use redux since it will be global
   const liveSession = sessions.find((s) => s.state === SessionState.Live);
@@ -355,11 +369,11 @@ export default function LiveSessionScreen() {
 
   const closeGenerateRoundsModal = () => {
     setGenerateRoundsModalVisible(false);
-    setNumberOfRounds("1");
+    setGenerateNumberOfRounds("1");
   };
 
   const handleGenerateMultipleRounds = () => {
-    const numRounds = parseInt(numberOfRounds);
+    const numRounds = parseInt(generateNumberOfRounds);
     if (isNaN(numRounds) || numRounds < 1 || numRounds > 20) {
       Alert.alert(
         "Invalid Number",
@@ -371,6 +385,22 @@ export default function LiveSessionScreen() {
 
     let successfulRounds = 0;
     let currentSession = { ...liveSession };
+
+    const generateSimulatedScore = (game: Game): Score => {
+      const randomOutcome = Math.floor(Math.random() * 10);
+      let score: Score = {
+        serveScore: 0,
+        receiveScore: 0,
+      };
+      if (randomOutcome <= 4) {
+        score.serveScore = 11;
+        score.receiveScore = Math.floor(Math.random() * 10);
+      } else {
+        score.serveScore = Math.floor(Math.random() * 10);
+        score.receiveScore = 11;
+      }
+      return score;
+    };
 
     const generateNextRound = () => {
       if (successfulRounds >= numRounds) {
@@ -410,10 +440,52 @@ export default function LiveSessionScreen() {
           }),
         ).then((result) => {
           if (applyNextRoundThunk.fulfilled.match(result)) {
-            successfulRounds++;
             currentSession = result.payload;
-            // Generate the next round
-            generateNextRound();
+
+            // Update player stats and complete the round (no scoring)
+            const currentRoundGames = getCurrentRound(
+              currentSession,
+              true,
+            ).games;
+            const results: Results = { scores: {} };
+            currentRoundGames.forEach((game) => {
+              results.scores[game.id] = generateSimulateScoring
+                ? generateSimulatedScore(game)
+                : null;
+            });
+
+            const updatedSessionCoordinator = new SessionCoordinator(
+              currentSession,
+              liveSessionPlayers,
+              liveSessionPausedPlayers,
+            );
+            const updatedPlayerStats =
+              updatedSessionCoordinator.updateStatsForRound(
+                currentRoundGames,
+                results,
+              );
+
+            dispatch(
+              completeRoundThunk({
+                sessionId: currentSession.id,
+                results: results,
+                updatedPlayerStats: updatedPlayerStats,
+              }),
+            ).then((completeResult) => {
+              if (completeRoundThunk.fulfilled.match(completeResult)) {
+                successfulRounds++;
+                currentSession = completeResult.payload;
+                // Generate the next round
+                generateNextRound();
+              } else {
+                Alert.alert(
+                  "Round Generation Error",
+                  `Successfully generated ${successfulRounds} rounds. Error completing round ${successfulRounds + 1}.`,
+                  [{ text: "OK" }],
+                );
+                closeGenerateRoundsModal();
+              }
+            });
           } else {
             Alert.alert(
               "Round Generation Error",
@@ -652,7 +724,11 @@ export default function LiveSessionScreen() {
                 : `Round ${currentRoundNumber} Games`}
             </Text>
 
-            <RoundComponent editing={false} session={liveSession} />
+            <RoundComponent
+              session={liveSession}
+              editing={false}
+              ratingSwitch={true}
+            />
           </View>
         )}
 
@@ -713,7 +789,7 @@ export default function LiveSessionScreen() {
                   </Text>
                 </View>
                 <Button
-                  icon="trophy"
+                  icon="chart-box"
                   mode="outlined"
                   onPress={() => setStatsModalVisible(true)}
                 >
@@ -783,18 +859,34 @@ export default function LiveSessionScreen() {
             color: theme.colors.onSurfaceVariant,
           }}
         >
-          Enter the number of rounds to generate. All rounds will be created
-          without scores entered.
+          Enter the number of rounds to generate.
         </Text>
 
         <TextInput
           label="Number of Rounds"
-          value={numberOfRounds}
-          onChangeText={setNumberOfRounds}
+          value={generateNumberOfRounds}
+          onChangeText={setGenerateNumberOfRounds}
           keyboardType="numeric"
           mode="outlined"
           style={{ marginBottom: 20 }}
         />
+        {__DEV__ && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 16,
+            }}
+          >
+            <Text variant="bodyMedium" style={{ marginRight: 8 }}>
+              Simulate Scoring:
+            </Text>
+            <Switch
+              value={generateSimulateScoring}
+              onValueChange={(value) => setGenerateSimulateScoring(value)}
+            />
+          </View>
+        )}
 
         <View
           style={{
