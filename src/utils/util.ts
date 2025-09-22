@@ -1,5 +1,33 @@
 import { Court, Player, Group, Session } from "@/src/types";
 
+export const findSubstringDifferences = (
+  str1: string,
+  str2: string,
+  splitVal: string = ",",
+): string[] => {
+  const diff: string[] = [];
+  const str1Parts = str1.split(splitVal);
+  const str2Parts = str2.split(splitVal);
+  str1Parts.forEach((part, index) => {
+    if (part !== str2Parts[index]) {
+      diff.push(`'${part}' : '${str2Parts[index] || ""}'`);
+    }
+  });
+  return diff;
+};
+
+export const deepEqual = (obj1: any, obj2: any): boolean => {
+  const obj1Json = JSON.stringify(obj1);
+  const obj2Json = JSON.stringify(obj2);
+  if (obj1Json !== obj2Json) {
+    console.log(
+      `deepEqual diff: ${findSubstringDifferences(obj1Json, obj2Json)}`,
+    );
+    return false;
+  }
+  return true;
+};
+
 export function getShortGender(
   gender: "male" | "female" | "other" | undefined,
   parenthesize?: boolean,

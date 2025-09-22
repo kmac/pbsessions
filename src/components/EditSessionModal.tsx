@@ -1,4 +1,10 @@
-import React, { useCallback, useState, useEffect, useRef } from "react";
+import React, {
+  useCallback,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { View, Modal, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -23,6 +29,8 @@ import {
   Session,
   SessionState,
 } from "../types";
+import { deepEqual } from "../utils/util";
+import { isNarrowScreen } from "../utils/screenUtil";
 import { validateSessionSize } from "../utils/validation";
 import CourtManager from "./CourtManager";
 import SessionPlayerManager from "./SessionPlayerManager";
@@ -55,30 +63,36 @@ export default function EditSessionModal({
   const [formData, setFormData] = useState({
     // defaults
     name: `${new Date().toDateString()}`,
-    dateTime: new Date().toISOString(),
+    dateTime: new Date().toDateString(),
     playerIds: [] as string[],
     pausedPlayerIds: [] as string[],
+    courts: [] as Court[],
+    scoring: scoring,
+    showRatings: useRatings,
     partnershipConstraint: {
       partnerships: [],
       enforceAllPairings: true,
     } as PartnershipConstraint,
-    courts: [] as Court[],
-    scoring: scoring,
-    showRatings: useRatings,
   });
 
   // Track initial values for change detection
+  // `useRef` is being used to store **initial form data** that remains constant throughout the component's lifecycle.
+  // 1. **Persistence**: The ref value persists across re-renders without causing re-renders itself
+  // 2. **Mutable**: Unlike state, you can modify `initialFormData.current` without triggering re-renders
+  // 3. **Initial Values**: Provides default/baseline values for form initialization
+  // 4. **Performance**: Avoids recreating the initial data object on every render
   const initialFormData = useRef({
     name: `${new Date().toDateString()}`,
+    dateTime: `${new Date().toDateString()}`,
     playerIds: [] as string[],
     pausedPlayerIds: [] as string[],
+    courts: [] as Court[],
+    scoring: scoring,
+    showRatings: useRatings,
     partnershipConstraint: {
       partnerships: [],
       enforceAllPairings: true,
     } as PartnershipConstraint,
-    courts: [] as Court[],
-    scoring: scoring,
-    showRatings: useRatings,
   });
 
   const [showPlayerManager, setShowPlayerManager] = useState(false);
@@ -86,7 +100,15 @@ export default function EditSessionModal({
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
     useState(false);
 
+  // This `useEffect` is handling **form initialization and
+  // reset logic** when the modal opens or key dependencies
+  // change.
+  // The effect initializes form data differently based on
+  // whether we're **editing an existing session** or
+  // **creating a new one**.
+
   useEffect(() => {
+    // Effect function: contains side effect code
     let newFormData;
 
     if (session) {
@@ -97,6 +119,9 @@ export default function EditSessionModal({
         pausedPlayerIds: session.pausedPlayerIds
           ? [...session.pausedPlayerIds]
           : [],
+        courts: [...session.courts],
+        scoring: session.scoring,
+        showRatings: session.showRatings,
         partnershipConstraint: session.partnershipConstraint
           ? ({
               partnerships: session.partnershipConstraint.partnerships,
@@ -107,25 +132,22 @@ export default function EditSessionModal({
               partnerships: [],
               enforceAllPairings: true,
             } as PartnershipConstraint),
-        courts: [...session.courts],
-        scoring: session.scoring,
-        showRatings: session.showRatings,
       };
     } else {
       const now = new Date();
       now.setHours(now.getHours() + 1, 0, 0, 0);
       newFormData = {
         name: `${new Date().toDateString()}`,
-        dateTime: now.toISOString(),
+        dateTime: now.toDateString(),
         playerIds: [],
         pausedPlayerIds: [],
+        courts: [],
+        scoring: scoring,
+        showRatings: useRatings,
         partnershipConstraint: {
           partnerships: [],
           enforceAllPairings: true,
         } as PartnershipConstraint,
-        courts: [],
-        scoring: scoring,
-        showRatings: useRatings,
       };
     }
 
@@ -134,106 +156,22 @@ export default function EditSessionModal({
     // Store initial values using the newFormData, not the stale formData
     initialFormData.current = {
       name: newFormData.name,
+      dateTime: newFormData.dateTime,
       playerIds: [...newFormData.playerIds],
       pausedPlayerIds: [...newFormData.pausedPlayerIds],
+      courts: [...newFormData.courts],
+      scoring: newFormData.scoring,
+      showRatings: newFormData.showRatings,
       partnershipConstraint: {
         partnerships: [...newFormData.partnershipConstraint.partnerships],
         enforceAllPairings:
           newFormData.partnershipConstraint.enforceAllPairings,
       } as PartnershipConstraint,
-      courts: [...newFormData.courts],
-      scoring: newFormData.scoring,
-      showRatings: newFormData.showRatings,
     };
-  }, [session, visible, scoring, useRatings]);
+  }, [session, visible]); // effect is only activated if any of these change
 
   const hasUnsavedChanges = () => {
-    const initial = initialFormData.current;
-
-    // Compare basic fields
-    const nameChanged = formData.name.trim() !== initial.name;
-    const scoringChanged = formData.scoring !== initial.scoring;
-    const showRatingsChanged = formData.showRatings !== initial.showRatings;
-
-    // Compare playerIds arrays (order-independent)
-    const playerIdsChanged =
-      formData.playerIds.length !== initial.playerIds.length ||
-      !formData.playerIds.every((id) => initial.playerIds.includes(id));
-
-    // Compare pausedPlayerIds arrays (order-independent)
-    const pausedPlayerIdsChanged =
-      formData.pausedPlayerIds.length !== initial.pausedPlayerIds.length ||
-      !formData.pausedPlayerIds.every((id) =>
-        initial.pausedPlayerIds.includes(id),
-      );
-
-    // Compare partnership constraints more thoroughly
-    const partnershipConstraintChanged = (() => {
-      const current = formData.partnershipConstraint;
-      const initialPC = initial.partnershipConstraint;
-
-      // Check enforceAllPairings flag
-      if (current.enforceAllPairings !== initialPC.enforceAllPairings) {
-        return true;
-      }
-
-      // Check partnerships array length
-      if (current.partnerships.length !== initialPC.partnerships.length) {
-        return true;
-      }
-
-      // Check each partnership (order-independent)
-      return !current.partnerships.every((partnership) =>
-        initialPC.partnerships.some(
-          (initialPartnership) =>
-            (partnership.player1Id === initialPartnership.player1Id &&
-              partnership.player2Id === initialPartnership.player2Id) ||
-            (partnership.player1Id === initialPartnership.player2Id &&
-              partnership.player2Id === initialPartnership.player1Id),
-        ),
-      );
-    })();
-
-    // Compare courts arrays (order-independent but content-sensitive)
-    const courtsChanged = (() => {
-      if (formData.courts.length !== initial.courts.length) {
-        return true;
-      }
-
-      return !formData.courts.every((court) => {
-        const initialCourt = initial.courts.find((c) => c.id === court.id);
-        return (
-          initialCourt &&
-          court.name === initialCourt.name &&
-          court.isActive === initialCourt.isActive &&
-          court.minimumRating === initialCourt.minimumRating
-        );
-      });
-    })();
-
-    const hasChanges =
-      nameChanged ||
-      scoringChanged ||
-      showRatingsChanged ||
-      playerIdsChanged ||
-      pausedPlayerIdsChanged ||
-      partnershipConstraintChanged ||
-      courtsChanged;
-
-    // Optional: Add debug logging only in development
-    if (__DEV__ && hasChanges) {
-      console.log("Changes detected:", {
-        nameChanged,
-        scoringChanged,
-        showRatingsChanged,
-        playerIdsChanged,
-        pausedPlayerIdsChanged,
-        partnershipConstraintChanged,
-        courtsChanged,
-      });
-    }
-
-    return hasChanges;
+    return !deepEqual(formData, initialFormData.current);
   };
 
   const handleBackPress = () => {
@@ -247,6 +185,25 @@ export default function EditSessionModal({
   const handleDiscardChanges = () => {
     setShowUnsavedChangesDialog(false);
     onCancel();
+  };
+
+  const handleReset = () => {
+    setFormData({
+      name: initialFormData.current.name,
+      dateTime: initialFormData.current.dateTime,
+      playerIds: [...initialFormData.current.playerIds],
+      pausedPlayerIds: [...initialFormData.current.pausedPlayerIds],
+      courts: [...initialFormData.current.courts],
+      scoring: initialFormData.current.scoring,
+      showRatings: initialFormData.current.showRatings,
+      partnershipConstraint: {
+        partnerships: [
+          ...initialFormData.current.partnershipConstraint.partnerships,
+        ],
+        enforceAllPairings:
+          initialFormData.current.partnershipConstraint.enforceAllPairings,
+      },
+    });
   };
 
   const handleSave = () => {
@@ -283,6 +240,7 @@ export default function EditSessionModal({
     // Update initial values after successful save
     initialFormData.current = {
       name: formData.name.trim(),
+      dateTime: formData.dateTime,
       playerIds: [...formData.playerIds],
       pausedPlayerIds: [...formData.pausedPlayerIds],
       partnershipConstraint: {
@@ -402,11 +360,23 @@ export default function EditSessionModal({
               </Text>
             }
           />
+          {hasUnsavedChanges() && (
+            <Button
+              icon="restore"
+              mode="outlined"
+              compact={isNarrowScreen()}
+              onPress={handleReset}
+              style={{ marginRight: 4 }}
+            >
+              Reset
+            </Button>
+          )}
           <Button
             icon="content-save"
             mode="contained"
             onPress={handleSave}
-            style={{ marginRight: 8 }}
+            compact={isNarrowScreen()}
+            style={{ marginRight: 4 }}
           >
             Save
           </Button>
@@ -469,20 +439,34 @@ export default function EditSessionModal({
 
               <View
                 style={{
-                  flexDirection: "row",
-                  flex: 2,
-                  justifyContent: "space-between",
+                  flexDirection: "column",
+                  gap: 12,
                 }}
               >
                 <View
                   style={{
                     flexDirection: "row",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                   }}
                 >
-                  <Text variant="bodyMedium" style={{ marginRight: 8 }}>
-                    Scoring
-                  </Text>
+                  <View style={{ flexDirection: "column", flex: 1 }}>
+                    <Text
+                      variant="bodyMedium"
+                      style={{
+                        marginRight: 8,
+                      }}
+                    >
+                      Scoring:
+                    </Text>
+                    <Text
+                      variant="labelSmall"
+                      style={{
+                        fontStyle: "italic",
+                      }}
+                    >
+                      Enable scoring input for games
+                    </Text>
+                  </View>
                   <Switch
                     value={formData.scoring}
                     onValueChange={(value) =>
@@ -493,16 +477,69 @@ export default function EditSessionModal({
                 <View
                   style={{
                     flexDirection: "row",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                   }}
                 >
-                  <Text variant="bodyMedium" style={{ marginRight: 8 }}>
-                    Use Ratings
-                  </Text>
+                  <View style={{ flexDirection: "column", flex: 1 }}>
+                    <Text
+                      variant="bodyMedium"
+                      style={{
+                        marginRight: 8,
+                      }}
+                    >
+                      Use Ratings:
+                    </Text>
+                    <Text
+                      variant="labelSmall"
+                      style={{
+                        fontStyle: "italic",
+                      }}
+                    >
+                      Display ratings in game lineups
+                    </Text>
+                  </View>
                   <Switch
                     value={formData.showRatings}
                     onValueChange={(value) =>
                       setFormData({ ...formData, showRatings: value })
+                    }
+                  />
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <View style={{ flexDirection: "column", flex: 1 }}>
+                    <Text
+                      variant="bodyMedium"
+                      style={{
+                        marginRight: 8,
+                      }}
+                    >
+                      Enforce Pairings:
+                    </Text>
+                    <Text
+                      variant="labelSmall"
+                      style={{
+                        fontStyle: "italic",
+                      }}
+                    >
+                      Use strict partnerships when deciding who sits out (partners sit out as units)
+                    </Text>
+                  </View>
+                  <Switch
+                    value={formData.partnershipConstraint.enforceAllPairings}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        partnershipConstraint: {
+                          partnerships:
+                            formData.partnershipConstraint.partnerships,
+                          enforceAllPairings: value,
+                        },
+                      })
                     }
                   />
                 </View>
