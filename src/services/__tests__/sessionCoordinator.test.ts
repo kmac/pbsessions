@@ -422,7 +422,7 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
 
       // Use 4 players: 2 in partnership, 2 flexible
       const fourPlayers = mockPlayers.slice(0, 4);
-      const oneCourt = [mockCourts[0]];
+      const oneCourt = [mockCourts[1]];  // use the court without minimumRating
 
       const sessionWithOnePartnership = {
         ...mockSession,
@@ -453,6 +453,9 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       );
       const result = coordinator.generateRoundAssignment();
 
+      console.log(
+        `result.gameAssignments: ${JSON.stringify(result.gameAssignments, undefined, 2)}`,
+      );
       expect(result.gameAssignments).toHaveLength(1);
       const assignment = result.gameAssignments[0];
 
@@ -478,6 +481,49 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       const flexibleTeam = partnershipOnServe ? receiveTeamIds : serveTeamIds;
       expect(flexibleTeam).toContain("player3");
       expect(flexibleTeam).toContain("player4");
+    });
+
+    test("should handle one partnership with two flexible players, failed minimumRating", () => {
+      const partnership = createFixedPartnership(
+        "partnership1",
+        "player1",
+        "player2",
+      );
+
+      // Use 4 players: 2 in partnership, 2 flexible
+      const fourPlayers = mockPlayers.slice(0, 4);
+      const oneCourt = [mockCourts[0]];  // use the court with minimumRating
+
+      const sessionWithOnePartnership = {
+        ...mockSession,
+        playerIds: fourPlayers.map((p) => p.id),
+        courts: oneCourt,
+        partnershipConstraint: {
+          partnerships: [partnership],
+          enforceAllPairings: true,
+        },
+        liveData: {
+          rounds: [],
+          playerStats: fourPlayers.map((player) => ({
+            playerId: player.id,
+            gamesPlayed: 0,
+            gamesSatOut: 0,
+            partners: {},
+            fixedPartnershipGames: 0,
+            totalScore: 0,
+            totalScoreAgainst: 0,
+          })),
+        },
+      };
+
+      const coordinator = new SessionCoordinator(
+        sessionWithOnePartnership,
+        fourPlayers,
+        mockPausedPlayers,
+      );
+      const result = coordinator.generateRoundAssignment();
+
+      expect(result.gameAssignments).toHaveLength(0);  // minimum rating not met
     });
 
     test("should handle partnerships without enforcing all pairings", () => {

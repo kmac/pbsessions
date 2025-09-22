@@ -270,7 +270,7 @@ export default function SessionPlayerManager({
       partnerships.flatMap((p) => [p.player1Id, p.player2Id]),
     );
 
-    return players.filter((p) => {
+    return selectedPlayers.filter((p) => {
       if (p.id === playerId) {
         return false;
       }
@@ -321,7 +321,6 @@ export default function SessionPlayerManager({
         const updatedPartnerships = partnerships.filter(
           (p) => p.player1Id !== player.id && p.player2Id !== player.id,
         );
-        if (updatedPartnerships.length > 0) {  // TODO fix the condistion right below here
         onPartnershipConstraintChange?.(
           updatedPartnerships.length > 0
             ? {
@@ -329,9 +328,12 @@ export default function SessionPlayerManager({
                 enforceAllPairings:
                   partnershipConstraint?.enforceAllPairings || false,
               }
-            : undefined,
+            : {
+                partnerships: [],
+                enforceAllPairings:
+                  partnershipConstraint?.enforceAllPairings || false,
+              },
         );
-        }
         break;
     }
   };

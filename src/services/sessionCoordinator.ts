@@ -31,7 +31,6 @@ interface PartnershipConstraints {
 export class SessionCoordinator {
   private activeCourts: Court[];
   private players: Player[];
-  private pausedPlayers: Player[];
   private pausedPlayerIds: Set<string>;
   private playerStats: Map<string, PlayerStats> = new Map();
   private liveData: NonNullable<Session["liveData"]>;
@@ -48,7 +47,6 @@ export class SessionCoordinator {
     this.liveData = session.liveData;
     this.activeCourts = session.courts.filter((c) => c.isActive);
     this.players = players;
-    this.pausedPlayers = pausedPlayers;
     this.pausedPlayerIds = new Set<string>(
       pausedPlayers.map((player) => player.id),
     );
@@ -97,7 +95,7 @@ export class SessionCoordinator {
     }
 
     const playingPlayers = availablePlayers.filter(
-      (p) => !sittingOut?.includes(p),
+      (p) => !sittingOut.includes(p),
     );
 
     // Step 2: Assign players to courts based on rating requirements and partnerships
@@ -126,25 +124,26 @@ export class SessionCoordinator {
     });
 
     // Step 4: Update sitting out list to include players who couldn't be assigned to courts
-    const assignedPlayers = new Set(
+    const assignedPlayerIds = new Set(
       courtAssignments.flat().map((player) => player.id),
     );
     const actualSittingOut = availablePlayers.filter(
-      (player) => !assignedPlayers.has(player.id),
+      (player) => !assignedPlayerIds.has(player.id),
     );
 
-    const log_for_console = false;
-    const log_for_browser = false;
+    const log_for_browser = false; //__DEV__;
+    const log_for_console = true;
     if (log_for_console) {
       // console friendly
       console.log(
         `generateRoundAssignment ${this.currentRoundNumber}: ${JSON.stringify(
           {
+            playingPlayers,
+            sittingOut,
+            partnershipConstraints,
             courtAssignments,
             gameAssignments,
-            sittingOut,
-            availablePlayers,
-            assignedPlayers,
+            assignedPlayerIds,
           },
           undefined,
           2,
@@ -158,7 +157,7 @@ export class SessionCoordinator {
         gameAssignments,
         sittingOut,
         availablePlayers,
-        assignedPlayers,
+        assignedPlayerIds,
       });
     }
     return {
@@ -253,42 +252,45 @@ export class SessionCoordinator {
       this.partnershipConstraint.partnerships.length > 0 &&
       this.partnershipConstraint.enforceAllPairings
     ) {
-      // Calculate how many partnership units need to sit out
+      // Calculate how many complete partnership units we need to sit out
       const partnershipUnitsToSitOut = Math.floor(sittingOutCount / 2);
-      const remainingSittingOut = sittingOutCount % 2;
+      const individualSittingOut = sittingOutCount % 2;
 
-      // Sort partnership units by combined sit-out count and games played
+      // Sort partnership units by combined fairness score
       const sortedUnits = [...constraints.partnershipUnits].sort((a, b) => {
         const aStats1 = this.playerStats.get(a.players[0].id)!;
         const aStats2 = this.playerStats.get(a.players[1].id)!;
         const bStats1 = this.playerStats.get(b.players[0].id)!;
         const bStats2 = this.playerStats.get(b.players[1].id)!;
 
-        const aTotalSitOuts = aStats1.gamesSatOut + aStats2.gamesSatOut;
-        const bTotalSitOuts = bStats1.gamesSatOut + bStats2.gamesSatOut;
+        // Calculate fairness score: prioritize sitting out partnerships where BOTH players need to sit out
+        const aFairnessScore =
+          aStats1.gamesSatOut +
+          aStats2.gamesSatOut -
+          (aStats1.gamesPlayed + aStats2.gamesPlayed);
+        const bFairnessScore =
+          bStats1.gamesSatOut +
+          bStats2.gamesSatOut -
+          (bStats1.gamesPlayed + bStats2.gamesPlayed);
 
-        if (aTotalSitOuts !== bTotalSitOuts) {
-          return aTotalSitOuts - bTotalSitOuts;
-        }
-
-        const aTotalGames = aStats1.gamesPlayed + aStats2.gamesPlayed;
-        const bTotalGames = bStats1.gamesPlayed + bStats2.gamesPlayed;
-
-        return bTotalGames - aTotalGames;
+        // Lower scores (more need to sit out) come first
+        return aFairnessScore - bFairnessScore;
       });
 
-      // Sit out partnership units
+      // Sit out complete partnership units
       for (let i = 0; i < partnershipUnitsToSitOut; i++) {
-        sittingOut.push(...sortedUnits[i].players);
+        if (i < sortedUnits.length) {
+          sittingOut.push(...sortedUnits[i].players);
+        }
       }
 
-      // Handle remaining individual flexible players
-      if (remainingSittingOut > 0) {
+      // Handle remaining individual flexible players if we need to sit out an odd number
+      if (individualSittingOut > 0 && constraints.flexiblePlayers.length > 0) {
         const flexibleSittingOut = this.selectSittingOutPlayers(
           constraints.flexiblePlayers,
-          constraints.flexiblePlayers.length - remainingSittingOut,
+          constraints.flexiblePlayers.length - individualSittingOut,
         );
-        sittingOut.push(...flexibleSittingOut.slice(0, remainingSittingOut));
+        sittingOut.push(...flexibleSittingOut);
       }
     } else {
       // Not enforcing partnerships - treat all as individuals but prefer to keep partnerships together
@@ -374,50 +376,51 @@ export class SessionCoordinator {
       remainingFlexiblePlayers = this.shuffleArray(remainingFlexiblePlayers);
     }
 
-    // Step 3: Fill remaining court slots with flexible players
+    // Step 3: Fill remaining court slots with flexible players (FIXED: Respect rating constraints)
     for (const { court, index: courtIndex } of sortedCourts) {
-      if (
-        court.minimumRating &&
-        remainingFlexiblePlayers.length >=
-          4 - courtAssignments[courtIndex].length
-      ) {
+      const slotsNeeded = 4 - courtAssignments[courtIndex].length;
+      if (slotsNeeded <= 0) continue;
+
+      if (court.minimumRating) {
         // Get players who meet the rating requirement
         const eligiblePlayers = remainingFlexiblePlayers.filter(
           (player) => player.rating && player.rating >= court.minimumRating!,
         );
 
+        // Sort by rating (highest first for balanced distribution)
+        eligiblePlayers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+        let assigned = 0;
         while (
           courtAssignments[courtIndex].length < 4 &&
-          eligiblePlayers.length > 0
+          assigned < eligiblePlayers.length &&
+          assigned < slotsNeeded
         ) {
-          // Sort by rating (highest first for balanced distribution)
-          eligiblePlayers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-
-          const player = eligiblePlayers.shift()!;
+          const player = eligiblePlayers[assigned];
           courtAssignments[courtIndex].push(player);
 
           // Remove from remaining pool
           const index = remainingFlexiblePlayers.indexOf(player);
           if (index > -1) remainingFlexiblePlayers.splice(index, 1);
+          assigned++;
         }
+      } else {
+        // No rating requirement - assign any remaining players
+        let assigned = 0;
+        while (
+          courtAssignments[courtIndex].length < 4 &&
+          assigned < remainingFlexiblePlayers.length &&
+          assigned < slotsNeeded
+        ) {
+          courtAssignments[courtIndex].push(remainingFlexiblePlayers[assigned]);
+          assigned++;
+        }
+        // Remove assigned players from remaining pool
+        remainingFlexiblePlayers.splice(0, assigned);
       }
     }
 
-    // Step 4: Assign remaining flexible players to unfilled courts
-    let playerIndex = 0;
-    for (const { index: courtIndex } of sortedCourts) {
-      while (
-        courtAssignments[courtIndex].length < 4 &&
-        playerIndex < remainingFlexiblePlayers.length
-      ) {
-        courtAssignments[courtIndex].push(
-          remainingFlexiblePlayers[playerIndex],
-        );
-        playerIndex++;
-      }
-    }
-
-    // Step 5: Remove courts with insufficient players
+    // Step 4: Remove courts with insufficient players
     return courtAssignments.filter(
       (court) => court.length >= APP_CONFIG.MIN_PLAYERS_PER_GAME,
     );
