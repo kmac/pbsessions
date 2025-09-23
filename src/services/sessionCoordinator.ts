@@ -35,7 +35,7 @@ export class SessionCoordinator {
   private playerStats: Map<string, PlayerStats> = new Map();
   private liveData: NonNullable<Session["liveData"]>;
   private currentRound: Round;
-  private currentRoundNumber: number;
+  private currentRoundIndex: number;
   private partnershipConstraint?: PartnershipConstraint;
 
   constructor(session: Session, players: Player[], pausedPlayers: Player[]) {
@@ -51,8 +51,8 @@ export class SessionCoordinator {
       pausedPlayers.map((player) => player.id),
     );
     this.partnershipConstraint = session.partnershipConstraint;
-    this.currentRoundNumber = this.liveData.rounds.length;
-    this.currentRound = this.liveData.rounds[this.currentRoundNumber - 1];
+    this.currentRoundIndex = this.liveData.rounds.length;
+    this.currentRound = this.liveData.rounds[this.currentRoundIndex - 1];
 
     // Initialize or load existing stats
     players.forEach((player) => {
@@ -74,6 +74,39 @@ export class SessionCoordinator {
     });
   }
 
+  // This function orchestrates the assignment of players to courts and teams for a new round of pickleball games, considering player fairness, partnership constraints, and court rating requirements.
+  //
+  // #### High-Level Algorithm:
+  //
+  // **Step 1: Extract Partnership Constraints**
+  // - Processes fixed partnerships from session configuration
+  // - Identifies which players must play together vs. flexible players
+  // - Creates partnership units with their maximum ratings for court assignment
+  //
+  // **Step 2: Determine Sitting Players**
+  // - Calculates how many players need to sit out based on available courts
+  // - When enforcing partnerships, sits out complete partnership units together
+  // - Uses fairness scoring prioritizing players who have sat out less and played more
+  // - Falls back to individual selection when partnerships aren't enforced
+  //
+  // **Step 3: Assign Players to Courts**
+  // - Sorts courts by minimum rating requirements (highest first)
+  // - Places partnership units on appropriate courts based on their maximum rating
+  // - Fills remaining slots with flexible players who meet court rating requirements
+  // - Ensures rating constraints are respected for both partnerships and individuals
+  //
+  // **Step 4: Create Team Assignments**
+  // - For courts with two partnerships: they become opposing teams
+  // - For courts with one partnership: pairs it against two flexible players
+  // - For courts with no partnerships: uses either balanced rating teams or diverse partnership combinations
+  // - Prioritizes new partner pairings to maximize player variety
+  //
+  // **Step 5: Finalize Results**
+  // - Updates sitting out list to include any players who couldn't be assigned due to constraints
+  // - Returns structured assignment with court games and sitting players
+  // - Includes detailed logging for debugging round generation
+  //
+  // The algorithm balances multiple competing priorities: partnership enforcement, rating fairness, equal playing time, and partnership diversity, while respecting court capacity and rating restrictions.
   public generateRoundAssignment(sittingOut?: Player[]): RoundAssignment {
     const gameAssignments: GameAssignment[] = [];
     const availablePlayers = [...this.players].filter((player) => {
@@ -82,11 +115,11 @@ export class SessionCoordinator {
     const playersPerRound =
       this.activeCourts.length * APP_CONFIG.MIN_PLAYERS_PER_GAME;
 
-    // Step 0: Extract partnership constraints
+    // Step 1: Extract partnership constraints
     const partnershipConstraints =
       this.extractPartnershipConstraints(availablePlayers);
 
-    // Step 1: Determine who sits out (considering partnerships)
+    // Step 2: Determine who sits out (considering partnerships)
     if (!sittingOut) {
       sittingOut = this.selectSittingOutPlayersWithPartnerships(
         partnershipConstraints,
@@ -94,18 +127,19 @@ export class SessionCoordinator {
       );
     }
 
+    const sittingOutIds = new Set(sittingOut.map(player => player.id));
     const playingPlayers = availablePlayers.filter(
-      (p) => !sittingOut.includes(p),
+      (p) => !sittingOutIds.has(p.id),
     );
 
-    // Step 2: Assign players to courts based on rating requirements and partnerships
+    // Step 3: Assign players to courts based on rating requirements and partnerships
     const courtAssignments: Player[][] =
       this.assignPlayersToCourtsWithPartnerships(
         playingPlayers,
         partnershipConstraints,
       );
 
-    // Step 3: Create team assignments for each court (honoring partnerships)
+    // Step 4: Create team assignments for each court (honoring partnerships)
     courtAssignments.forEach((courtPlayers, courtIndex) => {
       if (courtPlayers.length === 4 && courtIndex < this.activeCourts.length) {
         const court = this.activeCourts[courtIndex];
@@ -123,7 +157,7 @@ export class SessionCoordinator {
       }
     });
 
-    // Step 4: Update sitting out list to include players who couldn't be assigned to courts
+    // Step 5: Update sitting out list to include players who couldn't be assigned to courts
     const assignedPlayerIds = new Set(
       courtAssignments.flat().map((player) => player.id),
     );
@@ -131,15 +165,16 @@ export class SessionCoordinator {
       (player) => !assignedPlayerIds.has(player.id),
     );
 
-    const log_for_browser = false; //__DEV__;
-    const log_for_console = true;
+    const log_for_browser = true; //__DEV__;
+    const log_for_console = false;
     if (log_for_console) {
       // console friendly
       console.log(
-        `generateRoundAssignment ${this.currentRoundNumber}: ${JSON.stringify(
+        `generateRoundAssignment ${this.currentRoundIndex}: ${JSON.stringify(
           {
             playingPlayers,
             sittingOut,
+            actualSittingOut,
             partnershipConstraints,
             courtAssignments,
             gameAssignments,
@@ -152,16 +187,18 @@ export class SessionCoordinator {
     }
     if (log_for_browser) {
       // browser friendly
-      console.log("generateRoundAssignment ${this.currentRoundNumber}:", {
+      console.log(`generateRoundAssignment ${this.currentRoundIndex}:`, {
+        playingPlayers,
+        sittingOut,
+        actualSittingOut,
+        partnershipConstraints,
         courtAssignments,
         gameAssignments,
-        sittingOut,
-        availablePlayers,
         assignedPlayerIds,
       });
     }
     return {
-      roundNumber: this.currentRoundNumber,
+      roundIndex: this.currentRoundIndex,
       gameAssignments: gameAssignments,
       sittingOutIds: actualSittingOut.map((player) => player.id),
     };
@@ -486,7 +523,21 @@ export class SessionCoordinator {
       this.updatePlayerStatsForGame(game, score || undefined);
     });
     this.updateSittingOutStats(this.currentRound.sittingOutIds);
-    return this.getPlayerStats();
+
+    const allPlayerStats = this.getPlayerStats();
+
+    // Debug logging
+    console.info(
+      "Updated player stats:",
+      allPlayerStats.map((s) => ({
+        playerId: s.playerId,
+        gamesPlayed: s.gamesPlayed,
+        gamesSatOut: s.gamesSatOut,
+        partnerships: Object.keys(s.partners).length,
+        fixedPartnershipGames: s.fixedPartnershipGames,
+      })),
+    );
+    return allPlayerStats;
   }
 
   private updatePlayerStatsForGame(game: Game, score?: Score): void {
@@ -502,7 +553,7 @@ export class SessionCoordinator {
       const stats = this.playerStats.get(playerId);
 
       if (!stats) {
-        console.warn(`No stats found for player ${playerId}`);
+        console.error(`No stats found for player ${playerId}`);
         return;
       }
 
@@ -532,18 +583,6 @@ export class SessionCoordinator {
       }
       this.playerStats.set(playerId, mutableStats);
     });
-
-    // Debug logging
-    console.info(
-      "Updated player stats:",
-      this.getPlayerStats().map((s) => ({
-        playerId: s.playerId,
-        gamesPlayed: s.gamesPlayed,
-        gamesSatOut: s.gamesSatOut,
-        partnerships: Object.keys(s.partners).length,
-        fixedPartnershipGames: s.fixedPartnershipGames,
-      })),
-    );
   }
 
   private isFixedPartnership(player1Id: string, player2Id: string): boolean {
@@ -565,18 +604,20 @@ export class SessionCoordinator {
         const mutableStats = { ...stats };
         mutableStats.gamesSatOut++;
         this.playerStats.set(playerId, mutableStats);
+      } else {
+        console.error(`updateSittingOutStats: no stats for playerId: ${playerId}`)
       }
     });
   }
 
   private selectSittingOutPlayers(
     players: Player[],
-    neededPlayers: number,
+    numPlaying: number,
   ): Player[] {
-    if (players.length <= neededPlayers) {
+    if (players.length <= numPlaying) {
       return [];
     }
-    const sittingOutCount = players.length - neededPlayers;
+    const sittingOutCount = players.length - numPlaying;
     const randomPlayers = this.shuffleArray(players);
 
     // Sort by: 1) sit-out count (ascending), 2) games played (descending)

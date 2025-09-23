@@ -20,7 +20,7 @@ import { useAppDispatch, useAppSelector } from "@/src/store";
 import { Court, Game, Session, Player, PlayerStats } from "@/src/types";
 import {
   getCurrentRound,
-  getCurrentRoundNumber,
+  getCurrentRoundIndex,
 } from "@/src/services/sessionService";
 import {
   updateCourtInSessionThunk,
@@ -40,7 +40,7 @@ interface RoundComponentProps {
   session: Session;
   editing: boolean;
   ratingSwitch: boolean;
-  roundNumber?: number;
+  roundIndex?: number;
   onSwapPlayersChange?: (canSwap: boolean, swapHandler: () => void) => void;
 }
 
@@ -48,7 +48,7 @@ export default function RoundComponent({
   session,
   editing,
   ratingSwitch = true,
-  roundNumber,
+  roundIndex,
   onSwapPlayersChange,
 }: RoundComponentProps) {
   const dispatch = useAppDispatch();
@@ -76,7 +76,7 @@ export default function RoundComponent({
     ? getSessionPausedPlayers(session, players)
     : [];
 
-  const currentRound = getCurrentRound(session, false, roundNumber);
+  const currentRound = getCurrentRound(session, false, roundIndex);
 
   const showRating = session?.showRatings ?? false;
   const [showRatingEnabled, setShowRatingEnabled] =
@@ -311,7 +311,7 @@ export default function RoundComponent({
       updateCurrentRoundThunk({
         sessionId: session.id,
         assignment: {
-          roundNumber: getCurrentRoundNumber(session),
+          roundIndex: getCurrentRoundIndex(session),
           gameAssignments: newGames.map((game) => {
             return {
               courtId: game.courtId,

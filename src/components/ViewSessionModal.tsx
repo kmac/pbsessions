@@ -331,7 +331,7 @@ export default function ViewSessionModal({
         session={session}
         editing={false}
         ratingSwitch={false}
-        roundNumber={index}
+        roundIndex={index}
       />
     </List.Accordion>
   );
@@ -347,7 +347,11 @@ export default function ViewSessionModal({
           style={{ flex: 1, backgroundColor: theme.colors.background }}
         >
           <Appbar.Header>
-            <Appbar.BackAction onPress={onCancel} />
+            <Appbar.BackAction onPress={() => {
+              collapseAllRounds();
+              onCancel();
+            }}
+            />
             <Appbar.Content
               title={
                 <Text
@@ -485,7 +489,7 @@ export default function ViewSessionModal({
             <FlatList
               data={rounds}
               renderItem={renderRound}
-              keyExtractor={(item) => item.roundNumber.toString()}
+              keyExtractor={(item) => item.roundIndex.toString()}
               contentContainerStyle={styles.listContainer}
               ListFooterComponent={
                 <View>

@@ -125,7 +125,7 @@ export interface Results {
 }
 
 export interface Round {
-  roundNumber: number;
+  roundIndex: number;
   games: Game[];
   sittingOutIds: string[];
 }
@@ -136,7 +136,7 @@ export type GameAssignment = Pick<
 >;
 
 export interface RoundAssignment {
-  roundNumber: number;
+  roundIndex: number;
   gameAssignments: GameAssignment[];
   sittingOutIds: string[];
 }

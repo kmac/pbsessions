@@ -1,7 +1,6 @@
 import {
   Court,
   Game,
-  Player,
   PlayerStats,
   Results,
   Round,
@@ -19,10 +18,10 @@ export const getCurrentRoundInfo = (liveData?: {
 
   return {
     liveData: safeData,
-    roundNumber: roundsLength === 0 ? 1 : roundsLength,
+    roundIndex: roundsLength === 0 ? 0 : roundsLength - 1,
     currentRound:
       roundsLength === 0
-        ? ({ roundNumber: 1, games: [], sittingOutIds: [] } as Round)
+        ? ({ roundIndex: 0, games: [], sittingOutIds: [] } as Round)
         : safeData.rounds[roundsLength - 1],
   };
 };
@@ -36,45 +35,42 @@ export const validateLive = (session?: Session): void => {
   }
 };
 
-export const getCurrentRoundNumber = (
+export const getCurrentRoundIndex = (
   session: Session,
-  live: boolean = true,
-  roundNumber?: number,
+  live: boolean = true
 ): number => {
   if (live) {
     validateLive(session);
   } else if (!session || !session.liveData) {
     return 0;
   }
-  return roundNumber ? roundNumber : session.liveData!.rounds.length;
-
-  // if (session.state === SessionState.Live) {
-  //   return length - 1;
-  // }
-  // if (session.state === SessionState.New) {
-  //   return 0;
-  // }
-  // if (session.state === SessionState.Complete) {
-  //   return length - 1;
-  // }
-  // return length === 0 ? 0 : length - 1;
+  return session.liveData!.rounds.length === 0 ? 0 : session.liveData!.rounds.length - 1;
 };
 
 export const getCurrentRound = (
   session: Session,
   live: boolean = true,
-  roundNumber?: number,
+  roundIndex?: number,
 ): Round => {
   if (live) {
     validateLive(session);
   } else if (!session || !session.liveData) {
-    return { roundNumber: 1, games: [], sittingOutIds: [] };
+    return { roundIndex: 0, games: [], sittingOutIds: [] };
   }
-  const length = session.liveData!.rounds.length;
+  const rounds = session.liveData!.rounds;
+  const length = rounds.length;
   if (length === 0) {
-    return { roundNumber: 1, games: [], sittingOutIds: [] };
+    return { roundIndex: 0, games: [], sittingOutIds: [] };
   }
-  return session.liveData!.rounds[roundNumber ? roundNumber : length - 1];
+
+  // Use provided index or default to last round
+  const index = roundIndex !== undefined ? roundIndex : rounds.length - 1;
+
+  // Validate bounds
+  if (index < 0 || index >= rounds.length) {
+    throw new Error(`Round index ${index} out of bounds. Available rounds: 0-${rounds.length - 1}`);
+  }
+  return rounds[index];
 };
 
 const convertAssignmentToRound = (
@@ -82,16 +78,16 @@ const convertAssignmentToRound = (
   roundAssignment: RoundAssignment,
 ): Round => {
   const newGames: Game[] = roundAssignment.gameAssignments.map((ra, index) => ({
-    id: `game_${roundAssignment.roundNumber}_${ra.courtId}_${Date.now()}_${index}`,
+    id: `game_${roundAssignment.roundIndex}_${ra.courtId}_${Date.now()}_${index}`,
     sessionId: session!.id,
-    gameNumber: roundAssignment.roundNumber,
+    gameNumber: roundAssignment.roundIndex,
     courtId: ra.courtId,
     serveTeam: ra.serveTeam,
     receiveTeam: ra.receiveTeam,
     isCompleted: false,
   }));
   const nextRound = {
-    roundNumber: roundAssignment.roundNumber,
+    roundIndex: roundAssignment.roundIndex,
     games: newGames,
     sittingOutIds: roundAssignment.sittingOutIds,
   };

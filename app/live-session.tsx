@@ -31,7 +31,6 @@ import {
 } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 import {
-  Game,
   Player,
   Results,
   Score,
@@ -47,7 +46,8 @@ import {
 } from "@/src/store/actions/sessionActions";
 import {
   getCurrentRound,
-  getCurrentRoundNumber,
+  getCurrentRoundIndex,
+  SessionService,
 } from "@/src/services/sessionService";
 
 export default function LiveSessionScreen() {
@@ -114,10 +114,10 @@ export default function LiveSessionScreen() {
   //   dispatch(updateCourts(liveSession ? [...liveSession.courts] : []));
   // }
 
-  const currentRoundNumber = getCurrentRoundNumber(liveSession, true);
+  const currentRoundIndex = getCurrentRoundIndex(liveSession, true);
   const currentRound = getCurrentRound(liveSession, true);
 
-  const hasActiveRound = currentRoundNumber > 0;
+  const hasActiveRound = currentRoundIndex > 0;
 
   const isRoundInProgress =
     currentRound.games.length > 0 &&
@@ -128,8 +128,8 @@ export default function LiveSessionScreen() {
     currentRound.games.every((g) => g.isCompleted);
 
   const numCompletedRounds = isRoundCompleted
-    ? currentRoundNumber
-    : currentRoundNumber - 1;
+    ? currentRoundIndex
+    : currentRoundIndex - 1;
 
   const activeCourts = liveSession.courts
     ? liveSession.courts.filter((c) => c.isActive)
@@ -301,7 +301,7 @@ export default function LiveSessionScreen() {
               fontWeight: "600",
             }}
           >
-            Round {currentRoundNumber} Completed
+            Round {currentRoundIndex} Completed
           </Chip>
           <Button
             icon="play"
@@ -386,25 +386,30 @@ export default function LiveSessionScreen() {
     let successfulRounds = 0;
     let currentSession = { ...liveSession };
 
-    const generateSimulatedScore = (game: Game): Score => {
+    const simulateScore = (): Score => {
       const randomOutcome = Math.floor(Math.random() * 10);
       let score: Score = {
         serveScore: 0,
         receiveScore: 0,
       };
       if (randomOutcome <= 4) {
+        // serve-side wins
         score.serveScore = 11;
         score.receiveScore = Math.floor(Math.random() * 10);
       } else {
-        score.serveScore = Math.floor(Math.random() * 10);
+        // receive-side wins
         score.receiveScore = 11;
+        score.serveScore = Math.floor(Math.random() * 10);
       }
       return score;
     };
 
     const generateNextRound = () => {
       if (successfulRounds >= numRounds) {
-        // All rounds generated successfully
+
+        // Update our session with all the new rounds.
+        dispatch(updateSession(currentSession));
+
         Alert.alert(
           "Rounds Generated",
           `Successfully generated ${successfulRounds} round${successfulRounds > 1 ? "s" : ""}. You can view them using the session history.`,
@@ -415,86 +420,72 @@ export default function LiveSessionScreen() {
       }
 
       try {
-        const sessionCoordinator = new SessionCoordinator(
+        let sc = new SessionCoordinator(
           currentSession,
           liveSessionPlayers,
           liveSessionPausedPlayers,
         );
-        const roundAssignment = sessionCoordinator.generateRoundAssignment();
+        const roundAssignment = sc.generateRoundAssignment();
 
         if (roundAssignment.gameAssignments.length === 0) {
           Alert.alert(
             "Round Generation Stopped",
-            `Successfully generated ${successfulRounds} rounds. Cannot generate more rounds - unable to create valid game assignments.`,
+            `Generated ${successfulRounds} rounds. Cannot generate more rounds - unable to create valid game assignments.`,
             [{ text: "OK" }],
           );
           closeGenerateRoundsModal();
           return;
         }
 
-        // Use the proper Redux thunk to apply the round
-        dispatch(
-          applyNextRoundThunk({
-            sessionId: liveSession.id,
-            assignment: roundAssignment,
-          }),
-        ).then((result) => {
-          if (applyNextRoundThunk.fulfilled.match(result)) {
-            currentSession = result.payload;
+        currentSession = SessionService.applyNextRound(
+          currentSession,
+          roundAssignment,
+        );
+        if (!currentSession) {
+          Alert.alert(
+            "Round Generation Error",
+            `Generated ${successfulRounds} rounds. Error generating round ${successfulRounds + 1}.`,
+            [{ text: "OK" }],
+          );
+          closeGenerateRoundsModal();
+        }
+        // refresh our coordinator for updated session
+        sc = new SessionCoordinator(
+          currentSession,
+          liveSessionPlayers,
+          liveSessionPausedPlayers,
+        );
 
-            // Update player stats and complete the round (no scoring)
-            const currentRoundGames = getCurrentRound(
-              currentSession,
-              true,
-            ).games;
-            const results: Results = { scores: {} };
-            currentRoundGames.forEach((game) => {
-              results.scores[game.id] = generateSimulateScoring
-                ? generateSimulatedScore(game)
-                : null;
-            });
-
-            const updatedSessionCoordinator = new SessionCoordinator(
-              currentSession,
-              liveSessionPlayers,
-              liveSessionPausedPlayers,
-            );
-            const updatedPlayerStats =
-              updatedSessionCoordinator.updateStatsForRound(
-                currentRoundGames,
-                results,
-              );
-
-            dispatch(
-              completeRoundThunk({
-                sessionId: currentSession.id,
-                results: results,
-                updatedPlayerStats: updatedPlayerStats,
-              }),
-            ).then((completeResult) => {
-              if (completeRoundThunk.fulfilled.match(completeResult)) {
-                successfulRounds++;
-                currentSession = completeResult.payload;
-                // Generate the next round
-                generateNextRound();
-              } else {
-                Alert.alert(
-                  "Round Generation Error",
-                  `Successfully generated ${successfulRounds} rounds. Error completing round ${successfulRounds + 1}.`,
-                  [{ text: "OK" }],
-                );
-                closeGenerateRoundsModal();
-              }
-            });
-          } else {
-            Alert.alert(
-              "Round Generation Error",
-              `Successfully generated ${successfulRounds} rounds. Error generating round ${successfulRounds + 1}.`,
-              [{ text: "OK" }],
-            );
-            closeGenerateRoundsModal();
-          }
+        // Update player stats and complete the round
+        const currentRoundGames = getCurrentRound(currentSession, true).games;
+        const results: Results = { scores: {} };
+        currentRoundGames.forEach((game) => {
+          results.scores[game.id] = generateSimulateScoring
+            ? simulateScore()
+            : null;
         });
+
+        const updatedPlayerStats = sc.updateStatsForRound(
+          currentRoundGames,
+          results,
+        );
+
+        currentSession = SessionService.completeRound(
+          currentSession,
+          results,
+          updatedPlayerStats,
+        );
+        if (!currentSession) {
+          Alert.alert(
+            "Round Generation Error",
+            `Generated ${successfulRounds} rounds. Error completing round ${successfulRounds + 1}.`,
+            [{ text: "OK" }],
+          );
+          closeGenerateRoundsModal();
+        }
+
+        successfulRounds++;
+        generateNextRound();
       } catch (error) {
         Alert.alert(
           "Round Generation Error",
@@ -720,11 +711,12 @@ export default function LiveSessionScreen() {
               }}
             >
               {isRoundCompleted
-                ? `Round ${currentRoundNumber} (Complete)`
-                : `Round ${currentRoundNumber} Games`}
+                ? `Round ${currentRoundIndex} (Complete)`
+                : `Round ${currentRoundIndex} Games`}
             </Text>
 
             <RoundComponent
+              key={currentRoundIndex}
               session={liveSession}
               editing={false}
               ratingSwitch={true}

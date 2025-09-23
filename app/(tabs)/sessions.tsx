@@ -637,6 +637,16 @@ export default function SessionsTab() {
                   }}
                   title="Delete"
                 />
+                {false && __DEV__ && (
+                <Menu.Item
+                  leadingIcon="delete"
+                  onPress={() => {
+                    toggleSessionMenu(session.id, false);
+                    console.log(session.liveData);
+                  }}
+                  title="Dump"
+                />
+                )}
               </Menu>
             </View>
           ) : (
@@ -683,6 +693,15 @@ export default function SessionsTab() {
                   onPress={() => handleCloneSession(session)}
                 >
                   Clone
+                </Button>
+              )}
+              {false && __DEV__ && (
+                <Button
+                  icon="content-duplicate"
+                  mode="text"
+                  onPress={() => console.log(session.liveData)}
+                >
+                  Dump
                 </Button>
               )}
             </View>

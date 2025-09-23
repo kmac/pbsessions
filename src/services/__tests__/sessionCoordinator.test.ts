@@ -121,7 +121,7 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
     test("should generate round assignment with correct structure", () => {
       const result = sessionCoordinator.generateRoundAssignment();
 
-      expect(result).toHaveProperty("roundNumber");
+      expect(result).toHaveProperty("roundIndex");
       expect(result).toHaveProperty("gameAssignments");
       expect(result).toHaveProperty("sittingOutIds");
       expect(Array.isArray(result.gameAssignments)).toBe(true);

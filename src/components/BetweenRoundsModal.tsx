@@ -136,7 +136,7 @@ export default function BetweenRoundsModal({
     return null;
   }
 
-  const { liveData, roundNumber, currentRound } = getCurrentRoundInfo(
+  const { liveData, roundIndex, currentRound } = getCurrentRoundInfo(
     currentSession.liveData,
   );
 
@@ -164,7 +164,7 @@ export default function BetweenRoundsModal({
                     fontWeight: "600",
                   }}
                 >
-                  New Round: {roundNumber}
+                  New Round: {roundIndex}
                 </Text>
               }
             />
