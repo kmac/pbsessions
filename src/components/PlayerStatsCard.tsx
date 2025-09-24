@@ -9,6 +9,8 @@ interface PlayerStatsCardProps {
   narrowScreen: Boolean;
 }
 
+// TODO NOT USED
+
 export default function PlayerStatsCard({
   stats,
   players,

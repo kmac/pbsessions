@@ -14,6 +14,8 @@ import {
   Chip,
   Icon,
   IconButton,
+  Portal,
+  Snackbar,
   Surface,
   Switch,
   Text,
@@ -59,6 +61,7 @@ export default function EditSessionModal({
   const { appSettings } = useAppSelector((state) => state.appSettings);
   const [scoring, setScoring] = useState(appSettings.defaultUseScoring);
   const [useRatings, setUseRatings] = useState(appSettings.defaultUseRatings);
+  const [courtSnackVisible, setCourtSnackVisible] = useState(false);
 
   const [formData, setFormData] = useState({
     // defaults
@@ -526,7 +529,8 @@ export default function EditSessionModal({
                         fontStyle: "italic",
                       }}
                     >
-                      Use strict partnerships when deciding who sits out (partners sit out as units)
+                      Use strict partnerships when deciding who sits out
+                      (partners sit out as units)
                     </Text>
                   </View>
                   <Switch
@@ -731,29 +735,53 @@ export default function EditSessionModal({
                       </Chip>
                     ))}
                   </View>
-                  {false && (
-                    <View
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <IconButton
+                      icon="minus"
+                      size={20}
+                      mode="contained-tonal"
+                      onPress={() => {
+                        if (
+                          activeCourts.length >
+                          initialFormData.current.courts.length
+                        ) {
+                          adjustCourts("minus");
+                        } else {
+                          setCourtSnackVisible(true);
+                        }
+                      }}
+                    />
+                    <Snackbar
+                      visible={courtSnackVisible}
+                      duration={4000}
+                      icon="close"
+                      onIconPress={() => setCourtSnackVisible(false)}
+                      onDismiss={() => setCourtSnackVisible(false)}
                       style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
+                        width: 300,
+                        backgroundColor: theme.colors.error,
+                        padding: 8,
+                        borderRadius: 6,
+                        marginTop: 12,
                       }}
                     >
-                      <IconButton
-                        icon="minus"
-                        size={20}
-                        mode="contained-tonal"
-                        onPress={() => adjustCourts("minus")}
-                      />
-                      <Text>{activeCourts.length}</Text>
-                      <IconButton
-                        icon="plus"
-                        size={20}
-                        mode="contained-tonal"
-                        onPress={() => adjustCourts("plus")}
-                      />
-                    </View>
-                  )}
+                      Existing courts cannot be deleted for in-progress session.
+                      Disable the court instead.
+                    </Snackbar>
+                    <Text>{activeCourts.length}</Text>
+                    <IconButton
+                      icon="plus"
+                      size={20}
+                      mode="contained-tonal"
+                      onPress={() => adjustCourts("plus")}
+                    />
+                  </View>
                 </Surface>
               </Card.Content>
             </Card>

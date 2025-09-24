@@ -538,12 +538,13 @@ export default function RoundComponent({
               >
                 <View
                   style={{
-                    // flexDirection: isNarrowScreen() ? "column" : "row",
                     flexDirection: "column",
                   }}
                 >
                   {getPlayerText(
-                    `${player.name} (${getPlayerStats(session, player.id)?.gamesSatOut || 0})`,
+                    editing
+                      ? `${player.name} (${getPlayerStats(session, player.id)?.gamesSatOut || 0})`
+                      : player.name,
                   )}
                   <View
                     style={{

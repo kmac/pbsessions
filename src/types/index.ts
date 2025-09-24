@@ -113,6 +113,7 @@ export interface PlayerStats {
   playerId: string;
   gamesPlayed: number;
   gamesSatOut: number;
+  consecutiveGames: number;
   partners: { [playerId: string]: number }; // count of games played with each partner
   fixedPartnershipGames: number; // games played with fixed partner
   totalScore: number;
@@ -149,5 +150,5 @@ export interface Settings {
   theme: "light" | "dark" | "auto";
   defaultUseScoring: boolean;
   defaultUseRatings: boolean;
-  defaultEnforceFixedPartnerships: boolean; // New setting
+  defaultEnforceFixedPartnerships: boolean;
 }

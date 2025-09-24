@@ -113,6 +113,7 @@ export const playerStatsToString = (stats: PlayerStats[]): string => {
   stats.forEach((pstat, index) => {
     lines.push(`Player ${index + 1}: ${pstat.playerId}`);
     lines.push(`  Games Played: ${pstat.gamesPlayed}`);
+    lines.push(`  Consecutive Games: ${pstat.consecutiveGames}`);
     lines.push(`  Games Sat Out: ${pstat.gamesSatOut}`);
     lines.push(`  Total Score (for): ${pstat.totalScore}`);
     lines.push(`  Total Score (against): ${pstat.totalScoreAgainst}`);

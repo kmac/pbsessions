@@ -5,18 +5,17 @@ import {
   Button,
   Card,
   Chip,
+  Icon,
   IconButton,
   Surface,
   Text,
   useTheme,
 } from "react-native-paper";
 import {
-  Trophy,
   Users,
   Clock,
   Star,
   BarChart3,
-  TrendingUp,
   UserCheck,
 } from "lucide-react-native";
 import { Player, PlayerStats } from "../types";
@@ -50,6 +49,7 @@ export default function PlayerStatsModal({
         playerId,
         gamesPlayed: 0,
         gamesSatOut: 0,
+        consecutiveGames: 0,
         partners: {},
         fixedPartnershipGames: 0,
         totalScore: 0,
@@ -153,7 +153,7 @@ export default function PlayerStatsModal({
             }}
           >
             <View style={{ alignItems: "center", gap: 4 }}>
-              <Trophy size={16} color={theme.colors.primary} />
+              <Icon source="trophy" size={16} color={theme.colors.primary} />
               <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
                 {playerStats.gamesPlayed}
               </Text>
@@ -181,6 +181,22 @@ export default function PlayerStatsModal({
                 }}
               >
                 Sat Out
+              </Text>
+            </View>
+
+            <View style={{ alignItems: "center", gap: 4 }}>
+              <Icon source="trending-up" size={16} color={theme.colors.onSurfaceVariant} />
+              <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+                {playerStats.consecutiveGames}
+              </Text>
+              <Text
+                variant="labelSmall"
+                style={{
+                  color: theme.colors.onSurfaceVariant,
+                  textAlign: "center",
+                }}
+              >
+                Since Sat
               </Text>
             </View>
 
@@ -286,7 +302,7 @@ export default function PlayerStatsModal({
           </View>
 
           <View style={{ alignItems: "center", gap: 8 }}>
-            <Trophy size={20} color={theme.colors.primary} />
+            <Icon source="trophy" size={20} color={theme.colors.primary} />
             <Text variant="titleLarge" style={{ fontWeight: "bold" }}>
               {totalGames}
             </Text>
@@ -302,8 +318,7 @@ export default function PlayerStatsModal({
           </View>
 
           <View style={{ alignItems: "center", gap: 8 }}>
-            <TrendingUp size={20} color={theme.colors.primary} />
-            {/* <Icon size={20} source="trophy" color={theme.colors.primary} /> */}
+            <Icon source="trending-up" size={20} color={theme.colors.primary} />
             <Text variant="titleLarge" style={{ fontWeight: "bold" }}>
               {averageGamesPlayed.toFixed(1)}
             </Text>

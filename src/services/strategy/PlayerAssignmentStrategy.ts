@@ -72,10 +72,11 @@ export abstract class PlayerAssignmentStrategy {
         return bStats.gamesPlayed - aStats.gamesPlayed;
       }
 
-      // Tertiary: alphabetical for consistency
-      // return a.name.localeCompare(b.name);
-
-      // Tertiary: random for fairness when stats are identical
+      // Tertiary: most consecutive games played
+      if (bStats.consecutiveGames !== aStats.consecutiveGames) {
+        return bStats.consecutiveGames - aStats.consecutiveGames;
+      }
+      // Tiebreak: random for fairness when stats are identical
       return Math.random() - 0.5;
     });
 
@@ -256,18 +257,47 @@ export class DefaultPlayerAssignmentStrategy extends PlayerAssignmentStrategy {
 
     // Step 4: Assign remaining flexible players to unfilled courts
     let playerIndex = 0;
-    for (const { index: courtIndex } of sortedCourts) {
+    for (const { court, index: courtIndex } of sortedCourts) {
       while (
         courtAssignments[courtIndex].length < 4 &&
         playerIndex < remainingFlexiblePlayers.length
       ) {
-        courtAssignments[courtIndex].push(
-          remainingFlexiblePlayers[playerIndex],
-        );
-        playerIndex++;
+        // Check if court has rating requirement
+        if (court.minimumRating) {
+          // Find next player who meets the rating requirement
+          let foundEligiblePlayer = false;
+          for (let i = playerIndex; i < remainingFlexiblePlayers.length; i++) {
+            const player = remainingFlexiblePlayers[i];
+            if (player.rating && player.rating >= court.minimumRating) {
+              // Move eligible player to current position and assign
+              [
+                remainingFlexiblePlayers[playerIndex],
+                remainingFlexiblePlayers[i],
+              ] = [
+                remainingFlexiblePlayers[i],
+                remainingFlexiblePlayers[playerIndex],
+              ];
+              courtAssignments[courtIndex].push(
+                remainingFlexiblePlayers[playerIndex],
+              );
+              playerIndex++;
+              foundEligiblePlayer = true;
+              break;
+            }
+          }
+          if (!foundEligiblePlayer) {
+            // No more eligible players for this court, move to next court
+            break;
+          }
+        } else {
+          // No rating requirement - assign any remaining player
+          courtAssignments[courtIndex].push(
+            remainingFlexiblePlayers[playerIndex],
+          );
+          playerIndex++;
+        }
       }
     }
-
     // Step 5: Remove courts with insufficient players
     return courtAssignments.filter(
       (court) => court.length >= APP_CONFIG.MIN_PLAYERS_PER_GAME,
@@ -627,31 +657,34 @@ export class FairWeightedPlayerAssignmentStrategy extends PlayerAssignmentStrate
       ...constraints.partnershipUnits.flatMap((unit) => unit.players),
     ];
 
-    const playerScores = allPlayers.map((player) => {
+    const playerSelectScores = allPlayers.map((player) => {
       const stats = this.playerStats.get(player.id)!;
       const isPartnered = constraints.fixedPairs.has(player.id);
       return {
         player,
         sitOutCount: stats.gamesSatOut,
         gamesPlayed: stats.gamesPlayed,
+        consecutiveGames: stats.consecutiveGames,
         isPartnered,
         // fairnessScore: stats.gamesSatOut - stats.gamesPlayed, // Lower is higher priority for sitting out
       };
     });
 
     // Step 2: Sort by fairness criteria (same as selectSittingOutPlayers)
-    playerScores.sort((a, b) => {
+    playerSelectScores.sort((a, b) => {
       // Primary: least sit-outs first (higher priority to sit out)
       if (a.sitOutCount !== b.sitOutCount) {
         return a.sitOutCount - b.sitOutCount;
       }
-
       // Secondary: most games played first (so they sit out to balance)
       if (b.gamesPlayed !== a.gamesPlayed) {
         return b.gamesPlayed - a.gamesPlayed;
       }
-
-      // Tertiary: random for fairness when stats are identical
+      // Tertiary: most consecutive games played
+      if (b.consecutiveGames !== a.consecutiveGames) {
+        return b.consecutiveGames - a.consecutiveGames;
+      }
+      // Tiebreak: random for fairness when stats are identical
       return Math.random() - 0.5;
     });
 
@@ -659,11 +692,11 @@ export class FairWeightedPlayerAssignmentStrategy extends PlayerAssignmentStrate
     const selectedToSitOut: Player[] = [];
     const processedPlayerIds = new Set<string>();
 
-    for (const playerScore of playerScores) {
+    for (const selectionScore of playerSelectScores) {
       if (selectedToSitOut.length >= sittingOutCount) break;
-      if (processedPlayerIds.has(playerScore.player.id)) continue;
+      if (processedPlayerIds.has(selectionScore.player.id)) continue;
 
-      const player = playerScore.player;
+      const player = selectionScore.player;
       const partnerId = constraints.fixedPairs.get(player.id);
 
       if (partnerId) {
@@ -722,6 +755,7 @@ export class FairWeightedPlayerAssignmentStrategy extends PlayerAssignmentStrate
             player,
             sitOutCount: stats.gamesSatOut,
             gamesPlayed: stats.gamesPlayed,
+            consecutiveGames: stats.consecutiveGames,
           };
         });
 
@@ -730,12 +764,15 @@ export class FairWeightedPlayerAssignmentStrategy extends PlayerAssignmentStrate
           if (b.sitOutCount !== a.sitOutCount) {
             return b.sitOutCount - a.sitOutCount;
           }
-
           // Remove those with LEAST games played first (reverse of selection criteria)
           if (a.gamesPlayed !== b.gamesPlayed) {
             return a.gamesPlayed - b.gamesPlayed;
           }
-
+          // Remove those with LEAST consecutive games played first (reverse of selection criteria)
+          if (a.consecutiveGames !== b.consecutiveGames) {
+            return a.consecutiveGames - b.consecutiveGames;
+          }
+          // tiebreak
           return Math.random() - 0.5;
         });
 
@@ -749,7 +786,6 @@ export class FairWeightedPlayerAssignmentStrategy extends PlayerAssignmentStrate
         }
       }
     }
-
     return selectedToSitOut;
   }
 

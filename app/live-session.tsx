@@ -30,13 +30,7 @@ import {
   logSession,
 } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
-import {
-  Player,
-  Results,
-  Score,
-  Session,
-  SessionState,
-} from "@/src/types";
+import { Player, Results, Score, Session, SessionState } from "@/src/types";
 
 import {
   applyNextRoundThunk,
@@ -63,7 +57,6 @@ export default function LiveSessionScreen() {
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [betweenRoundsVisible, setBetweenRoundsVisible] = useState(false);
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
-  const [roundStartTime, setRoundStartTime] = useState<Date | null>(null);
   const [pulldownMenuVisible, setPulldownMenuVisible] = useState(false);
   const [generateRoundsMenuVisible, setGenerateRoundsMenuVisible] =
     useState(false);
@@ -117,10 +110,11 @@ export default function LiveSessionScreen() {
   const currentRoundIndex = getCurrentRoundIndex(liveSession, true);
   const currentRound = getCurrentRound(liveSession, true);
 
-  const hasActiveRound = currentRoundIndex > 0;
+  const hasActiveRound =
+    currentRoundIndex >= 0 && currentRound.games.length > 0;
 
   const isRoundInProgress =
-    currentRound.games.length > 0 &&
+    hasActiveRound &&
     currentRound.games.some((g) => g.startedAt && !g.isCompleted);
 
   const isRoundCompleted =
@@ -196,7 +190,6 @@ export default function LiveSessionScreen() {
 
   const handleStartRound = () => {
     dispatch(startRoundThunk({ sessionId: liveSession.id }));
-    setRoundStartTime(new Date());
     setBetweenRoundsVisible(false);
   };
 
@@ -212,6 +205,7 @@ export default function LiveSessionScreen() {
         results.scores[game.id] = null;
       });
       handleRoundScoresSubmitted(results);
+      // handleGenerateNewRound();
     }
   };
 
@@ -233,7 +227,6 @@ export default function LiveSessionScreen() {
       }),
     );
     setScoreModalVisible(false);
-    setRoundStartTime(null);
   };
 
   const endSession = () => {
@@ -325,6 +318,7 @@ export default function LiveSessionScreen() {
           contentStyle={{ paddingVertical: 2 }}
           // style={{ marginBottom: 12 }}
         >
+          {/* {scoring ? "Complete Round" : "Generate Next Round"} */}
           Complete Round
         </Button>
       );
@@ -406,7 +400,6 @@ export default function LiveSessionScreen() {
 
     const generateNextRound = () => {
       if (successfulRounds >= numRounds) {
-
         // Update our session with all the new rounds.
         dispatch(updateSession(currentSession));
 
@@ -715,17 +708,80 @@ export default function LiveSessionScreen() {
                 : `Round ${currentRoundIndex} Games`}
             </Text>
 
+            {!isRoundCompleted && hasActiveRound && (
+              <Surface
+                style={{
+                  backgroundColor: theme.colors.tertiaryContainer,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginTop: 12,
+                    marginBottom: 12,
+                    gap: 12,
+                  }}
+                >
+                  <Icon source="autorenew" size={26} />
+                  <Text
+                    variant="bodyMedium"
+                    style={{
+                      fontWeight: "500",
+                      fontStyle: "italic",
+                      fontSize: 16,
+                    }}
+                  >
+                    Games in progress...
+                  </Text>
+                </View>
+              </Surface>
+            )}
+
             <RoundComponent
               key={currentRoundIndex}
               session={liveSession}
               editing={false}
               ratingSwitch={true}
             />
+
+            {!isRoundCompleted && hasActiveRound && (
+              <Surface
+                style={{
+                  backgroundColor: theme.colors.tertiaryContainer,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginTop: 12,
+                    marginBottom: 12,
+                    gap: 12,
+                  }}
+                >
+                  <Icon source="autorenew" size={26} />
+                  <Text
+                    variant="bodyMedium"
+                    style={{
+                      fontWeight: "500",
+                      fontStyle: "italic",
+                      fontSize: 16,
+                    }}
+                  >
+                    Games in progress...
+                  </Text>
+                </View>
+              </Surface>
+            )}
+
           </View>
         )}
 
         {/* Round Action Button */}
-        <View style={{ marginBottom: 24 }}>{getRoundActionButton()}</View>
+        <View style={{ marginBottom: 18 }}>{getRoundActionButton()}</View>
 
         {/* Previous Rounds Summary */}
         {numCompletedRounds > 0 && (

@@ -40,7 +40,7 @@ export class SessionCoordinator {
     session: Session,
     players: Player[],
     pausedPlayers: Player[],
-    strategy: Strategy = "fairweight",
+    strategy: Strategy = "fairweight", // "default"
   ) {
     if (!session.liveData) {
       throw new Error(
@@ -68,6 +68,7 @@ export class SessionCoordinator {
           playerId: player.id,
           gamesPlayed: 0,
           gamesSatOut: 0,
+          consecutiveGames: 0,
           partners: {},
           fixedPartnershipGames: 0,
           totalScore: 0,
@@ -195,7 +196,7 @@ export class SessionCoordinator {
       (player) => !assignedPlayerIds.has(player.id),
     );
 
-    const log_for_browser = true; //__DEV__;
+    const log_for_browser = false; //__DEV__;
     const log_for_console = false;
     if (log_for_console) {
       // console friendly
@@ -369,6 +370,7 @@ export class SessionCoordinator {
         playerId: s.playerId,
         gamesPlayed: s.gamesPlayed,
         gamesSatOut: s.gamesSatOut,
+        consecutiveGames: s.consecutiveGames,
         partnerships: Object.keys(s.partners).length,
         fixedPartnershipGames: s.fixedPartnershipGames,
       })),
@@ -398,6 +400,7 @@ export class SessionCoordinator {
         partners: { ...stats.partners },
       };
       mutableStats.gamesPlayed++;
+      mutableStats.consecutiveGames++;
 
       // Update partnership counts - only with actual teammate
       const teammateId = this.getTeammateId(game, playerId);
@@ -439,6 +442,7 @@ export class SessionCoordinator {
       if (stats) {
         const mutableStats = { ...stats };
         mutableStats.gamesSatOut++;
+        mutableStats.consecutiveGames = 0;
         this.playerStats.set(playerId, mutableStats);
       } else {
         console.error(

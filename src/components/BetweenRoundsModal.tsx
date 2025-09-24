@@ -194,7 +194,7 @@ export default function BetweenRoundsModal({
               <View style={{ flexDirection: "column", marginBottom: 8 }}>
                 <TopDescription
                   visible={true}
-                  description="Configure players and court settings for this round."
+                  description={`Configure players and court settings for this round.\nSelect a player or court to enable further actions. Start the round when ready.`}
                 />
 
                 <RoundComponent
@@ -206,8 +206,7 @@ export default function BetweenRoundsModal({
 
                 <View // Action buttons
                   style={{
-                    flexDirection: isSmallScreen ? "column" : "row",
-                    alignContent: "space-between",
+                    flexDirection: "column",
                     gap: 12,
                   }}
                 >
@@ -218,8 +217,15 @@ export default function BetweenRoundsModal({
                     contentStyle={{ padding: 2 }}
                     style={isSmallScreen ? { flex: 1 } : undefined}
                   >
-                    Start
+                    Start Round
                   </Button>
+                <View // Action buttons
+                  style={{
+                    flexDirection: isSmallScreen ? "column" : "row",
+                    alignContent: "space-between",
+                    gap: 12,
+                  }}
+                >
                   <Button
                     icon="refresh"
                     mode="outlined"
@@ -255,6 +261,7 @@ export default function BetweenRoundsModal({
                     </Button>
                   )}
                 </View>
+              </View>
               </View>
             </Surface>
           </ScrollView>
