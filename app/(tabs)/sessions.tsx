@@ -3,6 +3,7 @@ import { View, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
+  ActivityIndicator,
   Avatar,
   Button,
   Card,
@@ -39,12 +40,12 @@ import {
 export default function SessionsTab() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-
   const narrowScreen = isNarrowScreen();
 
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
+  const isAppInitialized = useAppSelector((state) => state.app.isInitialized);
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [sessionMenuVisible, setSessionMenuVisible] = useState<{
@@ -638,14 +639,14 @@ export default function SessionsTab() {
                   title="Delete"
                 />
                 {false && __DEV__ && (
-                <Menu.Item
-                  leadingIcon="delete"
-                  onPress={() => {
-                    toggleSessionMenu(session.id, false);
-                    console.log(session.liveData);
-                  }}
-                  title="Dump"
-                />
+                  <Menu.Item
+                    leadingIcon="delete"
+                    onPress={() => {
+                      toggleSessionMenu(session.id, false);
+                      console.log(session.liveData);
+                    }}
+                    title="Dump"
+                  />
                 )}
               </Menu>
             </View>
@@ -769,6 +770,26 @@ export default function SessionsTab() {
       )}
     </View>
   );
+
+  if (!isAppInitialized) {
+    return (
+      <SafeAreaView
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: theme.colors.background,
+        }}
+      >
+        <ActivityIndicator
+          size="large"
+          animating={true}
+          color={theme.colors.primary}
+        />
+        <Text style={{ marginTop: 16 }}>Loading sessions...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1 }}>

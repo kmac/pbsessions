@@ -15,12 +15,14 @@ import {
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import { Platform, View } from "react-native";
 import {
   adaptNavigationTheme,
   Appbar,
   Text,
   PaperProvider,
   Tooltip,
+  ActivityIndicator,
 } from "react-native-paper";
 
 import { store, RootState } from "@/src/store";
@@ -29,34 +31,36 @@ import { setPlayers } from "@/src/store/slices/playersSlice";
 import { setGroups } from "@/src/store/slices/groupsSlice";
 import { setSessions } from "@/src/store/slices/sessionsSlice";
 import { setAppSettings } from "@/src/store/slices/appSettingsSlice";
+import {
+  startInitialization,
+  completeInitialization,
+} from "@/src/store/slices/appSlice";
 import { Themes } from "@/src/ui/styles";
 import { Settings } from "@/src/types";
 
 import { router } from "expo-router";
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from "expo-router";
+export { ErrorBoundary } from "expo-router";
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: "(tabs)",
 };
 
-SplashScreen.setOptions({
-  duration: 1000,
-  fade: true,
-});
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+// Only set splash screen options on native platforms
+if (Platform.OS !== "web") {
+  SplashScreen.setOptions({
+    duration: 1000,
+    fade: true,
+  });
+  SplashScreen.preventAutoHideAsync();
+}
 
 function StorageLoader() {
   const dispatch = useDispatch();
 
   useEffect(() => {
     const loadInitialData = async () => {
+      dispatch(startInitialization());
       const storage = StorageManager.getInstance();
 
       try {
@@ -71,8 +75,11 @@ function StorageLoader() {
         dispatch(setGroups(groups));
         dispatch(setSessions(sessions));
         dispatch(setAppSettings(appSettings));
+
+        dispatch(completeInitialization());
       } catch (error) {
         console.error("Error loading initial data:", error);
+        dispatch(completeInitialization()); // Complete even on error
       }
     };
 
@@ -82,13 +89,42 @@ function StorageLoader() {
   return null;
 }
 
+// Loading Screen Component
+function LoadingScreen() {
+  const theme = Themes.light.default; // Fallback theme for loading
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: theme.colors.background,
+      }}
+    >
+      <ActivityIndicator size="large" animating={true} color={theme.colors.primary} />
+      <Text
+        variant="headlineMedium"
+        style={{
+          marginTop: 16,
+          color: theme.colors.onSurface,
+          fontSize: 16,
+        }}
+      >
+        Loading Pickleball Sessions...
+      </Text>
+    </View>
+  );
+}
+
 const RootLayoutNav = () => {
-  // Get settings from Redux store
+  const isInitialized = useSelector(
+    (state: RootState) => state.app.isInitialized,
+  );
   const settings = useSelector(
     (state: RootState) => state.appSettings.appSettings,
   );
 
-  // Fix: Get actual system color scheme and use settings theme
   const systemColorScheme = useColorScheme();
   const getEffectiveColorScheme = () => {
     if (!settings?.theme) return "light";
@@ -98,7 +134,6 @@ const RootLayoutNav = () => {
 
   const colorScheme = getEffectiveColorScheme();
 
-  // Fallback to default if settings not loaded yet
   const effectiveSettings: Settings = settings || {
     theme: "light",
     color: "default",
@@ -118,36 +153,14 @@ const RootLayoutNav = () => {
     materialLight: Themes.light[effectiveSettings.color],
   });
 
-  const stackHeader = () => {
+  // Show loading screen while initializing
+  if (!isInitialized) {
     return (
-      <Appbar.Header mode="center-aligned">
-        {/*<Appbar.BackAction
-                  onPress={() => {
-                    router.navigate("/sessions");
-                  }}
-                />*/}
-        <Appbar.Content
-          title={
-            <Text
-              variant="titleMedium"
-              style={{
-                alignItems: "center",
-                fontWeight: "600",
-              }}
-            >
-              Pickleball Sessions
-            </Text>
-          }
-        />
-        <Tooltip title="Settings">
-          <Appbar.Action
-            icon="dots-vertical"
-            onPress={() => router.navigate("/settings")}
-          />
-        </Tooltip>
-      </Appbar.Header>
+      <PaperProvider theme={theme}>
+        <LoadingScreen />
+      </PaperProvider>
     );
-  };
+  }
 
   return (
     <ThemeProvider
@@ -157,24 +170,10 @@ const RootLayoutNav = () => {
           : { ...DarkTheme, fonts: NavDarkTheme.fonts }
       }
     >
-      <StorageLoader />
       <PaperProvider theme={theme}>
-        <Stack
-          screenOptions={
-            {
-              // animation: 'slide_from_bottom',
-              //header: (props) => stackHeader()
-            }
-          }
-        >
+        <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-          <Stack.Screen
-            name="live-session"
-            options={{
-              headerShown: false,
-            }}
-          />
+          <Stack.Screen name="live-session" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </PaperProvider>
@@ -187,13 +186,12 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded && Platform.OS !== "web") {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
@@ -204,6 +202,7 @@ export default function RootLayout() {
 
   return (
     <StoreProvider store={store}>
+      <StorageLoader />
       <RootLayoutNav />
     </StoreProvider>
   );

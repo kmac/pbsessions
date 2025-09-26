@@ -4,11 +4,13 @@ import playersReducer from "./slices/playersSlice";
 import groupsReducer from "./slices/groupsSlice";
 import sessionsReducer from "./slices/sessionsSlice";
 import appSettingsReducer from "./slices/appSettingsSlice";
+import appReducer from "./slices/appSlice";
 import { storageMiddleware } from "./middleware/storageMiddleware";
 import { courtUpdateListenerMiddleware } from "./middleware/courtUpdateListener";
 
 export const store = configureStore({
   reducer: {
+    app: appReducer,
     players: playersReducer,
     groups: groupsReducer,
     sessions: sessionsReducer,

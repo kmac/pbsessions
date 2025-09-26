@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, StyleSheet, FlatList, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  ActivityIndicator,
   Avatar,
   Button,
   Card,
@@ -35,6 +36,7 @@ export default function GroupsTab() {
   const [playerManagerVisible, setPlayerManagerVisible] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const isAppInitialized = useAppSelector((state) => state.app.isInitialized);
 
   const handleDeleteGroup = (group: Group) => {
     Alert.alert(
@@ -254,6 +256,26 @@ export default function GroupsTab() {
     dispatch(updateGroup(newGroup));
     setPlayerManagerVisible(false);
   };
+
+  if (!isAppInitialized) {
+    return (
+      <SafeAreaView
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: theme.colors.background,
+        }}
+      >
+        <ActivityIndicator
+          size="large"
+          animating={true}
+          color={theme.colors.primary}
+        />
+        <Text style={{ marginTop: 16 }}>Loading groups...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1 }}>

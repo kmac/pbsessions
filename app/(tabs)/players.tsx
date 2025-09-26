@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, FlatList, Modal, Platform, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  ActivityIndicator,
   Avatar,
   Button,
   Chip,
@@ -19,7 +20,7 @@ import {
   Dialog,
 } from "react-native-paper";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "@/src/store";
+import { RootState, useAppSelector } from "@/src/store";
 import {
   addPlayer,
   updatePlayer,
@@ -62,6 +63,7 @@ export default function PlayersTab() {
   const [exportCsvContent, setExportCsvContent] = useState("");
   const [importDialogVisible, setImportDialogVisible] = useState(false);
   const [importCsvContent, setImportCsvContent] = useState("");
+  const isAppInitialized = useAppSelector((state) => state.app.isInitialized);
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredPlayers = allPlayers.filter(
@@ -835,6 +837,26 @@ export default function PlayersTab() {
       )}
     </Surface>
   );
+
+  if (!isAppInitialized) {
+    return (
+      <SafeAreaView
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: theme.colors.background,
+        }}
+      >
+        <ActivityIndicator
+          size="large"
+          animating={true}
+          color={theme.colors.primary}
+        />
+        <Text style={{ marginTop: 16 }}>Loading players...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
