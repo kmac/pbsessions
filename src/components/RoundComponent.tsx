@@ -53,6 +53,7 @@ export default function RoundComponent({
 }: RoundComponentProps) {
   const dispatch = useAppDispatch();
   const theme = useTheme();
+  const useFlatList = false;
   const [selectedPlayers, setSelectedPlayers] = useState(
     new Map<string, Player>(),
   );
@@ -432,14 +433,23 @@ export default function RoundComponent({
           marginBottom: 24,
         }}
       >
-        <FlatList
-          data={currentRound.games || []}
-          renderItem={renderCourtAssignment}
-          keyExtractor={(game) => game.id}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
-          contentContainerStyle={{ flexGrow: 1 }}
-        />
+        {useFlatList && (
+          <FlatList
+            data={currentRound.games || []}
+            renderItem={renderCourtAssignment}
+            keyExtractor={(game) => game.id}
+            showsVerticalScrollIndicator={true}
+            scrollEnabled={true}
+            contentContainerStyle={{ flexGrow: 1 }}
+          />
+        )}
+        {!useFlatList && (
+          <View>
+            {(currentRound.games || []).map((game) =>
+              renderCourtAssignment({ item: game }),
+            )}
+          </View>
+        )}
       </View>
       {disabledCourts.length > 0 &&
         disabledCourts.map((court) => {
