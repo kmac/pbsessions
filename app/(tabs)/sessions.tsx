@@ -103,7 +103,7 @@ export default function SessionsTab() {
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete",
+          text: "Proceed",
           style: "destructive",
           onPress: () => dispatch(endSessionThunk({ sessionId: session.id })),
         },

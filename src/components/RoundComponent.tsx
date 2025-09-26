@@ -385,6 +385,7 @@ export default function RoundComponent({
 
     return (
       <RoundGameCard
+        key={game.id}
         servePlayer1Data={{
           player: servePlayer1,
           partner: getPartner(servePlayer1.id),
@@ -539,6 +540,7 @@ export default function RoundComponent({
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {sittingOutPlayers.map((player) => (
               <Chip
+                key={player.id}
                 mode={chipMode}
                 disabled={playerSelectDisabled(player)}
                 selected={getPlayerSelected(player)}
