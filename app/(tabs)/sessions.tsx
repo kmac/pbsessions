@@ -248,7 +248,7 @@ export default function SessionsTab() {
   };
 
   const navigateToPlayers = () => {
-    router.navigate("/");
+    router.navigate("/players");
   };
 
   const getSessionPlayers = (session: Session) => {

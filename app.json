@@ -38,7 +38,7 @@
           "backgroundColor": "#232323",
           "image": "./assets/images/splash.png",
           "dark": {
-            "image": "./assets/splash.png",
+            "image": "./assets/images/splash.png",
             "backgroundColor": "#000000"
           },
           "imageWidth": 200
@@ -53,6 +53,9 @@
     "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "01ccab2c-d96e-4630-a757-43b7d59ecb54"
       }
     }
   }
