@@ -5,7 +5,7 @@ import groupsReducer from "./slices/groupsSlice";
 import sessionsReducer from "./slices/sessionsSlice";
 import appSettingsReducer from "./slices/appSettingsSlice";
 import appReducer from "./slices/appSlice";
-import { storageMiddleware } from "./middleware/storageMiddleware";
+import { storageListenerMiddleware } from "./middleware/storageMiddleware";
 import { courtUpdateListenerMiddleware } from "./middleware/courtUpdateListener";
 
 export const store = configureStore({
@@ -24,7 +24,7 @@ export const store = configureStore({
         ignoredPaths: ["items.dates"],
       },
     })
-      .concat(storageMiddleware)
+      .prepend(storageListenerMiddleware.middleware)
       .prepend(courtUpdateListenerMiddleware.middleware)
 });
 

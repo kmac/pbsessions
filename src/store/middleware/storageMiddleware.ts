@@ -1,32 +1,46 @@
-import { Middleware, Action } from '@reduxjs/toolkit';
+import { Middleware, createListenerMiddleware } from '@reduxjs/toolkit';
+import { RootState } from '../index';
 import { StorageManager } from "@/src/store/storage";
 
-export const storageMiddleware: Middleware = (store) => (next) => async (_action) => {
-  // This is dumb, but I don't know how to get rid of the type problem:
-  const action = _action as Action;
+// Use RTK listener middleware for better performance
+export const storageListenerMiddleware = createListenerMiddleware();
 
-  const result = next(action);
-  const storage = StorageManager.getInstance();
+// Define specific actions that should trigger storage
+const STORAGE_ACTIONS = [
+  'players/addPlayer',
+  'players/updatePlayer',
+  'players/deletePlayer',
+  'groups/addGroup',
+  'groups/updateGroup',
+  'groups/deleteGroup',
+  'sessions/addSession',
+  'sessions/updateSession',
+  'sessions/deleteSession',
+  'appSettings/updateSettings',
+] as const;
 
-  if (action.type.startsWith('players/')) {
-    const state = store.getState();
-    await storage.savePlayers(state.players.players);
-  }
+// Add listeners for each storage action
+STORAGE_ACTIONS.forEach(actionType => {
+  storageListenerMiddleware.startListening({
+    predicate: (action) => action.type === actionType,
+    effect: async (action, listenerApi) => {
+      const state = listenerApi.getState() as RootState;
+      const storage = StorageManager.getInstance();
 
-  if (action.type.startsWith('groups/')) {
-    const state = store.getState();
-    await storage.saveGroups(state.groups.groups);
-  }
-
-  if (action.type.startsWith('sessions/')) {
-    const state = store.getState();
-    await storage.saveSessions(state.sessions.sessions);
-  }
-
-  if (action.type.startsWith('appSettings/')) {
-    const state = store.getState();
-    await storage.saveAppSettings(state.appSettings.appSettings);
-  }
-
-  return result;
-};
+      try {
+        if (actionType.startsWith('players/')) {
+          await storage.savePlayers(state.players.players);
+        } else if (actionType.startsWith('groups/')) {
+          await storage.saveGroups(state.groups.groups);
+        } else if (actionType.startsWith('sessions/')) {
+          await storage.saveSessions(state.sessions.sessions);
+        } else if (actionType.startsWith('appSettings/')) {
+          await storage.saveAppSettings(state.appSettings.appSettings);
+        }
+      } catch (error) {
+        console.error(`Storage failed for ${actionType}:`, error);
+        // Could dispatch an error action here if needed
+      }
+    },
+  });
+});
