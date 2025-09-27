@@ -102,7 +102,11 @@ function LoadingScreen() {
         backgroundColor: theme.colors.background,
       }}
     >
-      <ActivityIndicator size="large" animating={true} color={theme.colors.primary} />
+      <ActivityIndicator
+        size="large"
+        animating={true}
+        color={theme.colors.primary}
+      />
       <Text
         variant="headlineMedium"
         style={{
@@ -126,25 +130,22 @@ const RootLayoutNav = () => {
   );
 
   const systemColorScheme = useColorScheme();
-  const getEffectiveColorScheme = () => {
-    if (!settings?.theme) return "light";
-    if (settings.theme === "auto") return systemColorScheme ?? "light";
-    return settings.theme;
-  };
-
-  const colorScheme = getEffectiveColorScheme();
 
   const effectiveSettings: Settings = settings || {
     theme: "light",
     color: "default",
   };
 
-  const theme =
-    Themes[
-      effectiveSettings.theme === "auto"
-        ? (systemColorScheme ?? "light")
-        : effectiveSettings.theme
-    ][effectiveSettings.color];
+  const getEffectiveColorScheme = () => {
+    if (effectiveSettings.theme === "auto") {
+      return systemColorScheme ?? "light";
+    }
+    return effectiveSettings.theme;
+  };
+
+  const colorScheme = getEffectiveColorScheme();
+
+  const theme = Themes[colorScheme][effectiveSettings.color];
 
   const { DarkTheme, LightTheme } = adaptNavigationTheme({
     reactNavigationDark: NavDarkTheme,

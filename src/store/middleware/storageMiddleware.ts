@@ -16,7 +16,7 @@ const STORAGE_ACTIONS = [
   'sessions/addSession',
   'sessions/updateSession',
   'sessions/deleteSession',
-  'appSettings/updateSettings',
+  'appSettings/setAppSettings',
 ] as const;
 
 // Add listeners for each storage action
