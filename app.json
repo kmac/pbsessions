@@ -4,10 +4,10 @@
     "slug": "pickleball-sessions",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/pbsessions.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/splash.png",
+      "image": "./assets/images/pbsessions.png",
       "resizeMode": "contain",
       "backgroundColor": "#f9fafb"
     },
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/pbsessions.png",
         "backgroundColor": "#f9fafb"
       },
       "package": "com.kmac5dev.pbsessions"
@@ -36,9 +36,9 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#232323",
-          "image": "./assets/images/splash.png",
+          "image": "./assets/images/pbsessions.png",
           "dark": {
-            "image": "./assets/images/splash.png",
+            "image": "./assets/images/pbsessions.png",
             "backgroundColor": "#000000"
           },
           "imageWidth": 200
@@ -48,7 +48,8 @@
       "expo-web-browser"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "reactCanary": true
     },
     "extra": {
       "router": {
