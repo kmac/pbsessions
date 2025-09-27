@@ -23,6 +23,7 @@ import {
 import { Group, Player } from "@/src/types";
 import GroupForm from "@/src/components/GroupForm";
 import GroupPlayerManager from "@/src/components/GroupPlayerManager";
+import TabHeader from "@/src/components/TabHeader";
 import TopDescription from "@/src/components/TopDescription";
 import { Alert } from "@/src/utils/alert";
 
@@ -115,11 +116,13 @@ export default function GroupsTab() {
                 </Text>
               )}
             </View>
-            <View style={{
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 4
-            }}>
+            <View
+              style={{
+                flexDirection: "column",
+                alignItems: "flex-end",
+                gap: 4,
+              }}
+            >
               <Chip icon="account-group" elevated compact>
                 <Text variant="labelMedium">{groupPlayers.length}</Text>
               </Chip>
@@ -289,27 +292,7 @@ export default function GroupsTab() {
         }}
         elevation={1}
       >
-        <View style={{ flexDirection: "row", flex: 1 }}>
-          <Avatar.Image
-            size={38}
-            source={require("@/assets/images/pbsessions-logo.png")}
-            style={{ marginRight: 8 }}
-          />
-          <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
-            Groups
-          </Text>
-          {false && allPlayers.length > 0 && (
-            <Text
-              variant="bodyMedium"
-              style={{
-                color: theme.colors.onSurfaceVariant,
-                marginTop: 2,
-              }}
-            >
-              {allPlayers.length} players available
-            </Text>
-          )}
-        </View>
+        <TabHeader title="Groups" />
 
         <View
           style={{
@@ -318,15 +301,6 @@ export default function GroupsTab() {
             marginLeft: 12,
           }}
         >
-          {/*
-          <Button
-            icon="open-in-new"
-            mode="outlined"
-            onPress={navigateToPlayers}
-          >
-            Manage Players
-          </Button>
-          */}
           <Button
             icon="plus"
             mode="contained"

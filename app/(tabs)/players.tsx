@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, FlatList, Modal, Platform, ScrollView } from "react-native";
+import {
+  Image,
+  View,
+  FlatList,
+  Modal,
+  Platform,
+  ScrollView,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
@@ -37,6 +44,7 @@ import {
 } from "@/src/utils/fileClipboardUtil";
 import { Group, Player } from "@/src/types";
 import PlayerForm from "@/src/components/PlayerForm";
+import TabHeader from "@/src/components/TabHeader";
 import TopDescription from "@/src/components/TopDescription";
 import BulkAddPlayersModal from "@/src/components/BulkAddPlayersModal";
 import { Alert } from "@/src/utils/alert";
@@ -770,16 +778,7 @@ export default function PlayersTab() {
       }}
       elevation={1}
     >
-      <Avatar.Image
-        size={38}
-        source={require("@/assets/images/pbsessions-logo.png")}
-        style={{ marginRight: 8 }}
-      />
-      <View style={{ flex: 1 }}>
-        <Text variant="titleLarge" style={{ fontWeight: "bold" }}>
-          Players
-        </Text>
-      </View>
+      <TabHeader title="Players" />
 
       {selectedPlayerIds.length > 0 ? (
         <Button mode="elevated" onPress={() => clearSelection()} compact>

@@ -29,7 +29,7 @@ import { Court, Session, SessionState } from "@/src/types";
 import ArchivedSessions from "@/src/components/ArchivedSessions";
 import EditSessionModal from "@/src/components/EditSessionModal";
 import ViewSessionModal from "@/src/components/ViewSessionModal";
-import TopDescription from "@/src/components/TopDescription";
+import TabHeader from "@/src/components/TabHeader";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
 import {
@@ -311,16 +311,7 @@ export default function SessionsTab() {
       }}
       elevation={1}
     >
-      <View style={{ flexDirection: "row", flex: 1 }}>
-        <Avatar.Image
-          size={38}
-          source={require("@/assets/images/pbsessions-logo.png")}
-          style={{ marginRight: 8 }}
-        />
-        <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
-          Sessions
-        </Text>
-      </View>
+      <TabHeader title="Sessions" />
 
       <View style={{ marginLeft: 12 }}>
         {players.length === 0 ? (

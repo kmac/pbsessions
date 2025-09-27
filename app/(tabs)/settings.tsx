@@ -22,6 +22,7 @@ import { useAppDispatch, useAppSelector } from "@/src/store";
 import { StorageManager, StoredData } from "@/src/store/storage";
 import { Alert } from "@/src/utils/alert";
 import { APP_CONFIG } from "@/src/constants";
+import TabHeader from "@/src/components/TabHeader";
 import TopDescription from "@/src/components/TopDescription";
 import { setAppSettings } from "@/src/store/slices/appSettingsSlice";
 import { setSessions } from "@/src/store/slices/sessionsSlice";
@@ -185,16 +186,7 @@ export default function SettingsTab() {
       }}
       elevation={1}
     >
-      <View style={{ flexDirection: "row", flex: 1 }}>
-        <Avatar.Image
-          size={38}
-          source={require("@/assets/images/pbsessions-logo.png")}
-          style={{ marginRight: 8 }}
-        />
-        <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
-          Pickleball Sessions
-        </Text>
-      </View>
+      <TabHeader title="Pickleball Sessions" />
     </Surface>
   );
 
@@ -523,10 +515,10 @@ export default function SettingsTab() {
         }}
         showsVerticalScrollIndicator={false}
       >
-      <TopDescription
-        visible={true}
-        description="Configure application settings and defaults"
-      />
+        <TopDescription
+          visible={true}
+          description="Configure application settings and defaults"
+        />
 
         <AppearanceCard />
         <DefaultsCard />
