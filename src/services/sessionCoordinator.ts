@@ -25,6 +25,9 @@ import {
 
 type Strategy = "default" | "lottery" | "fairweight";
 
+//
+// IMPORTANT: maintain that this class never uses the redux data store
+//
 export class SessionCoordinator {
   private activeCourts: Court[];
   private players: Player[];
@@ -54,8 +57,10 @@ export class SessionCoordinator {
       pausedPlayers.map((player) => player.id),
     );
     this.partnershipConstraint = session.partnershipConstraint;
-    this.currentRoundIndex = this.liveData.rounds.length;
-    this.currentRound = this.liveData.rounds[this.currentRoundIndex - 1];
+    this.currentRoundIndex = this.liveData.rounds.length > 0 ? this.liveData.rounds.length - 1 : 0;
+    console.log(`currentRoundIndex: ${this.currentRoundIndex}`);
+    console.log(this.liveData.rounds);
+    this.currentRound = this.liveData.rounds[this.currentRoundIndex];
 
     // Initialize or load existing stats
     players.forEach((player) => {

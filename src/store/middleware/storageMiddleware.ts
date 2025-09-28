@@ -1,11 +1,12 @@
-import { Middleware, createListenerMiddleware } from '@reduxjs/toolkit';
+import { createListenerMiddleware } from '@reduxjs/toolkit';
 import { RootState } from '../index';
 import { StorageManager } from "@/src/store/storage";
 
 // Use RTK listener middleware for better performance
+// https://redux-toolkit.js.org/api/createListenerMiddleware
 export const storageListenerMiddleware = createListenerMiddleware();
 
-// Define specific actions that should trigger storage
+// Specific actions that should trigger storage
 const STORAGE_ACTIONS = [
   'players/addPlayer',
   'players/updatePlayer',
@@ -19,11 +20,11 @@ const STORAGE_ACTIONS = [
   'appSettings/setAppSettings',
 ] as const;
 
-// Add listeners for each storage action
+// Listeners for each storage action
 STORAGE_ACTIONS.forEach(actionType => {
   storageListenerMiddleware.startListening({
     predicate: (action) => action.type === actionType,
-    effect: async (action, listenerApi) => {
+    effect: async (_, listenerApi) => {
       const state = listenerApi.getState() as RootState;
       const storage = StorageManager.getInstance();
 
@@ -39,7 +40,6 @@ STORAGE_ACTIONS.forEach(actionType => {
         }
       } catch (error) {
         console.error(`Storage failed for ${actionType}:`, error);
-        // Could dispatch an error action here if needed
       }
     },
   });

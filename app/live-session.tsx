@@ -399,6 +399,145 @@ export default function LiveSessionScreen() {
     };
 
     const generateNextRound = () => {
+
+      // Check if finished
+      if (successfulRounds >= numRounds) {
+        // Update our session with all the new rounds.
+        dispatch(updateSession(currentSession));
+        Alert.alert(
+          "Rounds Generated",
+          `Successfully generated ${successfulRounds} round${successfulRounds > 1 ? "s" : ""}. You can view them using the session history.`,
+          [{ text: "OK" }],
+        );
+        closeGenerateRoundsModal();
+        return;
+      }
+
+      try {
+        let sc = new SessionCoordinator(
+          currentSession,
+          liveSessionPlayers,
+          liveSessionPausedPlayers,
+        );
+        const roundAssignment = sc.generateRoundAssignment();
+
+        if (roundAssignment.gameAssignments.length === 0) {
+          Alert.alert(
+            "Round Generation Stopped",
+            `Generated ${successfulRounds} rounds. Cannot generate more rounds - unable to create valid game assignments.`,
+            [{ text: "OK" }],
+          );
+          closeGenerateRoundsModal();
+          return;
+        }
+
+        currentSession = SessionService.applyNextRound(
+          currentSession,
+          roundAssignment,
+        );
+        if (!currentSession) {
+          Alert.alert(
+            "Round Generation Error",
+            `Generated ${successfulRounds} rounds. Error generating round ${successfulRounds + 1}.`,
+            [{ text: "OK" }],
+          );
+          closeGenerateRoundsModal();
+        }
+        // refresh our coordinator for updated session
+        sc = new SessionCoordinator(
+          currentSession,
+          liveSessionPlayers,
+          liveSessionPausedPlayers,
+        );
+
+        // Update player stats and complete the round
+        const currentRoundGames = getCurrentRound(currentSession, true).games;
+        const results: Results = { scores: {} };
+        currentRoundGames.forEach((game) => {
+          results.scores[game.id] = generateSimulateScoring
+            ? simulateScore()
+            : null;
+        });
+
+        const updatedPlayerStats = sc.updateStatsForRound(
+          currentRoundGames,
+          results,
+        );
+
+        currentSession = SessionService.completeRound(
+          currentSession,
+          results,
+          updatedPlayerStats,
+        );
+        if (!currentSession) {
+          Alert.alert(
+            "Round Generation Error",
+            `Generated ${successfulRounds} rounds. Error completing round ${successfulRounds + 1}.`,
+            [{ text: "OK" }],
+          );
+          closeGenerateRoundsModal();
+        }
+
+        successfulRounds++;
+        generateNextRound();
+        currentSession.liveData?.rounds.forEach((round) => {
+          round.games.forEach((game) => {
+            if (!game.score) {
+              Alert.alert(
+                "Round Generation Error",
+                `game does not have a score: ${round}`,
+                [{ text: "OK" }],
+              );
+            }
+          });
+        });
+      } catch (error) {
+        Alert.alert(
+          "Round Generation Error",
+          `Successfully generated ${successfulRounds} rounds. Error generating round ${successfulRounds + 1}: ${error}`,
+          [{ text: "OK" }],
+        );
+        closeGenerateRoundsModal();
+      }
+    };
+
+    // Start generating rounds
+    generateNextRound();
+  };
+
+  const handleGenerateMultipleRoundsViaThunks = () => {
+    const numRounds = parseInt(generateNumberOfRounds);
+    if (isNaN(numRounds) || numRounds < 1 || numRounds > 20) {
+      Alert.alert(
+        "Invalid Number",
+        "Please enter a valid number of rounds (1-20).",
+        [{ text: "OK" }],
+      );
+      return;
+    }
+
+    let successfulRounds = 0;
+    let currentSession = { ...liveSession };
+
+    const simulateScore = (): Score => {
+      const randomOutcome = Math.floor(Math.random() * 10);
+      let score: Score = {
+        serveScore: 0,
+        receiveScore: 0,
+      };
+      if (randomOutcome <= 4) {
+        // serve-side wins
+        score.serveScore = 11;
+        score.receiveScore = Math.floor(Math.random() * 10);
+      } else {
+        // receive-side wins
+        score.receiveScore = 11;
+        score.serveScore = Math.floor(Math.random() * 10);
+      }
+      return score;
+    };
+
+    const generateNextRound = () => {
       if (successfulRounds >= numRounds) {
         // Update our session with all the new rounds.
         dispatch(updateSession(currentSession));
@@ -708,36 +847,38 @@ export default function LiveSessionScreen() {
                 : `Round ${currentRoundIndex} Games`}
             </Text>
 
-            {!isRoundCompleted && hasActiveRound && (
-              <Surface
-                style={{
-                  backgroundColor: theme.colors.tertiaryContainer,
-                }}
-              >
-                <View
+            {!isRoundCompleted &&
+              hasActiveRound &&
+              currentRound.games.length > 3 && (
+                <Surface
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginTop: 12,
-                    marginBottom: 12,
-                    gap: 12,
+                    backgroundColor: theme.colors.tertiaryContainer,
                   }}
                 >
-                  <Icon source="autorenew" size={26} />
-                  <Text
-                    variant="bodyMedium"
+                  <View
                     style={{
-                      fontWeight: "500",
-                      fontStyle: "italic",
-                      fontSize: 16,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginTop: 12,
+                      marginBottom: 12,
+                      gap: 12,
                     }}
                   >
-                    Games in progress...
-                  </Text>
-                </View>
-              </Surface>
-            )}
+                    <Icon source="autorenew" size={26} />
+                    <Text
+                      variant="bodyMedium"
+                      style={{
+                        fontWeight: "500",
+                        fontStyle: "italic",
+                        fontSize: 16,
+                      }}
+                    >
+                      Games in progress...
+                    </Text>
+                  </View>
+                </Surface>
+              )}
 
             <RoundComponent
               key={currentRoundIndex}
@@ -776,7 +917,6 @@ export default function LiveSessionScreen() {
                 </View>
               </Surface>
             )}
-
           </View>
         )}
 

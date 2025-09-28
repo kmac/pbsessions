@@ -629,7 +629,7 @@ export default function SessionsTab() {
                   }}
                   title="Delete"
                 />
-                {false && __DEV__ && (
+                {true && __DEV__ && (
                   <Menu.Item
                     leadingIcon="delete"
                     onPress={() => {
@@ -687,7 +687,7 @@ export default function SessionsTab() {
                   Clone
                 </Button>
               )}
-              {false && __DEV__ && (
+              {true && __DEV__ && (
                 <Button
                   icon="content-duplicate"
                   mode="text"
