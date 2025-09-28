@@ -13,10 +13,10 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|expo|@expo|@react-navigation|react-redux|@reduxjs/toolkit|@shopify/flash-list)/)',
+    'node_modules/(?!(react-native|@react-native|expo|@expo|@react-navigation|react-redux|@reduxjs/toolkit|@shopify/flash-list|uuid)/)',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    '^src/(.*)$': '<rootDir>/src/$1'
+    '^src/(.*)$': '<rootDir>/src/$1',
   },
 };
