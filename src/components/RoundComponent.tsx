@@ -30,6 +30,7 @@ import {
   getPlayerText,
   getPlayerRating,
   getPartnerDecoration,
+  CourtLayout,
   RoundGameCard,
 } from "@/src/components/RoundGameCard";
 import { getSessionPlayers, getSessionPausedPlayers } from "@/src/utils/util";
@@ -84,6 +85,9 @@ export default function RoundComponent({
     useState<boolean>(showRating);
 
   const chipMode = editing ? "outlined" : "flat";
+
+  //const courtLayout : CourtLayout = "vertical"; // "horizontal"
+  const courtLayout : CourtLayout = "horizontal";
 
   const getPlayer = (playerId: string): Player => {
     const player = sessionPlayers.find((p) => p.id === playerId);
@@ -423,6 +427,7 @@ export default function RoundComponent({
         chipMode={chipMode}
         showRating={showRatingEnabled}
         handleCourtSetting={editing ? handleCourtSetting : undefined}
+        courtLayout={courtLayout}
       />
     );
   };

@@ -101,6 +101,8 @@ export type PlayerRenderData = {
   onSelected?: () => void;
 };
 
+export type CourtLayout = "horizontal" | "vertical";
+
 interface RoundGameCardProps {
   servePlayer1Data: PlayerRenderData;
   servePlayer2Data: PlayerRenderData;
@@ -111,7 +113,7 @@ interface RoundGameCardProps {
   chipMode: "flat" | "outlined" | undefined;
   showRating: boolean;
   handleCourtSetting?: (courtId: string) => void;
-  gameCardLayout?: "horizontal" | "vertical";
+  courtLayout?: CourtLayout;
 }
 
 const GameSide: React.FC<{
@@ -136,11 +138,9 @@ const GameSide: React.FC<{
       style={{
         flexDirection: "row",
         flex: 1,
-        //gap: 4,
         paddingVertical: 12,
-        paddingHorizontal: 10,
+        paddingHorizontal: 4,
         borderRadius: 8,
-        //alignItems: "center",
         justifyContent: "center",
         backgroundColor: theme.colors.surfaceVariant,
       }}
@@ -148,8 +148,7 @@ const GameSide: React.FC<{
       <View
         style={{
           flexDirection: "column",
-          // alignItems: "stretch",
-          alignItems: "center",
+          alignItems: "stretch", // "center",
           gap: 4,
         }}
       >
@@ -164,9 +163,7 @@ const GameSide: React.FC<{
         >
           <View
             style={{
-              //flexDirection: isNarrowScreen() ? "column" : "row",
               flexDirection: "column",
-              //rowGap: 4,
             }}
           >
             {getPlayerText(
@@ -175,7 +172,11 @@ const GameSide: React.FC<{
                 : player1Data.player.name,
             )}
             <View
-              style={{ flexDirection: "row", alignSelf: "flex-end", gap: 2 }}
+              style={{
+                flexDirection: "row",
+                alignSelf: "flex-end",
+                gap: 2
+              }}
             >
               {player1Data.partner && getPartnerDecoration(theme)}
               {showRating &&
@@ -237,7 +238,7 @@ const ScoreDisplay: React.FC<{
   return (
     <View
       style={{
-        alignItems: "center",
+        // alignItems: "center",
         marginVertical: 4,
       }}
     >
@@ -263,7 +264,7 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
   chipMode,
   showRating,
   handleCourtSetting,
-  gameCardLayout = "horizontal",
+  courtLayout = "vertical", // "horizontal"
 }) => {
   const theme = useTheme();
 
@@ -340,8 +341,8 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
         >
           <View
             style={{
-              flexDirection: gameCardLayout === "vertical" ? "column" : "row",
-              alignItems: gameCardLayout === "vertical" ? "center" : "stretch",
+              flexDirection: courtLayout === "vertical" ? "column" : "row",
+              alignItems: courtLayout === "vertical" ? "center" : "stretch",
               columnGap: 8,
               // backgroundColor: theme.colors.surfaceVariant,
             }}
@@ -352,7 +353,7 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
               chipMode={chipMode}
               showRating={showRating}
             />
-            {gameCardLayout === "vertical" && score && (
+            {courtLayout === "vertical" && score && (
               <View
                 style={{
                   flexDirection: "row",
@@ -372,7 +373,7 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
               showRating={showRating}
             />
           </View>
-          {gameCardLayout === "horizontal" && score && (
+          {courtLayout === "horizontal" && score && (
             <View
               style={{
                 alignItems: "center",
