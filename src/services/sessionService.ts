@@ -18,10 +18,9 @@ export const getCurrentRoundInfo = (liveData?: {
 
   return {
     liveData: safeData,
-    roundIndex: roundsLength === 0 ? 0 : roundsLength - 1,
     currentRound:
       roundsLength === 0
-        ? ({ roundIndex: 0, games: [], sittingOutIds: [] } as Round)
+        ? ({ games: [], sittingOutIds: [] } as Round)
         : safeData.rounds[roundsLength - 1],
   };
 };
@@ -35,17 +34,23 @@ export const validateLive = (session?: Session): void => {
   }
 };
 
-export const getCurrentRoundIndex = (
-  session: Session,
-  live: boolean = true
-): number => {
-  if (live) {
-    validateLive(session);
-  } else if (!session || !session.liveData) {
-    return 0;
-  }
-  return session.liveData!.rounds.length === 0 ? 0 : session.liveData!.rounds.length - 1;
-};
+export const getRoundNumber = (roundIndex: number): number => roundIndex + 1; // 1-based for display
+
+export const getRoundIndex = (session: Session): number => session.liveData?.rounds.length || 0; // next round index
+
+export const getCurrentRoundIndex = (session: Session): number => Math.max(0, (session.liveData?.rounds.length || 1) - 1);
+
+// export const getCurrentRoundIndex = (
+//   session: Session,
+//   live: boolean = true
+// ): number => {
+//   if (live) {
+//     validateLive(session);
+//   } else if (!session || !session.liveData) {
+//     return 0;
+//   }
+//   return session.liveData!.rounds.length === 0 ? 0 : session.liveData!.rounds.length - 1;
+// };
 
 export const getCurrentRound = (
   session: Session,
@@ -55,12 +60,12 @@ export const getCurrentRound = (
   if (live) {
     validateLive(session);
   } else if (!session || !session.liveData) {
-    return { roundIndex: 0, games: [], sittingOutIds: [] };
+    return { games: [], sittingOutIds: [] };
   }
   const rounds = session.liveData!.rounds;
   const length = rounds.length;
   if (length === 0) {
-    return { roundIndex: 0, games: [], sittingOutIds: [] };
+    return { games: [], sittingOutIds: [] };
   }
 
   // Use provided index or default to last round
@@ -77,17 +82,16 @@ const convertAssignmentToRound = (
   session: Session,
   roundAssignment: RoundAssignment,
 ): Round => {
+  const nextRoundIndex = getRoundIndex(session);
   const newGames: Game[] = roundAssignment.gameAssignments.map((ra, index) => ({
-    id: `game_${roundAssignment.roundIndex}_${ra.courtId}_${Date.now()}_${index}`,
+    id: `game_${nextRoundIndex}_${ra.courtId}_${Date.now()}_${index}`,
     sessionId: session!.id,
-    gameNumber: roundAssignment.roundIndex,
     courtId: ra.courtId,
     serveTeam: ra.serveTeam,
     receiveTeam: ra.receiveTeam,
     isCompleted: false,
   }));
   const nextRound = {
-    roundIndex: roundAssignment.roundIndex,
     games: newGames,
     sittingOutIds: roundAssignment.sittingOutIds,
   };

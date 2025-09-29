@@ -99,7 +99,6 @@ export interface Team {
 export interface Game {
   id: string;
   sessionId: string;
-  gameNumber: number;
   courtId: string;
   serveTeam: Team;
   receiveTeam: Team;
@@ -126,7 +125,6 @@ export interface Results {
 }
 
 export interface Round {
-  roundIndex: number;
   games: Game[];
   sittingOutIds: string[];
 }
@@ -137,7 +135,6 @@ export type GameAssignment = Pick<
 >;
 
 export interface RoundAssignment {
-  roundIndex: number;
   gameAssignments: GameAssignment[];
   sittingOutIds: string[];
 }

@@ -489,7 +489,7 @@ export default function ViewSessionModal({
             <FlatList
               data={rounds}
               renderItem={renderRound}
-              keyExtractor={(item) => item.roundIndex.toString()}
+              keyExtractor={(item, index) => `round-${index}-${item.games.length}`}
               contentContainerStyle={styles.listContainer}
               ListFooterComponent={
                 <View>

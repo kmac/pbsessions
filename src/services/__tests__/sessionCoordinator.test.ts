@@ -7,6 +7,11 @@ import {
   FixedPartnership,
   PlayerStats,
 } from "../../types";
+import {
+  getCurrentRoundIndex,
+  getRoundIndex,
+  getRoundNumber,
+} from "../sessionService";
 
 // Mock the Alert utility
 jest.mock("@/src/utils/alert", () => ({
@@ -122,7 +127,6 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
     test("should generate round assignment with correct structure", () => {
       const result = sessionCoordinator.generateRoundAssignment();
 
-      expect(result).toHaveProperty("roundIndex");
       expect(result).toHaveProperty("gameAssignments");
       expect(result).toHaveProperty("sittingOutIds");
       expect(Array.isArray(result.gameAssignments)).toBe(true);
@@ -456,9 +460,10 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       );
       const result = coordinator.generateRoundAssignment();
 
-      LOG_TO_CONSOLE && console.log(
-        `result.gameAssignments: ${JSON.stringify(result.gameAssignments, undefined, 2)}`,
-      );
+      LOG_TO_CONSOLE &&
+        console.log(
+          `result.gameAssignments: ${JSON.stringify(result.gameAssignments, undefined, 2)}`,
+        );
       expect(result.gameAssignments).toHaveLength(1);
       const assignment = result.gameAssignments[0];
 
@@ -473,7 +478,8 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       ];
 
       const partnershipOnServe =
-        serveTeamIds.includes("player1-4.5") && serveTeamIds.includes("player2-4.0");
+        serveTeamIds.includes("player1-4.5") &&
+        serveTeamIds.includes("player2-4.0");
       const partnershipOnReceive =
         receiveTeamIds.includes("player1-4.5") &&
         receiveTeamIds.includes("player2-4.0");
@@ -1125,6 +1131,215 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       // Players who have sat out more should be more likely to play
       // (This is a statistical expectation, not a guarantee)
       expect(result.sittingOutIds.length).toBe(2);
+    });
+  });
+
+  describe("Round index calculation consistency", () => {
+    test("should work correctly with multiple rounds", () => {
+      const coordinator = new SessionCoordinator(
+        mockSession,
+        mockPlayers,
+        mockPausedPlayers,
+      );
+
+      // Generate multiple rounds to test index consistency
+      let currentSession = { ...mockSession };
+
+      for (let i = 0; i < 3; i++) {
+        const assignment = coordinator.generateRoundAssignment();
+
+        // Verify structure
+        expect(assignment.gameAssignments).toBeDefined();
+        expect(assignment.sittingOutIds).toBeDefined();
+
+        // Simulate adding to session
+        const newRound = {
+          games: assignment.gameAssignments.map((ga, index) => ({
+            id: `game_${i}_${ga.courtId}_${Date.now()}_${index}`,
+            sessionId: currentSession.id,
+            gameNumber: i, // This should be the round index
+            courtId: ga.courtId,
+            serveTeam: ga.serveTeam,
+            receiveTeam: ga.receiveTeam,
+            isCompleted: false,
+          })),
+          sittingOutIds: assignment.sittingOutIds,
+        };
+
+        currentSession = {
+          ...currentSession,
+          liveData: {
+            ...currentSession.liveData!,
+            rounds: [...currentSession.liveData!.rounds, newRound],
+          },
+        };
+      }
+
+      // Verify final state
+      expect(currentSession.liveData!.rounds).toHaveLength(3);
+      expect(getRoundIndex(currentSession)).toBe(3); // Next round would be 3
+      expect(getCurrentRoundIndex(currentSession)).toBe(2); // Current round is 2
+    });
+  });
+  describe("Round number display integration", () => {
+    test("should generate rounds that display correctly in UI", () => {
+      const coordinator = new SessionCoordinator(
+        mockSession,
+        mockPlayers,
+        mockPausedPlayers,
+      );
+
+      // Generate first round
+      const round1 = coordinator.generateRoundAssignment();
+      expect(round1.gameAssignments.length).toBeGreaterThan(0);
+
+      // Simulate adding round to session
+      const sessionWithRound1 = {
+        ...mockSession,
+        liveData: {
+          ...mockSession.liveData!,
+          rounds: [{ games: [], sittingOutIds: round1.sittingOutIds }],
+        },
+      };
+
+      // Verify round number calculation
+      const currentRoundIndex = getCurrentRoundIndex(sessionWithRound1);
+      const displayRoundNumber = getRoundNumber(currentRoundIndex);
+
+      expect(currentRoundIndex).toBe(0); // First round has index 0
+      expect(displayRoundNumber).toBe(1); // But displays as "Round 1"
+    });
+  });
+
+  describe("Round index calculation consistency", () => {
+    test("should work correctly with SessionService helper functions", () => {
+      // Import the helper functions
+      const {
+        getRoundNumber,
+        getRoundIndex,
+        getCurrentRoundIndex,
+      } = require("../sessionService");
+
+      const coordinator = new SessionCoordinator(
+        mockSession,
+        mockPlayers,
+        mockPausedPlayers,
+      );
+
+      // Test with empty session
+      const emptySession = {
+        ...mockSession,
+        liveData: {
+          rounds: [],
+          playerStats: mockSession.liveData!.playerStats,
+        },
+      };
+
+      expect(getCurrentRoundIndex(emptySession)).toBe(0);
+      expect(getRoundIndex(emptySession)).toBe(0);
+      expect(getRoundNumber(getCurrentRoundIndex(emptySession))).toBe(1);
+
+      // Generate a round assignment
+      const assignment = coordinator.generateRoundAssignment();
+      expect(assignment.gameAssignments).toBeDefined();
+      expect(assignment.sittingOutIds).toBeDefined();
+
+      // Simulate adding round to session
+      const simulatedRound = {
+        games: assignment.gameAssignments.map((ga, index) => ({
+          id: `game_0_${ga.courtId}_${Date.now()}_${index}`,
+          sessionId: mockSession.id,
+          gameNumber: 0, // First round
+          courtId: ga.courtId,
+          serveTeam: ga.serveTeam,
+          receiveTeam: ga.receiveTeam,
+          isCompleted: false,
+        })),
+        sittingOutIds: assignment.sittingOutIds,
+      };
+
+      const sessionWithOneRound = {
+        ...emptySession,
+        liveData: {
+          ...emptySession.liveData,
+          rounds: [simulatedRound],
+        },
+      };
+
+      // Test round calculations after adding one round
+      expect(getCurrentRoundIndex(sessionWithOneRound)).toBe(0); // Current round is index 0
+      expect(getRoundIndex(sessionWithOneRound)).toBe(1); // Next round would be index 1
+      expect(getRoundNumber(getCurrentRoundIndex(sessionWithOneRound))).toBe(1); // Displays as "Round 1"
+    });
+
+    test("should maintain consistency across multiple round generations", () => {
+      let currentSession = { ...mockSession };
+
+      // Clear existing rounds for clean test
+      currentSession.liveData = {
+        rounds: [],
+        playerStats: currentSession.liveData!.playerStats,
+      };
+
+      const coordinator = new SessionCoordinator(
+        currentSession,
+        mockPlayers,
+        mockPausedPlayers,
+      );
+
+      // Generate multiple rounds to test index consistency
+      for (
+        let expectedRoundIndex = 0;
+        expectedRoundIndex < 3;
+        expectedRoundIndex++
+      ) {
+        const assignment = coordinator.generateRoundAssignment();
+
+        // Verify structure (no roundIndex property should exist)
+        expect(assignment).not.toHaveProperty("roundIndex");
+        expect(assignment.gameAssignments).toBeDefined();
+        expect(assignment.sittingOutIds).toBeDefined();
+
+        // Create round using current session state
+        const newRound = {
+          games: assignment.gameAssignments.map((ga, index) => ({
+            id: `game_${expectedRoundIndex}_${ga.courtId}_${Date.now()}_${index}`,
+            sessionId: currentSession.id,
+            gameNumber: expectedRoundIndex,
+            courtId: ga.courtId,
+            serveTeam: ga.serveTeam,
+            receiveTeam: ga.receiveTeam,
+            isCompleted: false,
+          })),
+          sittingOutIds: assignment.sittingOutIds,
+        };
+
+        // Add round to session
+        currentSession = {
+          ...currentSession,
+          liveData: {
+            ...currentSession.liveData!,
+            rounds: [...currentSession.liveData!.rounds, newRound],
+          },
+        };
+
+        // Verify round calculations
+        const {
+          getRoundNumber,
+          getRoundIndex,
+          getCurrentRoundIndex,
+        } = require("../sessionService");
+        const currentRoundIndex = getCurrentRoundIndex(currentSession);
+        const nextRoundIndex = getRoundIndex(currentSession);
+        const displayNumber = getRoundNumber(currentRoundIndex);
+
+        expect(currentRoundIndex).toBe(expectedRoundIndex);
+        expect(nextRoundIndex).toBe(expectedRoundIndex + 1);
+        expect(displayNumber).toBe(expectedRoundIndex + 1);
+      }
+
+      // Final verification
+      expect(currentSession.liveData!.rounds).toHaveLength(3);
     });
   });
 });

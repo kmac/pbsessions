@@ -22,6 +22,7 @@ import {
   PartnershipUnit,
   PlayerAssignmentStrategy,
 } from "./strategy/PlayerAssignmentStrategy";
+import { getCurrentRoundIndex, getRoundIndex, getRoundNumber } from "./sessionService";
 
 type Strategy = "default" | "lottery" | "fairweight";
 
@@ -57,10 +58,8 @@ export class SessionCoordinator {
       pausedPlayers.map((player) => player.id),
     );
     this.partnershipConstraint = session.partnershipConstraint;
-    this.currentRoundIndex = this.liveData.rounds.length > 0 ? this.liveData.rounds.length - 1 : 0;
-    console.log(`currentRoundIndex: ${this.currentRoundIndex}`);
-    console.log(this.liveData.rounds);
-    this.currentRound = this.liveData.rounds[this.currentRoundIndex];
+  this.currentRoundIndex = getCurrentRoundIndex(session); // Use helper function
+  this.currentRound = session.liveData.rounds[this.currentRoundIndex] || { games: [], sittingOutIds: [] };
 
     // Initialize or load existing stats
     players.forEach((player) => {
@@ -234,7 +233,6 @@ export class SessionCoordinator {
       });
     }
     return {
-      roundIndex: this.currentRoundIndex,
       gameAssignments: gameAssignments,
       sittingOutIds: actualSittingOut.map((player) => player.id),
     };

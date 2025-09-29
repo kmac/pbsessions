@@ -24,6 +24,7 @@ import RoundScoreEntryModal from "@/src/components/RoundScoreEntryModal";
 import PlayerStatsModal from "@/src/components/PlayerStatsModal";
 import BetweenRoundsModal from "@/src/components/BetweenRoundsModal";
 import EditSessionModal from "@/src/components/EditSessionModal";
+import { getRoundNumber } from "@/src/services/sessionService";
 import {
   getSessionPlayers,
   getSessionPausedPlayers,
@@ -107,7 +108,8 @@ export default function LiveSessionScreen() {
   //   dispatch(updateCourts(liveSession ? [...liveSession.courts] : []));
   // }
 
-  const currentRoundIndex = getCurrentRoundIndex(liveSession, true);
+  const currentRoundIndex = getCurrentRoundIndex(liveSession);
+  const currentRoundNumber = getRoundNumber(currentRoundIndex); // For display
   const currentRound = getCurrentRound(liveSession, true);
 
   const hasActiveRound =
@@ -294,7 +296,7 @@ export default function LiveSessionScreen() {
               fontWeight: "600",
             }}
           >
-            Round {currentRoundIndex} Completed
+            Round {currentRoundNumber} Completed
           </Chip>
           <Button
             icon="play"
@@ -843,8 +845,8 @@ export default function LiveSessionScreen() {
               }}
             >
               {isRoundCompleted
-                ? `Round ${currentRoundIndex} (Complete)`
-                : `Round ${currentRoundIndex} Games`}
+                ? `Round ${currentRoundNumber} (Complete)`
+                : `Round ${currentRoundNumber} Games`}
             </Text>
 
             {!isRoundCompleted &&

@@ -227,7 +227,7 @@ const ScoreDisplay: React.FC<{
 }> = ({ serveScore, receiveScore }) => {
   const theme = useTheme();
 
-  if (!serveScore || !receiveScore) {
+  if (serveScore === undefined || !receiveScore === undefined) {
     return (
       <View style={{ alignItems: "center" }}>
         <Text variant="titleSmall">vs.</Text>
