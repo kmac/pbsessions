@@ -20,7 +20,6 @@ import { useAppDispatch, useAppSelector } from "@/src/store";
 import { Court, Game, Session, Player, PlayerStats } from "@/src/types";
 import {
   getCurrentRound,
-  getCurrentRoundIndex,
 } from "@/src/services/sessionService";
 import {
   updateCourtInSessionThunk,
@@ -30,7 +29,6 @@ import {
   getPlayerText,
   getPlayerRating,
   getPartnerDecoration,
-  CourtLayout,
   RoundGameCard,
 } from "@/src/components/RoundGameCard";
 import { getSessionPlayers, getSessionPausedPlayers } from "@/src/utils/util";
@@ -67,6 +65,7 @@ export default function RoundComponent({
   const [courtDisabled, setCourtDisabled] = useState<boolean>(false);
 
   const { players } = useAppSelector((state) => state.players);
+  const { appSettings } = useAppSelector((state) => state.appSettings);
 
   const courts = session ? session.courts : [];
   const disabledCourts = courts.filter((court) => court.isActive === false);
@@ -85,9 +84,6 @@ export default function RoundComponent({
     useState<boolean>(showRating);
 
   const chipMode = editing ? "outlined" : "flat";
-
-  //const courtLayout : CourtLayout = "vertical"; // "horizontal"
-  const courtLayout : CourtLayout = "horizontal";
 
   const getPlayer = (playerId: string): Player => {
     const player = sessionPlayers.find((p) => p.id === playerId);
@@ -316,7 +312,6 @@ export default function RoundComponent({
       updateCurrentRoundThunk({
         sessionId: session.id,
         assignment: {
-          roundIndex: getCurrentRoundIndex(session),
           gameAssignments: newGames.map((game) => {
             return {
               courtId: game.courtId,
@@ -427,7 +422,7 @@ export default function RoundComponent({
         chipMode={chipMode}
         showRating={showRatingEnabled}
         handleCourtSetting={editing ? handleCourtSetting : undefined}
-        courtLayout={courtLayout}
+        courtLayout={appSettings.defaultCourtLayout}
       />
     );
   };

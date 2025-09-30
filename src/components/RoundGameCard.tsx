@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Badge, Card, Chip, Icon, Text, useTheme } from "react-native-paper";
-import { Court, Player, PlayerStats, Score } from "@/src/types";
+import { Court, CourtLayout, Player, PlayerStats, Score } from "@/src/types";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 
 const useBadge = false;
@@ -100,8 +100,6 @@ export type PlayerRenderData = {
   selectDisabled: boolean;
   onSelected?: () => void;
 };
-
-export type CourtLayout = "horizontal" | "vertical";
 
 interface RoundGameCardProps {
   servePlayer1Data: PlayerRenderData;
@@ -229,7 +227,9 @@ const ScoreDisplay: React.FC<{
 
   if (serveScore === undefined || !receiveScore === undefined) {
     return (
-      <View style={{ alignItems: "center" }}>
+      <View style={{
+        alignItems: "center"
+      }}>
         <Text variant="titleSmall">vs.</Text>
       </View>
     );
@@ -264,7 +264,7 @@ export const RoundGameCard: React.FC<RoundGameCardProps> = ({
   chipMode,
   showRating,
   handleCourtSetting,
-  courtLayout = "vertical", // "horizontal"
+  courtLayout = "horizontal"
 }) => {
   const theme = useTheme();
 

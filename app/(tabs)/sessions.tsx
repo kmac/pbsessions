@@ -412,6 +412,7 @@ export default function SessionsTab() {
             borderLeftColor: theme.colors.tertiary,
           },
         ]}
+        // onPress={() => handleViewSession(session)}
       >
         <Card.Content>
           <View style={{ marginBottom: 12 }}>

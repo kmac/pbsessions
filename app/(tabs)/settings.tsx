@@ -10,6 +10,7 @@ import {
   Icon,
   Menu,
   Portal,
+  RadioButton,
   SegmentedButtons,
   Surface,
   Switch,
@@ -289,52 +290,41 @@ export default function SettingsTab() {
     <Card style={{ marginBottom: 16 }}>
       <Card.Title title="Session Defaults" />
       <Card.Content>
-        <View style={{ marginBottom: 16 }}>
-          <TouchableRipple
-            onPress={() =>
-              updateSettings({
-                defaultUseScoring: !appSettings.defaultUseScoring,
-              })
-            }
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingVertical: 8,
-            }}
-          >
-            <>
-              <View style={{ flex: 1 }}>
-                <Text variant="bodyMedium" style={{ marginBottom: 4 }}>
-                  Enable Scoring by Default
-                </Text>
-                <Text
-                  variant="bodySmall"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  New sessions will have scoring enabled by default
-                </Text>
-              </View>
-              <Switch
-                value={appSettings.defaultUseScoring}
-                onValueChange={(value) =>
-                  updateSettings({ defaultUseScoring: value })
-                }
-              />
-            </>
-          </TouchableRipple>
-        </View>
-
-        <TouchableRipple
-          onPress={() =>
-            updateSettings({
-              defaultUseRatings: !appSettings.defaultUseRatings,
-            })
-          }
+        <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
+            marginBottom: 16,
+            paddingVertical: 8,
+          }}
+        >
+          <>
+            <View style={{ flex: 1 }}>
+              <Text variant="bodyMedium" style={{ marginBottom: 4 }}>
+                Enable Scoring by Default
+              </Text>
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                New sessions will have scoring enabled by default
+              </Text>
+            </View>
+            <Switch
+              value={appSettings.defaultUseScoring}
+              onValueChange={(value) =>
+                updateSettings({ defaultUseScoring: value })
+              }
+            />
+          </>
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 16,
             paddingVertical: 8,
           }}
         >
@@ -357,7 +347,48 @@ export default function SettingsTab() {
               }
             />
           </>
-        </TouchableRipple>
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 16,
+            paddingVertical: 8,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text variant="bodyMedium" style={{ marginBottom: 4 }}>
+              Court Layout
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              Default court layout view
+            </Text>
+          </View>
+          <RadioButton.Group
+            value={appSettings.defaultCourtLayout}
+            onValueChange={(value) => {
+              updateSettings({
+                defaultCourtLayout:
+                  value == "horizontal" ? "horizontal" : "vertical",
+              });
+            }}
+          >
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <View>
+                <Text variant="labelSmall">Horizontal</Text>
+                <RadioButton value="horizontal" />
+              </View>
+              <View>
+                <Text variant="labelSmall">Vertical</Text>
+                <RadioButton value="vertical" />
+              </View>
+            </View>
+          </RadioButton.Group>
+        </View>
       </Card.Content>
     </Card>
   );

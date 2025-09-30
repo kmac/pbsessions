@@ -142,10 +142,13 @@ export interface RoundAssignment {
 // TODO this should go away with full theme support?:
 export type Color = keyof typeof Colors.light;
 
+export type CourtLayout = "horizontal" | "vertical";
+
 export interface Settings {
   color: Color;
   theme: "light" | "dark" | "auto";
   defaultUseScoring: boolean;
   defaultUseRatings: boolean;
+  defaultCourtLayout: CourtLayout;
   defaultEnforceFixedPartnerships: boolean;
 }

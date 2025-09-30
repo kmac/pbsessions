@@ -114,7 +114,10 @@ export default function ArchivedSessions({
     const activeCourts = item.courts.filter((c) => c.isActive);
 
     return (
-      <Card style={[{ marginBottom: 12 }]}>
+      <Card
+        style={[{ marginBottom: 12 }]}
+        onPress={() => handleViewSession(item)}
+      >
         <Card.Content>
           <View style={{ marginBottom: 12 }}>
             <Text

@@ -13,6 +13,7 @@ const initialState: AppSettingsState = {
     theme: "light",
     defaultUseScoring: false,
     defaultUseRatings: false,
+    defaultCourtLayout: "horizontal",
     defaultEnforceFixedPartnerships: true,
   },
   loading: false,
