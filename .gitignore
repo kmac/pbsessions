@@ -36,7 +36,7 @@ yarn-error.*
 .envrc
 .env*.local
 
-AGENT*.md
+README-dev.md
 *.csv
 *.vim
 local/
