@@ -1,11 +1,13 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { Badge, Card, Chip, Icon, Text, useTheme } from "react-native-paper";
+import { Badge, Button, Card, Chip, Icon, Text, useTheme } from "react-native-paper";
 import { Court, CourtLayout, Player, PlayerStats, Score } from "@/src/types";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 
 const useBadge = false;
 const useTextVariant = true;
+const buttonMode = "outlined";
+const useChip = false;
 
 export const getPlayerText = (name: string) => {
   if (useTextVariant) {
@@ -150,7 +152,7 @@ const GameSide: React.FC<{
           gap: 4,
         }}
       >
-        <Chip
+        {/*<Chip
           mode={chipMode}
           disabled={player1Data.selectDisabled}
           elevated={!player1Data.selectDisabled}
@@ -158,7 +160,36 @@ const GameSide: React.FC<{
           onPress={() => {
             player1Data.onSelected && player1Data.onSelected();
           }}
+        >*/}
+        <Button
+          mode={buttonMode}
+          buttonColor={theme.colors.secondaryContainer}
+          disabled={player1Data.selectDisabled}
+          //elevated={!player1Data.selectDisabled}
+          //selected={player1Data.selected}
+          onPress={() => {
+            player1Data.onSelected && player1Data.onSelected();
+          }}
+          >
+          {/*<Card
+          mode="elevated"
+          disabled={player1Data.selectDisabled}
+          //elevated={!player1Data.selectDisabled}
+          //selected={player1Data.selected}
+          onPress={() => {
+            player1Data.onSelected && player1Data.onSelected();
+          }}
         >
+          <Card.Content style={{
+            margin: 0
+          }}>
+          <Card.Title
+              title={getPlayerText( player1Data.selected ? `${player1Data.player.name} (${player1Data.stats?.gamesSatOut || 0})` : player1Data.player.name)}
+              subtitle={showRating && player1Data.player.rating ? getPlayerRating(player1Data.player.rating, theme) : ""}
+              style={{
+                margin: 2
+              }}
+            />*/}
           <View
             style={{
               flexDirection: "column",
@@ -182,12 +213,26 @@ const GameSide: React.FC<{
                 getPlayerRating(player1Data.player.rating, theme)}
             </View>
           </View>
-        </Chip>
-        <Chip
+          {/*</Card.Content>*/}
+        </Button>
+        {/*</Chip>*/}
+        {/*</Card>*/}
+
+        {/*<Chip
           mode={chipMode}
           disabled={player2Data.selectDisabled}
           elevated={!player2Data.selectDisabled}
           selected={player2Data.selected}
+          onPress={() => {
+            player2Data.onSelected && player2Data.onSelected();
+          }}
+        >*/}
+        <Button
+          mode={buttonMode}
+          buttonColor={theme.colors.secondaryContainer}
+          disabled={player2Data.selectDisabled}
+          // elevated={!player2Data.selectDisabled}
+          // selected={player2Data.selected}
           onPress={() => {
             player2Data.onSelected && player2Data.onSelected();
           }}
@@ -213,7 +258,8 @@ const GameSide: React.FC<{
                 getPlayerRating(player2Data.player.rating, theme)}
             </View>
           </View>
-        </Chip>
+        </Button>
+        {/*</Chip>*/}
       </View>
     </View>
   );
