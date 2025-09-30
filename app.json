@@ -2,7 +2,8 @@
   "expo": {
     "name": "Pickleball Sessions",
     "slug": "pickleball-sessions",
-    "version": "1.0.0",
+    "version": "0.1.1",
+    "platforms": ["ios", "android", "web"],
     "orientation": "portrait",
     "icon": "./assets/images/pbsessions.png",
     "userInterfaceStyle": "automatic",
@@ -23,12 +24,15 @@
         "foregroundImage": "./assets/images/pbsessions.png",
         "backgroundColor": "#f9fafb"
       },
+      "bundleIdentifier": "com.kmac5dev.pbsessions",
       "package": "com.kmac5dev.pbsessions"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "bundleIdentifier": "com.kmac5dev.pbsessions",
+      "buildNumber": "1"
     },
     "plugins": [
       "expo-router",

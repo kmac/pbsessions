@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Linking, View, ScrollView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Constants from "expo-constants";
 import {
   Avatar,
   Button,
@@ -36,6 +37,7 @@ import {
   readSelectedFile,
   pasteFromClipboard,
 } from "@/src/utils/fileClipboardUtil";
+import { versionManager } from "@/src/utils/version";
 import Colors from "@/src/ui/styles/colors";
 import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system";
@@ -55,6 +57,21 @@ export default function SettingsTab() {
   const [backupJsonData, setBackupJsonData] = useState("");
   const [restoreDialogVisible, setRestoreDialogVisible] = useState(false);
   const [restoreJsonData, setRestoreJsonData] = useState("");
+  const [versionInfo, setVersionInfo] = useState<string>("");
+
+  useEffect(() => {
+    const loadVersionInfo = async () => {
+      try {
+        const formattedVersion = await versionManager.getFormattedVersion();
+        setVersionInfo(formattedVersion);
+      } catch (error) {
+        console.error("Failed to load version info:", error);
+        setVersionInfo("Unknown version");
+      }
+    };
+
+    loadVersionInfo();
+  }, []);
 
   const handleBackupData = async () => {
     try {
@@ -515,6 +532,9 @@ export default function SettingsTab() {
           }}
         >
           Pickleball Sessions
+        </Text>
+        <Text>
+          {versionInfo}
         </Text>
         <Text
           variant="bodyMedium"
