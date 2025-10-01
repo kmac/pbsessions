@@ -566,6 +566,16 @@ export default function SessionsTab() {
                 Start
               </Button>
             )}
+            {!isArchived(session) && isComplete(session) && (
+              <Button
+                icon="eye"
+                mode="outlined"
+                onPress={() => handleViewSession(session)}
+                compact={narrowScreen}
+              >
+                View
+              </Button>
+            )}
           </View>
 
           {/* Secondary actions */}
@@ -584,23 +594,25 @@ export default function SessionsTab() {
                 }
               >
                 {!isComplete(session) && (
-                  <Menu.Item
-                    leadingIcon="pencil"
-                    onPress={() => {
-                      toggleSessionMenu(session.id, false);
-                      handleEditSession(session);
-                    }}
-                    title="Edit"
-                  />
+                  <>
+                    <Menu.Item
+                      leadingIcon="pencil"
+                      onPress={() => {
+                        toggleSessionMenu(session.id, false);
+                        handleEditSession(session);
+                      }}
+                      title="Edit"
+                    />
+                    <Menu.Item
+                      leadingIcon="eye"
+                      onPress={() => {
+                        toggleSessionMenu(session.id, false);
+                        handleViewSession(session);
+                      }}
+                      title="View"
+                    />
+                  </>
                 )}
-                <Menu.Item
-                  leadingIcon="eye"
-                  onPress={() => {
-                    toggleSessionMenu(session.id, false);
-                    handleViewSession(session);
-                  }}
-                  title="View"
-                />
                 {isComplete(session) && (
                   <Menu.Item
                     leadingIcon="archive"
@@ -654,7 +666,7 @@ export default function SessionsTab() {
                   Edit
                 </Button>
               )}
-              {!isArchived(session) && (
+              {!isArchived(session) && !isComplete(session) && (
                 <Button
                   icon="eye"
                   mode="text"
