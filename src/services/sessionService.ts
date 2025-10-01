@@ -40,6 +40,8 @@ export const getRoundIndex = (session: Session): number => session.liveData?.rou
 
 export const getCurrentRoundIndex = (session: Session): number => Math.max(0, (session.liveData?.rounds.length || 1) - 1);
 
+export const getCurrentRoundNumber = (session: Session):number => { return getRoundNumber(getRoundIndex(session)); }
+
 // export const getCurrentRoundIndex = (
 //   session: Session,
 //   live: boolean = true

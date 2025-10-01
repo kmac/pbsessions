@@ -22,11 +22,11 @@ interface PlayerFormProps {
   onCancel: () => void;
 }
 
-export default function PlayerForm({
+export const PlayerForm: React.FC<PlayerFormProps> = ({
   player,
   onSave,
   onCancel,
-}: PlayerFormProps) {
+}) => {
   const theme = useTheme();
   const [formData, setFormData] = useState({
     name: "",

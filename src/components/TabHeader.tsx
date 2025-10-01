@@ -5,26 +5,27 @@ interface TabHeaderProps {
   title: string;
 }
 
-export default function TabHeader({ title }: TabHeaderProps) {
-
+export const TabHeader: React.FC<TabHeaderProps> = ({ title }) => {
   const theme = useTheme();
 
   return (
     <>
-      {false && ( <Image
-        style={{
-          width: 48,
-          height: 48,
-          backgroundColor: theme.colors.primaryContainer,
-          marginRight: 8,
-          borderWidth: 0,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          borderBottomLeftRadius: 20,
-          borderBottomRightRadius: 20,
-        }}
-        source={require("@/assets/images/pbsessions.webp")}
-      />)}
+      {false && (
+        <Image
+          style={{
+            width: 48,
+            height: 48,
+            backgroundColor: theme.colors.primaryContainer,
+            marginRight: 8,
+            borderWidth: 0,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            borderBottomLeftRadius: 20,
+            borderBottomRightRadius: 20,
+          }}
+          source={require("@/assets/images/pbsessions.webp")}
+        />
+      )}
       <Avatar.Image
         size={32}
         source={require("@/assets/images/pbsessions.webp")}
@@ -40,4 +41,4 @@ export default function TabHeader({ title }: TabHeaderProps) {
       </View>
     </>
   );
-}
+};

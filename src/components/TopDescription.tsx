@@ -5,7 +5,10 @@ interface TopDescriptionProps {
   description: string;
 }
 
-export default function TopDescription({ visible, description }: TopDescriptionProps) {
+export const TopDescription: React.FC<TopDescriptionProps> = ({
+  visible,
+  description,
+}) => {
   const theme = useTheme();
 
   if (!visible) {
@@ -32,4 +35,4 @@ export default function TopDescription({ visible, description }: TopDescriptionP
       </Text>
     </Surface>
   );
-}
+};

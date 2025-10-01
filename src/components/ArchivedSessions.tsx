@@ -17,7 +17,7 @@ import {
   removeSession,
   restoreSession,
 } from "@/src/store/slices/sessionsSlice";
-import ViewSessionModal from "@/src/components/ViewSessionModal";
+import { ViewSessionModal } from "@/src/components/ViewSessionModal";
 import { Session, SessionState } from "@/src/types";
 import { Alert } from "@/src/utils/alert";
 
@@ -26,10 +26,10 @@ interface ArchivedSessionsProps {
   onCancel: () => void;
 }
 
-export default function ArchivedSessions({
+export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
   visible,
   onCancel,
-}: ArchivedSessionsProps) {
+}) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { sessions, loading } = useAppSelector((state) => state.sessions);

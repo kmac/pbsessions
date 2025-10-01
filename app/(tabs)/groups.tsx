@@ -21,10 +21,10 @@ import {
   removeGroup,
 } from "@/src/store/slices/groupsSlice";
 import { Group, Player } from "@/src/types";
-import GroupForm from "@/src/components/GroupForm";
-import GroupPlayerManager from "@/src/components/GroupPlayerManager";
-import TabHeader from "@/src/components/TabHeader";
-import TopDescription from "@/src/components/TopDescription";
+import { GroupForm } from "@/src/components/GroupForm";
+import { GroupPlayerManager } from "@/src/components/GroupPlayerManager";
+import { TabHeader } from "@/src/components/TabHeader";
+import { TopDescription } from "@/src/components/TopDescription";
 import { Alert } from "@/src/utils/alert";
 
 export default function GroupsTab() {

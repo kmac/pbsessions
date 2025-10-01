@@ -10,7 +10,7 @@ import {
   useTheme,
   Dialog,
 } from "react-native-paper";
-import GroupPlayerManager from "@/src/components/GroupPlayerManager";
+import { GroupPlayerManager } from "@/src/components/GroupPlayerManager";
 import { useAppSelector } from "@/src/store";
 import { Group, Player } from "../types";
 import { Alert } from "../utils/alert";
@@ -23,7 +23,11 @@ interface GroupFormProps {
   onCancel: () => void;
 }
 
-export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
+export const GroupForm: React.FC<GroupFormProps> = ({
+  group,
+  onSave,
+  onCancel,
+}) => {
   const theme = useTheme();
   const [playerManagerVisible, setPlayerManagerVisible] = useState(false);
   const [cancelDialogVisible, setCancelDialogVisible] = useState(false);
@@ -286,4 +290,4 @@ export default function GroupForm({ group, onSave, onCancel }: GroupFormProps) {
       </Dialog>
     </SafeAreaView>
   );
-}
+};

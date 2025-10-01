@@ -21,7 +21,8 @@ import {
 import { Player, PlayerStats } from "../types";
 import { getPlayer } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
-import PlayerStatsCard from "@/src/components/PlayerStatsCard";
+
+type SortOption = "name" | "gamesPlayed" | "gamesSatOut" | "totalScore";
 
 interface PlayerStatsModalProps {
   visible: boolean;
@@ -30,14 +31,12 @@ interface PlayerStatsModalProps {
   onClose: () => void;
 }
 
-type SortOption = "name" | "gamesPlayed" | "gamesSatOut" | "totalScore";
-
-export default function PlayerStatsModal({
+export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   visible,
   players,
   stats,
   onClose,
-}: PlayerStatsModalProps) {
+}) => {
   const theme = useTheme();
   const [sortBy, setSortBy] = useState<SortOption>("gamesPlayed");
 

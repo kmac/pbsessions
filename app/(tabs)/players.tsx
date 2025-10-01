@@ -43,10 +43,10 @@ import {
   readSelectedFile,
 } from "@/src/utils/fileClipboardUtil";
 import { Group, Player } from "@/src/types";
-import PlayerForm from "@/src/components/PlayerForm";
-import TabHeader from "@/src/components/TabHeader";
-import TopDescription from "@/src/components/TopDescription";
-import BulkAddPlayersModal from "@/src/components/BulkAddPlayersModal";
+import { PlayerForm } from "@/src/components/PlayerForm";
+import { TabHeader } from "@/src/components/TabHeader";
+import { TopDescription } from "@/src/components/TopDescription";
+import { BulkAddPlayersModal } from "@/src/components/BulkAddPlayersModal";
 import { Alert } from "@/src/utils/alert";
 import { APP_CONFIG } from "@/src/constants";
 

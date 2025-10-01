@@ -26,10 +26,10 @@ import {
   removeSession,
 } from "@/src/store/slices/sessionsSlice";
 import { Court, Session, SessionState } from "@/src/types";
-import ArchivedSessions from "@/src/components/ArchivedSessions";
-import EditSessionModal from "@/src/components/EditSessionModal";
-import ViewSessionModal from "@/src/components/ViewSessionModal";
-import TabHeader from "@/src/components/TabHeader";
+import { ArchivedSessions } from "@/src/components/ArchivedSessions";
+import { EditSessionModal } from "@/src/components/EditSessionModal";
+import { ViewSessionModal } from "@/src/components/ViewSessionModal";
+import { TabHeader } from "@/src/components/TabHeader";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
 import {

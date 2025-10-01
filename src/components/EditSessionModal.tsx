@@ -36,7 +36,7 @@ import { isNarrowScreen } from "../utils/screenUtil";
 import { validateSessionSize } from "../utils/validation";
 import CourtManager from "./CourtManager";
 import SessionPlayerManager from "./SessionPlayerManager";
-import TopDescription from "./TopDescription";
+import { TopDescription } from "./TopDescription";
 import { Alert } from "../utils/alert";
 
 interface EditSessionModalProps {
@@ -50,12 +50,12 @@ interface EditSessionModalProps {
   onCancel: () => void;
 }
 
-export default function EditSessionModal({
+export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   visible,
   session,
   onSave,
   onCancel,
-}: EditSessionModalProps) {
+}) => {
   const theme = useTheme();
   const { players } = useAppSelector((state) => state.players);
   const { appSettings } = useAppSelector((state) => state.appSettings);

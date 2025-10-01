@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Modal, FlatList, ScrollView } from "react-native";
+import { View, Modal, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
@@ -11,15 +11,13 @@ import {
   Surface,
   Text,
   useTheme,
-  FAB,
   Chip,
 } from "react-native-paper";
 import { useAppSelector, useAppDispatch } from "@/src/store";
 import { addPlayer } from "@/src/store/slices/playersSlice";
 import { Player, FixedPartnership, PartnershipConstraint } from "@/src/types";
-import PlayerCard from "./PlayerCard";
 import { renderPlayerCard } from "./render/playerCardRenderer";
-import PlayerForm from "./PlayerForm";
+import { PlayerForm } from "./PlayerForm";
 import { Alert } from "@/src/utils/alert";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { v4 as uuidv4 } from "uuid";
@@ -38,7 +36,7 @@ interface GroupPlayerManagerProps {
 
 type ViewMode = "select" | "add";
 
-export default function GroupPlayerManager({
+export const GroupPlayerManager: React.FC<GroupPlayerManagerProps> = ({
   visible,
   groupName,
   groupPlayers,
@@ -48,7 +46,7 @@ export default function GroupPlayerManager({
   partnershipConstraint,
   onPausedPlayersChange,
   onPartnershipConstraintChange,
-}: GroupPlayerManagerProps) {
+}) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { players: allPlayers } = useAppSelector((state) => state.players);

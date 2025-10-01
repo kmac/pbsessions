@@ -19,11 +19,11 @@ import {
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateSession } from "@/src/store/slices/sessionsSlice";
 import { SessionCoordinator } from "@/src/services/sessionCoordinator";
-import RoundComponent from "@/src/components/RoundComponent";
-import RoundScoreEntryModal from "@/src/components/RoundScoreEntryModal";
-import PlayerStatsModal from "@/src/components/PlayerStatsModal";
-import BetweenRoundsModal from "@/src/components/BetweenRoundsModal";
-import EditSessionModal from "@/src/components/EditSessionModal";
+import { RoundComponent } from "@/src/components/RoundComponent";
+import { RoundScoreEntryModal } from "@/src/components/RoundScoreEntryModal";
+import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
+import { BetweenRoundsModal } from "@/src/components/BetweenRoundsModal";
+import { EditSessionModal } from "@/src/components/EditSessionModal";
 import { getRoundNumber } from "@/src/services/sessionService";
 import {
   getSessionPlayers,

@@ -34,14 +34,14 @@ interface CourtScore {
   receiveTeam: [Player | undefined, Player | undefined];
 }
 
-export default function RoundScoreEntryModal({
+export const RoundScoreEntryModal: React.FC<RoundScoreEntryModalProps> = ({
   visible,
   games,
   players,
   courts,
   onSave,
   onClose,
-}: RoundScoreEntryModalProps) {
+}) => {
   const theme = useTheme();
   const [courtScores, setCourtScores] = useState<CourtScore[]>([]);
 

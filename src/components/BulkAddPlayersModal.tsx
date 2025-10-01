@@ -31,10 +31,10 @@ interface PlayerInput {
   rating: string;
 }
 
-export default function BulkAddPlayersModal({
+export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
   visible,
   onClose,
-}: BulkAddPlayersModalProps) {
+}) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const [players, setPlayers] = useState<PlayerInput[]>([

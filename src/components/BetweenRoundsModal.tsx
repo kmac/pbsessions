@@ -14,11 +14,11 @@ import {
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { SessionState, Player } from "@/src/types";
-import PlayerStatsModal from "@/src/components/PlayerStatsModal";
-import RoundComponent from "@/src/components/RoundComponent";
-import TopDescription from "@/src/components/TopDescription";
+import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
+import { RoundComponent } from "@/src/components/RoundComponent";
+import { TopDescription } from "@/src/components/TopDescription";
 import { SessionCoordinator } from "@/src/services/sessionCoordinator";
-import { getCurrentRoundInfo } from "@/src/services/sessionService";
+import { getCurrentRoundInfo, getCurrentRoundNumber } from "@/src/services/sessionService";
 import { getSessionPlayers, getSessionPausedPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 import { updateCurrentRoundThunk } from "@/src/store/actions/sessionActions";
@@ -35,13 +35,13 @@ interface BetweenRoundsModalProps {
   onEditSession?: () => void; // Add new prop for edit session callback
 }
 
-export default function BetweenRoundsModal({
+export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
   visible,
   sessionId,
   onStartRound,
   onClose,
   onEditSession,
-}: BetweenRoundsModalProps) {
+}) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { width } = useWindowDimensions();
@@ -136,7 +136,7 @@ export default function BetweenRoundsModal({
     return null;
   }
 
-  const { liveData, roundIndex, currentRound } = getCurrentRoundInfo(
+  const { liveData, currentRound } = getCurrentRoundInfo(
     currentSession.liveData,
   );
 
@@ -164,7 +164,7 @@ export default function BetweenRoundsModal({
                     fontWeight: "600",
                   }}
                 >
-                  New Round: {roundIndex}
+                  New Round: {getCurrentRoundNumber(currentSession)}
                 </Text>
               }
             />

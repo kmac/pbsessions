@@ -17,8 +17,8 @@ import * as Print from "expo-print";
 import { File, Directory, Paths } from "expo-file-system";
 import Sharing from "expo-sharing";
 import { useAppSelector } from "@/src/store";
-import PlayerStatsModal from "@/src/components/PlayerStatsModal";
-import RoundComponent from "@/src/components/RoundComponent";
+import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
+import { RoundComponent } from "@/src/components/RoundComponent";
 import { Session, SessionState, Game, Round } from "@/src/types";
 import { getPlayerName, getSessionPlayers } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
@@ -29,11 +29,11 @@ interface ViewSessionModalProps {
   onCancel: () => void;
 }
 
-export default function ViewSessionModal({
+export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
   visible,
   session,
   onCancel,
-}: ViewSessionModalProps) {
+}) => {
   const theme = useTheme();
 
   const [statsModalVisible, setStatsModalVisible] = useState(false);
