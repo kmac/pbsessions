@@ -18,9 +18,7 @@ import {
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { Court, Game, Session, Player, PlayerStats } from "@/src/types";
-import {
-  getCurrentRound,
-} from "@/src/services/sessionService";
+import { getCurrentRound } from "@/src/services/sessionService";
 import {
   updateCourtInSessionThunk,
   updateCurrentRoundThunk,
@@ -31,6 +29,7 @@ import {
   getPartnerDecoration,
   RoundGameCard,
 } from "@/src/components/RoundGameCard";
+import { PlayerButton } from "@/src/components/PlayerButton";
 import { getSessionPlayers, getSessionPausedPlayers } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
@@ -43,13 +42,13 @@ interface RoundComponentProps {
   onSwapPlayersChange?: (canSwap: boolean, swapHandler: () => void) => void;
 }
 
-export default function RoundComponent({
+export const RoundComponent: React.FC<RoundComponentProps> = ({
   session,
   editing,
   ratingSwitch = true,
   roundIndex,
   onSwapPlayersChange,
-}: RoundComponentProps) {
+}) => {
   const dispatch = useAppDispatch();
   const theme = useTheme();
   const useFlatList = false;
@@ -419,7 +418,6 @@ export default function RoundComponent({
         }}
         court={getCourt(game.courtId)}
         score={game.score}
-        chipMode={chipMode}
         showRating={showRatingEnabled}
         handleCourtSetting={editing ? handleCourtSetting : undefined}
         courtLayout={appSettings.defaultCourtLayout}
@@ -539,39 +537,18 @@ export default function RoundComponent({
           </Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {sittingOutPlayers.map((player) => (
-              <Chip
+              <PlayerButton
                 key={player.id}
-                mode={chipMode}
-                disabled={playerSelectDisabled(player)}
+                player={player}
+                partner={getPartner(player.id)}
+                stats={getPlayerStats(session, player.id)}
                 selected={getPlayerSelected(player)}
+                disabled={playerSelectDisabled(player)}
+                showRating={showRatingEnabled}
                 onPress={() => {
                   editing && player && togglePlayerSelected(player);
                 }}
-              >
-                <View
-                  style={{
-                    flexDirection: "column",
-                  }}
-                >
-                  {getPlayerText(
-                    editing
-                      ? `${player.name} (${getPlayerStats(session, player.id)?.gamesSatOut || 0})`
-                      : player.name,
-                  )}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignSelf: "flex-end",
-                      gap: 2,
-                    }}
-                  >
-                    {getPartner(player.id) && getPartnerDecoration(theme)}
-                    {showRatingEnabled &&
-                      player.rating &&
-                      getPlayerRating(player.rating, theme)}
-                  </View>
-                </View>
-              </Chip>
+              />
             ))}
           </View>
         </View>

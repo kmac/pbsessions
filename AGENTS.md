@@ -22,7 +22,7 @@ This is an Expo react native TypeScript project using redux for storage, and tes
 - **Imports**: Use `@/` for root imports, `src/` for src-relative imports
 - **Components**: Export default functions, use PascalCase naming
     - Use functional components with hooks
-- **Props**: Define interfaces with `Props` suffix (e.g., `PlayerCardProps`)
+- **Props**: Define interfaces with `Props` suffix (e.g., `PlayerButtonProps`)
 - **State**: Use Redux Toolkit with createSlice, follow existing slice patterns
 - **Formatting**: Use double quotes, prefer function declarations over arrows for components
 - **File structure**: Keep components in `/src/components/`, services in `/src/services/`
