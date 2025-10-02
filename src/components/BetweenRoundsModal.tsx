@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { View, Modal, ScrollView, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
+  Banner,
   Button,
   Card,
-  Dialog,
   FAB,
+  Icon,
+  IconButton,
   List,
   Surface,
   Text,
@@ -18,7 +20,10 @@ import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
 import { RoundComponent } from "@/src/components/RoundComponent";
 import { TopDescription } from "@/src/components/TopDescription";
 import { SessionCoordinator } from "@/src/services/sessionCoordinator";
-import { getCurrentRoundInfo, getCurrentRoundNumber } from "@/src/services/sessionService";
+import {
+  getCurrentRoundInfo,
+  getCurrentRoundNumber,
+} from "@/src/services/sessionService";
 import { getSessionPlayers, getSessionPausedPlayers } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 import { updateCurrentRoundThunk } from "@/src/store/actions/sessionActions";
@@ -49,8 +54,9 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
   const [selectedPlayers, setSelectedPlayers] = useState(
     new Map<string, Player>(),
   );
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
   const [statsModalVisible, setStatsModalVisible] = useState(false);
-  const [helpDialogVisible, setHelpDialogVisible] = useState(false);
   const [canSwapPlayers, setCanSwapPlayers] = useState(false);
   const [swapPlayersHandler, setSwapPlayersHandler] = useState<
     (() => void) | null
@@ -58,6 +64,14 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
 
   const { players } = useAppSelector((state) => state.players);
   const { sessions } = useAppSelector((state) => state.sessions);
+
+  const toggleBanner = () => {
+    let visible = bannerVisible;
+    setBannerVisible(!visible);
+    if (!visible && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: 0, animated: true });
+    }
+  };
 
   const handleSwapPlayersChange = useCallback(
     (canSwap: boolean, handler: () => void) => {
@@ -68,51 +82,44 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
   );
 
   // Use useCallback to ensure we always get fresh session data
-  const handleReshufflePlayers = useCallback(
-    () => {
-      console.debug("handleReshufflePlayers: in callback");
+  const handleReshufflePlayers = useCallback(() => {
+    console.debug("handleReshufflePlayers: in callback");
 
-      // Get fresh session data on each call
-      const currentSession = sessions.find((s) => s.id === sessionId);
+    // Get fresh session data on each call
+    const currentSession = sessions.find((s) => s.id === sessionId);
 
-      if (!currentSession || currentSession.state !== SessionState.Live) {
-        return;
-      }
+    if (!currentSession || currentSession.state !== SessionState.Live) {
+      return;
+    }
 
-      const sessionPlayers: Player[] = getSessionPlayers(
-        currentSession,
-        players,
+    const sessionPlayers: Player[] = getSessionPlayers(currentSession, players);
+
+    const { currentRound } = getCurrentRoundInfo(currentSession.liveData);
+
+    const sessionCoordinator = new SessionCoordinator(
+      currentSession,
+      sessionPlayers,
+      getSessionPausedPlayers(currentSession, players),
+    );
+    const roundAssignment = sessionCoordinator.generateRoundAssignment();
+
+    if (roundAssignment.gameAssignments.length === 0) {
+      Alert.alert(
+        "Cannot Generate Round",
+        "Unable to create game assignments. Check player and court availability.",
+        [{ text: "OK" }],
       );
+      return;
+    }
 
-      const { currentRound } = getCurrentRoundInfo(currentSession.liveData);
-
-      const sessionCoordinator = new SessionCoordinator(
-        currentSession,
-        sessionPlayers,
-        getSessionPausedPlayers(currentSession, players),
-      );
-      const roundAssignment =
-        sessionCoordinator.generateRoundAssignment();
-
-      if (roundAssignment.gameAssignments.length === 0) {
-        Alert.alert(
-          "Cannot Generate Round",
-          "Unable to create game assignments. Check player and court availability.",
-          [{ text: "OK" }],
-        );
-        return;
-      }
-
-      dispatch(
-        updateCurrentRoundThunk({
-          sessionId: sessionId,
-          assignment: roundAssignment,
-        }),
-      );
-      setSelectedPlayers(new Map());
-    },
-    [sessionId, sessions, players, dispatch],
-  );
+    dispatch(
+      updateCurrentRoundThunk({
+        sessionId: sessionId,
+        assignment: roundAssignment,
+      }),
+    );
+    setSelectedPlayers(new Map());
+  }, [sessionId, sessions, players, dispatch]);
 
   // Register court update callback when component mounts
   useEffect(() => {
@@ -174,16 +181,76 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
             <Appbar.Action
               icon="help-circle"
               onPress={() => {
-                setHelpDialogVisible(true);
+                toggleBanner();
               }}
             />
           </Appbar.Header>
 
           <ScrollView
+            ref={scrollViewRef}
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ flexGrow: 1 }}
           >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <IconButton
+                icon={bannerVisible ? "chevron-up" : "chevron-down"}
+                onPress={() => {
+                  toggleBanner();
+                }}
+              />
+            </View>
+            <Banner
+              visible={bannerVisible}
+              actions={[
+                {
+                  label: "Dismiss",
+                  onPress: () => {
+                    setBannerVisible(false);
+                  },
+                },
+              ]}
+            >
+              <TopDescription
+                visible={true}
+                description={`Configure players and court settings for this round.\nSelect a player or court to enable further actions. Start the round when ready.`}
+              />
+              <View
+                style={{
+                  marginTop: 20,
+                }}
+              >
+                <Card>
+                  <List.Item
+                    title="Start Round"
+                    description="Select the 'Start Round' button to begin playing."
+                  />
+                  <List.Item
+                    title="Swap any Players"
+                    description="Select any two players to enable the swap action. You can swap active or sitting-out players."
+                  />
+                  <List.Item
+                    title="Long Press on Player"
+                    description="Long-press on any player button to show details, pause player, or set partnership."
+                  />
+                  <List.Item
+                    title="Courts"
+                    description="Select any court to enable/disable/modify the court parameters."
+                  />
+                  <List.Item
+                    title="Edit Session"
+                    description="Modify session settings like courts, players, or session details."
+                  />
+                </Card>
+              </View>
+            </Banner>
+
             <Surface
               style={{
                 padding: 16,
@@ -192,11 +259,6 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
               }}
             >
               <View style={{ flexDirection: "column", marginBottom: 8 }}>
-                <TopDescription
-                  visible={true}
-                  description={`Configure players and court settings for this round.\nSelect a player or court to enable further actions. Start the round when ready.`}
-                />
-
                 <RoundComponent
                   session={currentSession}
                   editing={true}
@@ -219,49 +281,49 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
                   >
                     Start Round
                   </Button>
-                <View // Action buttons
-                  style={{
-                    flexDirection: isSmallScreen ? "column" : "row",
-                    alignContent: "space-between",
-                    gap: 12,
-                  }}
-                >
-                  <Button
-                    icon="refresh"
-                    mode="outlined"
-                    onPress={() => {
-                      handleReshufflePlayers();
+                  <View // Action buttons
+                    style={{
+                      flexDirection: isSmallScreen ? "column" : "row",
+                      alignContent: "space-between",
+                      gap: 12,
                     }}
-                    contentStyle={{ padding: 2 }}
-                    style={isSmallScreen ? { flex: 1 } : undefined}
                   >
-                    Reshuffle
-                  </Button>
-                  <Button
-                    icon="chart-box"
-                    mode="outlined"
-                    onPress={() => {
-                      setStatsModalVisible(true);
-                    }}
-                    contentStyle={{ padding: 2 }}
-                    style={isSmallScreen ? { flex: 1 } : undefined}
-                  >
-                    {isSmallScreen ? "Stats" : "Player Stats"}
-                  </Button>
-
-                  {onEditSession && (
                     <Button
-                      icon="pencil"
+                      icon="refresh"
                       mode="outlined"
-                      onPress={onEditSession}
+                      onPress={() => {
+                        handleReshufflePlayers();
+                      }}
                       contentStyle={{ padding: 2 }}
                       style={isSmallScreen ? { flex: 1 } : undefined}
                     >
-                      Edit Session
+                      Reshuffle
                     </Button>
-                  )}
+                    <Button
+                      icon="chart-box"
+                      mode="outlined"
+                      onPress={() => {
+                        setStatsModalVisible(true);
+                      }}
+                      contentStyle={{ padding: 2 }}
+                      style={isSmallScreen ? { flex: 1 } : undefined}
+                    >
+                      {isSmallScreen ? "Stats" : "Player Stats"}
+                    </Button>
+
+                    {onEditSession && (
+                      <Button
+                        icon="pencil"
+                        mode="outlined"
+                        onPress={onEditSession}
+                        contentStyle={{ padding: 2 }}
+                        style={isSmallScreen ? { flex: 1 } : undefined}
+                      >
+                        Edit Session
+                      </Button>
+                    )}
+                  </View>
                 </View>
-              </View>
               </View>
             </Surface>
           </ScrollView>
@@ -281,52 +343,6 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
               onPress={() => swapPlayersHandler && swapPlayersHandler()}
             />
           )}
-
-          <Dialog
-            visible={helpDialogVisible}
-            style={{
-              alignSelf: "center",
-              width: "80%",
-              maxWidth: 400,
-              position: "absolute",
-              top: "20%",
-              zIndex: 1000,
-            }}
-            onDismiss={() => {
-              setHelpDialogVisible(false);
-            }}
-          >
-            <Dialog.Title>Help: New Round</Dialog.Title>
-            <Dialog.Content>
-              <View
-                style={{
-                  marginTop: 20,
-                }}
-              >
-                <Card>
-                  <List.Item
-                    title="Start Round"
-                    description="Select the 'Start Round' button to begin playing."
-                  />
-                  <List.Item
-                    title="Swap any Players"
-                    description="Select any two players to enable the swap action. You can swap active or sitting-out players."
-                  />
-                  <List.Item
-                    title="Courts"
-                    description="Select any court to enable/disable/modify the court parameters."
-                  />
-                  <List.Item
-                    title="Edit Session"
-                    description="Modify session settings like courts, players, or session details."
-                  />
-                </Card>
-              </View>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setHelpDialogVisible(false)}>Close</Button>
-            </Dialog.Actions>
-          </Dialog>
         </SafeAreaView>
       </Modal>
 
@@ -338,4 +354,4 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
       />
     </>
   );
-}
+};
