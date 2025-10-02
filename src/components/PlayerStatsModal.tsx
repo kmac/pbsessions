@@ -18,6 +18,7 @@ import {
   BarChart3,
   UserCheck,
 } from "lucide-react-native";
+import { PlayerStatsDisplay } from "@/src/components/PlayerStatsDisplay";
 import { Player, PlayerStats } from "../types";
 import { getPlayer } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
@@ -93,16 +94,6 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
         ? (playerStats.gamesPlayed / totalParticipation) * 100
         : 0;
 
-    const averageScore =
-      playerStats.gamesPlayed > 0
-        ? playerStats.totalScore / playerStats.gamesPlayed
-        : 0;
-
-    const partnerCount = Object.keys(playerStats.partners).length;
-    const mostFrequentPartner = Object.entries(playerStats.partners).sort(
-      ([, a], [, b]) => b - a,
-    )[0];
-
     return (
       <Card style={{ marginBottom: 12, marginHorizontal: 16 }}>
         <Card.Content>
@@ -144,121 +135,14 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
             </Chip>
           </View>
 
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              marginBottom: 12,
-            }}
-          >
-            <View style={{ alignItems: "center", gap: 4 }}>
-              <Icon source="trophy" size={16} color={theme.colors.primary} />
-              <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-                {playerStats.gamesPlayed}
-              </Text>
-              <Text
-                variant="labelSmall"
-                style={{
-                  color: theme.colors.onSurfaceVariant,
-                  textAlign: "center",
-                }}
-              >
-                Games
-              </Text>
-            </View>
-
-            <View style={{ alignItems: "center", gap: 4 }}>
-              <Clock size={16} color={theme.colors.onSurfaceVariant} />
-              <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-                {playerStats.gamesSatOut}
-              </Text>
-              <Text
-                variant="labelSmall"
-                style={{
-                  color: theme.colors.onSurfaceVariant,
-                  textAlign: "center",
-                }}
-              >
-                Sat Out
-              </Text>
-            </View>
-
-            <View style={{ alignItems: "center", gap: 4 }}>
-              <Icon source="trending-up" size={16} color={theme.colors.onSurfaceVariant} />
-              <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-                {playerStats.consecutiveGames}
-              </Text>
-              <Text
-                variant="labelSmall"
-                style={{
-                  color: theme.colors.onSurfaceVariant,
-                  textAlign: "center",
-                }}
-              >
-                Since Sat
-              </Text>
-            </View>
-
-            <View style={{ alignItems: "center", gap: 4 }}>
-              <Users size={16} color={theme.colors.primary} />
-              <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-                {partnerCount}
-              </Text>
-              <Text
-                variant="labelSmall"
-                style={{
-                  color: theme.colors.onSurfaceVariant,
-                  textAlign: "center",
-                }}
-              >
-                Partners
-              </Text>
-            </View>
-
-            <View style={{ alignItems: "center", gap: 4 }}>
-              <BarChart3 size={16} color={theme.colors.primary} />
-              <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-                {averageScore.toFixed(1)}
-              </Text>
-              <Text
-                variant="labelSmall"
-                style={{
-                  color: theme.colors.onSurfaceVariant,
-                  textAlign: "center",
-                }}
-              >
-                Avg Score
-              </Text>
-            </View>
-          </View>
-
-          {mostFrequentPartner && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                paddingTop: 12,
-                borderTopWidth: 1,
-                borderTopColor: theme.colors.outline,
-              }}
-            >
-              <UserCheck size={14} color={theme.colors.onSurfaceVariant} />
-              <Text
-                variant="bodySmall"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                Most partnered with{" "}
-                <Text
-                  style={{ fontWeight: "500", color: theme.colors.onSurface }}
-                >
-                  {getPlayer(players, mostFrequentPartner[0])?.name ||
-                    "Unknown"}
-                </Text>{" "}
-                ({mostFrequentPartner[1]} games)
-              </Text>
-            </View>
-          )}
+          <PlayerStatsDisplay
+            player={item}
+            stats={playerStats}
+            allPlayers={players}
+            compact={false}
+            showPlayingPercentage={false}
+            showMostFrequentPartner={true}
+          />
         </Card.Content>
       </Card>
     );

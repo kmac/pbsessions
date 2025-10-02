@@ -31,7 +31,7 @@ import {
   FixedPartnership,
   PartnershipConstraint,
 } from "../types";
-import TopDescription from "./TopDescription";
+import { TopDescription } from "./TopDescription";
 import { v4 as uuidv4 } from "uuid";
 import { getPlayer } from "../utils/util";
 

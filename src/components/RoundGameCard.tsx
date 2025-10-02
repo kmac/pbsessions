@@ -1,98 +1,10 @@
 import React from "react";
 import { View } from "react-native";
-import { Badge, Card, Chip, Icon, Text, useTheme } from "react-native-paper";
+import { Card, Chip, Text, useTheme } from "react-native-paper";
 import { Court, CourtLayout, Player, PlayerStats, Score } from "@/src/types";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { PlayerButton } from "./PlayerButton";
 import { CourtButton } from "./CourtButton";
-
-const useBadge = false;
-const useTextVariant = true;
-
-export const getPlayerText = (name: string) => {
-  if (useTextVariant) {
-    const variant = name.length > 12 ? "labelLarge" : "labelLarge";
-    //const variant = name.length > 100 ? "titleSmall" : "titleMedium";
-    return <Text variant={variant}>{name}</Text>;
-  }
-  const fontSize = name.length > 12 ? 14 : 15;
-  return (
-    <Text
-      style={{
-        fontSize: fontSize,
-        fontWeight: "500",
-      }}
-    >
-      {name}
-    </Text>
-  );
-};
-
-export const getPlayerRating = (rating: number, theme: any) => {
-  if (useBadge) {
-    return (
-      <Badge
-        size={20}
-        style={{
-          fontSize: 10,
-          color: theme.colors.onPrimary,
-          backgroundColor: theme.colors.primary,
-        }}
-      >
-        {rating.toFixed(2)}
-      </Badge>
-    );
-  }
-  if (useTextVariant) {
-    return (
-      <Text
-        variant="labelSmall"
-        style={{
-          color: theme.colors.tertiary,
-          //fontSize: 9,
-          fontWeight: "400",
-          alignSelf: /*"center"*/ "flex-end",
-          marginLeft: isNarrowScreen() ? 0 : 8,
-        }}
-      >
-        {rating.toFixed(2)}
-      </Text>
-    );
-  }
-  return (
-    <Text
-      //variant="bodySmall"
-      style={{
-        color: theme.colors.tertiary,
-        fontSize: 9,
-        alignSelf: /*"center"*/ "flex-end",
-        marginLeft: isNarrowScreen() ? 0 : 8,
-      }}
-    >
-      {rating.toFixed(2)}
-    </Text>
-  );
-};
-
-export const getPartnerDecoration = (theme: any) => {
-  const useIcon = true;
-  if (useIcon) {
-    return <Icon source="vector-link" size={12} color={theme.colors.primary} />;
-  } else {
-    return (
-      <Badge
-        size={12}
-        style={{
-          //fontSize: 10,
-          color: theme.colors.onPrimary,
-          backgroundColor: theme.colors.primary,
-        }}
-      >
-        P
-      </Badge>
-    );
-  }
-};
 
 export type PlayerRenderData = {
   player: Player;
@@ -101,6 +13,7 @@ export type PlayerRenderData = {
   selected: boolean;
   selectDisabled: boolean;
   onSelected?: () => void;
+  onLongPress?: () => void;
 };
 
 interface RoundGameCardProps {
@@ -151,6 +64,7 @@ const GameSide: React.FC<{
           disabled={player1Data.selectDisabled}
           showRating={showRating}
           onPress={player1Data.onSelected}
+          onLongPress={player1Data.onLongPress}
         />
 
         <PlayerButton
@@ -161,6 +75,7 @@ const GameSide: React.FC<{
           disabled={player2Data.selectDisabled}
           showRating={showRating}
           onPress={player2Data.onSelected}
+          onLongPress={player2Data.onLongPress}
         />
       </View>
     </View>

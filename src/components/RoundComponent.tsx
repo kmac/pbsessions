@@ -8,6 +8,8 @@ import {
   Card,
   Chip,
   Dialog,
+  Divider,
+  IconButton,
   FAB,
   HelperText,
   Portal,
@@ -22,14 +24,15 @@ import { getCurrentRound } from "@/src/services/sessionService";
 import {
   updateCourtInSessionThunk,
   updateCurrentRoundThunk,
+  togglePausePlayerInSessionThunk,
 } from "@/src/store/actions/sessionActions";
+import { RoundGameCard } from "@/src/components/RoundGameCard";
+import { PlayerStatsDisplay } from "@/src/components/PlayerStatsDisplay";
 import {
   getPlayerText,
   getPlayerRating,
-  getPartnerDecoration,
-  RoundGameCard,
-} from "@/src/components/RoundGameCard";
-import { PlayerButton } from "@/src/components/PlayerButton";
+  PlayerButton,
+} from "@/src/components/PlayerButton";
 import { getSessionPlayers, getSessionPausedPlayers } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
@@ -58,6 +61,9 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
   const [selectedCourts, setSelectedCourts] = useState(new Set<string>());
   const [courtSettingDialogVisible, setCourtSettingDialogVisible] =
     useState(false);
+  const [playerDetailsDialogVisible, setPlayerDetailsDialogVisible] =
+    useState(false);
+  const [currentPlayerId, setCurrentPlayerId] = useState<string>("");
   const [currentCourtId, setCurrentCourtId] = useState<string>("");
   const [courtRatingInput, setCourtRatingInput] = useState<string>("");
   const [courtRatingEnabled, setCourtRatingEnabled] = useState<boolean>(false);
@@ -206,6 +212,32 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
           return;
         }
       }
+    }
+  };
+
+  const handleLongPress = (player: Player) => {
+    if (player) {
+      setCurrentPlayerId(player.id);
+      setPlayerDetailsDialogVisible(true);
+    }
+  };
+
+  const handleClosePlayerDetails = () => {
+    setPlayerDetailsDialogVisible(false);
+    setCurrentPlayerId("");
+  };
+
+  const handleTogglePlayerPause = async (playerId: string) => {
+    try {
+      await dispatch(
+        togglePausePlayerInSessionThunk({
+          sessionId: session.id,
+          playerId: playerId,
+        }),
+      ).unwrap();
+    } catch (error) {
+      console.error("Failed to toggle player pause:", error);
+      Alert.alert("Error", "Failed to update player status");
     }
   };
 
@@ -391,6 +423,7 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
           selected: getPlayerSelected(servePlayer1),
           selectDisabled: playerSelectDisabled(servePlayer1),
           onSelected: () => editing && togglePlayerSelected(servePlayer1),
+          onLongPress: () => handleLongPress(servePlayer1),
         }}
         servePlayer2Data={{
           player: servePlayer2,
@@ -399,6 +432,7 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
           selected: getPlayerSelected(servePlayer2),
           selectDisabled: playerSelectDisabled(servePlayer2),
           onSelected: () => editing && togglePlayerSelected(servePlayer2),
+          onLongPress: () => handleLongPress(servePlayer2),
         }}
         receivePlayer1Data={{
           player: receivePlayer1,
@@ -407,6 +441,7 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
           selected: getPlayerSelected(receivePlayer1),
           selectDisabled: playerSelectDisabled(receivePlayer1),
           onSelected: () => editing && togglePlayerSelected(receivePlayer1),
+          onLongPress: () => handleLongPress(receivePlayer1),
         }}
         receivePlayer2Data={{
           player: receivePlayer2,
@@ -415,6 +450,7 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
           selected: getPlayerSelected(receivePlayer2),
           selectDisabled: playerSelectDisabled(receivePlayer2),
           onSelected: () => editing && togglePlayerSelected(receivePlayer2),
+          onLongPress: () => handleLongPress(receivePlayer2),
         }}
         court={getCourt(game.courtId)}
         score={game.score}
@@ -548,6 +584,7 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
                 onPress={() => {
                   editing && player && togglePlayerSelected(player);
                 }}
+                onLongPress={() => handleLongPress(player)}
               />
             ))}
           </View>
@@ -567,27 +604,18 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
           </Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {pausedPlayers.map((player) => (
-              <Chip
+              <PlayerButton
+                key={player.id}
                 icon="pause"
-                mode={chipMode}
-                disabled={true}
+                player={player}
+                partner={getPartner(player.id)}
+                stats={getPlayerStats(session, player.id)}
                 selected={false}
+                disabled={false}
+                showRating={showRatingEnabled}
                 onPress={() => {}}
-              >
-                <View
-                  style={{
-                    // flexDirection: isNarrowScreen() ? "column" : "row",
-                    flexDirection: "column",
-                  }}
-                >
-                  {getPlayerText(
-                    `${player.name} (${getPlayerStats(session, player.id)?.gamesSatOut || 0})`,
-                  )}
-                  {showRatingEnabled &&
-                    player.rating &&
-                    getPlayerRating(player.rating, theme)}
-                </View>
-              </Chip>
+                onLongPress={() => handleLongPress(player)}
+              />
             ))}
           </View>
         </View>
@@ -687,6 +715,104 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
           <Button onPress={handleSaveCourtSetting}>Save</Button>
         </Dialog.Actions>
       </Dialog>
+
+      <Dialog
+        visible={playerDetailsDialogVisible}
+        onDismiss={handleClosePlayerDetails}
+        style={{ alignSelf: "center", width: "80%", maxWidth: 400 }}
+      >
+        {/* <Dialog.Title>Player Details</Dialog.Title> */}
+        <Dialog.Content>
+          {currentPlayerId &&
+            (() => {
+              const currentPlayer: Player = getPlayer(currentPlayerId);
+              const partner = getPartner(currentPlayerId);
+              const stats = getPlayerStats(session, currentPlayerId);
+              const isPaused = isPlayerPaused(currentPlayerId);
+
+              return (
+                <View>
+                  <Text
+                    variant="headlineSmall"
+                    style={{ marginBottom: 8, fontWeight: "600" }}
+                  >
+                    {currentPlayer.name}
+                  </Text>
+                  {currentPlayer.rating && (
+                    <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+                      Rating: {currentPlayer.rating.toFixed(2)}
+                    </Text>
+                  )}
+
+                  {partner && (
+                    <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+                      Partner: {partner.name}
+                    </Text>
+                  )}
+
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <View style={{ flexDirection: "row" }}>
+                      <Text variant="bodyMedium">
+                        {isPaused ? "Player is " : "Player is "}
+                      </Text>
+                      <Text variant="bodyMedium" style={{ fontWeight: 600 }}>
+                        {isPaused ? "paused" : "available"}
+                      </Text>
+                    </View>
+                    <Button
+                      mode={isPaused ? "contained" : "outlined"}
+                      icon={isPaused ? "play" : "pause"}
+                      onPress={() => handleTogglePlayerPause(currentPlayerId)}
+                      compact={true}
+                    >
+                      {isPaused ? "Resume" : "Pause"}
+                    </Button>
+                  </View>
+
+                  <Text
+                    variant="labelSmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {isPaused
+                      ? "Tap Resume to make player available for new games"
+                      : "Tap Pause to mark player as unavailable for new games"}
+                  </Text>
+
+                  <Divider style={{ margin: 10 }} />
+
+                  {stats && (
+                    <View style={{ marginBottom: 16 }}>
+                      <Text
+                        variant="bodyMedium"
+                        style={{ marginBottom: 12, fontWeight: "500" }}
+                      >
+                        Session Statistics
+                      </Text>
+                      <PlayerStatsDisplay
+                        player={currentPlayer}
+                        stats={stats}
+                        allPlayers={sessionPlayers}
+                        compact={true}
+                        showPlayingPercentage={true}
+                        showMostFrequentPartner={true}
+                      />
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button onPress={handleClosePlayerDetails}>Close</Button>
+        </Dialog.Actions>
+      </Dialog>
     </SafeAreaView>
   );
-}
+};

@@ -215,3 +215,12 @@ export const removePlayerFromSessionThunk = createAsyncThunkForSession<{
   (session, { playerId }) => {
   return SessionService.removePlayer(session, playerId);
 });
+
+export const togglePausePlayerInSessionThunk = createAsyncThunkForSession<{
+  sessionId: string;
+  playerId: string;
+}>(
+  "sessions/togglePausePlayer",
+  (session, { playerId }) => {
+  return SessionService.togglePausePlayer(session, playerId);
+});

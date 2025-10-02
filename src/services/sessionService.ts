@@ -36,23 +36,15 @@ export const validateLive = (session?: Session): void => {
 
 export const getRoundNumber = (roundIndex: number): number => roundIndex + 1; // 1-based for display
 
-export const getRoundIndex = (session: Session): number => session.liveData?.rounds.length || 0; // next round index
+export const getRoundIndex = (session: Session): number =>
+  session.liveData?.rounds.length || 0; // next round index
 
-export const getCurrentRoundIndex = (session: Session): number => Math.max(0, (session.liveData?.rounds.length || 1) - 1);
+export const getCurrentRoundIndex = (session: Session): number =>
+  Math.max(0, (session.liveData?.rounds.length || 1) - 1);
 
-export const getCurrentRoundNumber = (session: Session):number => { return getRoundNumber(getRoundIndex(session)); }
-
-// export const getCurrentRoundIndex = (
-//   session: Session,
-//   live: boolean = true
-// ): number => {
-//   if (live) {
-//     validateLive(session);
-//   } else if (!session || !session.liveData) {
-//     return 0;
-//   }
-//   return session.liveData!.rounds.length === 0 ? 0 : session.liveData!.rounds.length - 1;
-// };
+export const getCurrentRoundNumber = (session: Session): number => {
+  return getRoundNumber(getRoundIndex(session));
+};
 
 export const getCurrentRound = (
   session: Session,
@@ -75,7 +67,9 @@ export const getCurrentRound = (
 
   // Validate bounds
   if (index < 0 || index >= rounds.length) {
-    throw new Error(`Round index ${index} out of bounds. Available rounds: 0-${rounds.length - 1}`);
+    throw new Error(
+      `Round index ${index} out of bounds. Available rounds: 0-${rounds.length - 1}`,
+    );
   }
   return rounds[index];
 };
@@ -343,6 +337,27 @@ export class SessionService {
     return {
       ...session,
       playerIds: session.playerIds.filter((id) => id !== playerId),
+      updatedAt: new Date().toISOString(),
+    };
+  };
+
+  static togglePausePlayer = (session: Session, playerId: string): Session => {
+    if (!session.playerIds.includes(playerId)) {
+      throw new Error(`Player ${playerId} is not in this session`);
+    }
+    let pausedPlayerIds: string[] = [];
+    if (!session.pausedPlayerIds) {
+      pausedPlayerIds = [playerId];
+    } else if (session.pausedPlayerIds.find((pid) => pid === playerId)) {
+      pausedPlayerIds = session.pausedPlayerIds.filter(
+        (pid) => pid !== playerId,
+      );
+    } else {
+      pausedPlayerIds = [...session.pausedPlayerIds, playerId];
+    }
+    return {
+      ...session,
+      pausedPlayerIds: pausedPlayerIds,
       updatedAt: new Date().toISOString(),
     };
   };

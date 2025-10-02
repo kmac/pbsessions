@@ -1,13 +1,96 @@
 import React from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { useTheme } from "react-native-paper";
+import { Badge, Icon, Text, useTheme } from "react-native-paper";
 import { Player, PlayerStats } from "@/src/types";
-import {
-  getPlayerText,
-  getPlayerRating,
-  getPartnerDecoration,
-} from "./RoundGameCard";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
+
+const useBadge = false;
+const useTextVariant = true;
+
+export const getPlayerText = (name: string) => {
+  if (useTextVariant) {
+    const variant = name.length > 12 ? "labelLarge" : "labelLarge";
+    //const variant = name.length > 100 ? "titleSmall" : "titleMedium";
+    return <Text variant={variant}>{name}</Text>;
+  }
+  const fontSize = name.length > 12 ? 14 : 15;
+  return (
+    <Text
+      style={{
+        fontSize: fontSize,
+        fontWeight: "500",
+      }}
+    >
+      {name}
+    </Text>
+  );
+};
+
+export const getPlayerRating = (rating: number, theme: any) => {
+  if (useBadge) {
+    return (
+      <Badge
+        size={20}
+        style={{
+          fontSize: 10,
+          color: theme.colors.onPrimary,
+          backgroundColor: theme.colors.primary,
+        }}
+      >
+        {rating.toFixed(2)}
+      </Badge>
+    );
+  }
+  if (useTextVariant) {
+    return (
+      <Text
+        variant="labelSmall"
+        style={{
+          color: theme.colors.tertiary,
+          //fontSize: 9,
+          fontWeight: "400",
+          alignSelf: /*"center"*/ "flex-end",
+          marginLeft: isNarrowScreen() ? 0 : 8,
+        }}
+      >
+        {rating.toFixed(2)}
+      </Text>
+    );
+  }
+  return (
+    <Text
+      //variant="bodySmall"
+      style={{
+        color: theme.colors.tertiary,
+        fontSize: 9,
+        alignSelf: /*"center"*/ "flex-end",
+        marginLeft: isNarrowScreen() ? 0 : 8,
+      }}
+    >
+      {rating.toFixed(2)}
+    </Text>
+  );
+};
+
+export const getPartnerDecoration = (theme: any) => {
+  const useIcon = true;
+  if (useIcon) {
+    return <Icon source="vector-link" size={12} color={theme.colors.primary} />;
+  } else {
+    return (
+      <Badge
+        size={12}
+        style={{
+          //fontSize: 10,
+          color: theme.colors.onPrimary,
+          backgroundColor: theme.colors.primary,
+        }}
+      >
+        P
+      </Badge>
+    );
+  }
+};
 
 export interface PlayerButtonProps {
   player: Player;
@@ -16,7 +99,9 @@ export interface PlayerButtonProps {
   selected: boolean;
   disabled: boolean;
   showRating: boolean;
+  icon?: string;
   onPress?: () => void;
+  onLongPress?: () => void;
 }
 
 export const PlayerButton: React.FC<PlayerButtonProps> = ({
@@ -26,7 +111,9 @@ export const PlayerButton: React.FC<PlayerButtonProps> = ({
   selected,
   disabled,
   showRating,
+  icon,
   onPress,
+  onLongPress,
 }) => {
   const theme = useTheme();
 
@@ -37,6 +124,7 @@ export const PlayerButton: React.FC<PlayerButtonProps> = ({
   return (
     <TouchableOpacity
       onPress={onPress}
+      onLongPress={onLongPress}
       disabled={disabled}
       activeOpacity={0.7}
       style={{
@@ -63,9 +151,20 @@ export const PlayerButton: React.FC<PlayerButtonProps> = ({
         opacity: disabled ? 0.6 : 1,
       }}
     >
-      <View style={styles.content}>
+      <View
+        style={{
+          flexDirection: "column",
+        }}
+      >
+        {icon && <Icon source={icon} size={20} />}
         {getPlayerText(playerName)}
-        <View style={styles.bottomRow}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignSelf: "flex-end",
+            gap: 2,
+          }}
+        >
           {partner && getPartnerDecoration(theme)}
           {showRating && player.rating && getPlayerRating(player.rating, theme)}
         </View>
@@ -73,26 +172,3 @@ export const PlayerButton: React.FC<PlayerButtonProps> = ({
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-  },
-  content: {
-    flexDirection: "column",
-  },
-  bottomRow: {
-    flexDirection: "row",
-    alignSelf: "flex-end",
-    gap: 2,
-  },
-});
-
