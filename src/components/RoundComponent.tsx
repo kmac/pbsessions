@@ -9,6 +9,7 @@ import {
   Chip,
   Dialog,
   Divider,
+  Icon,
   IconButton,
   FAB,
   HelperText,
@@ -18,6 +19,7 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+import { Dropdown } from "react-native-element-dropdown";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { Court, Game, Session, Player, PlayerStats } from "@/src/types";
 import { getCurrentRound } from "@/src/services/sessionService";
@@ -25,6 +27,7 @@ import {
   updateCourtInSessionThunk,
   updateCurrentRoundThunk,
   togglePausePlayerInSessionThunk,
+  updatePartnershipInSessionThunk,
 } from "@/src/store/actions/sessionActions";
 import { RoundGameCard } from "@/src/components/RoundGameCard";
 import { PlayerStatsDisplay } from "@/src/components/PlayerStatsDisplay";
@@ -57,6 +60,9 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
   const useFlatList = false;
   const [selectedPlayers, setSelectedPlayers] = useState(
     new Map<string, Player>(),
+  );
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(
+    null,
   );
   const [selectedCourts, setSelectedCourts] = useState(new Set<string>());
   const [courtSettingDialogVisible, setCourtSettingDialogVisible] =
@@ -128,6 +134,25 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
     return session.liveData?.playerStats.find(
       (stat) => stat.playerId === playerId,
     );
+  };
+
+  const getAvailablePartners = (playerId: string): Player[] => {
+    const partnerships = session.partnershipConstraint?.partnerships || [];
+    const currentPartner = getPartner(playerId);
+
+    const allPartneredPlayerIds = new Set(
+      partnerships.flatMap((p) => [p.player1Id, p.player2Id]),
+    );
+
+    return sessionPlayers.filter((p) => {
+      if (p.id === playerId) {
+        return false;
+      }
+      if (p.id === currentPartner?.id) {
+        return true;
+      }
+      return !allPartneredPlayerIds.has(p.id);
+    });
   };
 
   const getCourt = (courtId: string): Court => {
@@ -218,6 +243,8 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
   const handleLongPress = (player: Player) => {
     if (player) {
       setCurrentPlayerId(player.id);
+      const partner = getPartner(player.id);
+      setSelectedPartnerId(partner?.id || null);
       setPlayerDetailsDialogVisible(true);
     }
   };
@@ -225,6 +252,7 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
   const handleClosePlayerDetails = () => {
     setPlayerDetailsDialogVisible(false);
     setCurrentPlayerId("");
+    setSelectedPartnerId(null);
   };
 
   const handleTogglePlayerPause = async (playerId: string) => {
@@ -238,6 +266,24 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
     } catch (error) {
       console.error("Failed to toggle player pause:", error);
       Alert.alert("Error", "Failed to update player status");
+    }
+  };
+
+  const handleUpdatePartnership = async (
+    playerId: string,
+    newPartnerId: string | null,
+  ) => {
+    try {
+      await dispatch(
+        updatePartnershipInSessionThunk({
+          sessionId: session.id,
+          playerId: playerId,
+          newPartnerId: newPartnerId,
+        }),
+      ).unwrap();
+    } catch (error) {
+      console.error("Failed to update partnership:", error);
+      Alert.alert("Error", "Failed to update partnership");
     }
   };
 
@@ -787,8 +833,133 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
 
                   <Divider style={{ margin: 10 }} />
 
+                  {/* Fixed Partnership Section */}
+                  <View style={{ marginBottom: 16 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 12,
+                      }}
+                    >
+                      <Icon source="account-multiple-outline" size={20} />
+                      <View style={{ flex: 1 }}>
+                        <Text variant="titleSmall">Fixed Partnership</Text>
+                        <Text
+                          variant="labelSmall"
+                          style={{ color: theme.colors.onSurfaceVariant }}
+                        >
+                          Current partner for this session
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Dropdown
+                      style={{
+                        height: 40,
+                        backgroundColor: theme.colors.secondaryContainer,
+                        borderBottomColor: theme.colors.secondary,
+                        borderBottomWidth: 0.5,
+                        paddingHorizontal: 8,
+                        borderRadius: 4,
+                      }}
+                      containerStyle={{
+                        backgroundColor: theme.colors.surface,
+                        borderRadius: 4,
+                      }}
+                      itemTextStyle={{
+                        color: theme.colors.onSurface,
+                        fontSize: 14,
+                      }}
+                      placeholderStyle={{
+                        color: theme.colors.onSurfaceVariant,
+                        fontSize: 14,
+                      }}
+                      selectedTextStyle={{
+                        color: theme.colors.onSurface,
+                        fontSize: 14,
+                      }}
+                      inputSearchStyle={{
+                        height: 40,
+                        fontSize: 14,
+                        color: theme.colors.onSurface,
+                      }}
+                      iconStyle={{
+                        width: 20,
+                        height: 20,
+                      }}
+                      data={getAvailablePartners(currentPlayerId).map(
+                        (player) => ({
+                          label: player.name,
+                          value: player.id,
+                        }),
+                      )}
+                      search
+                      maxHeight={200}
+                      labelField="label"
+                      valueField="value"
+                      placeholder="No partner selected"
+                      searchPlaceholder="Search players..."
+                      value={selectedPartnerId}
+                      onChange={async (item) => {
+                        const newPartnerId = item.value;
+                        setSelectedPartnerId(newPartnerId);
+
+                        // Automatically apply the partnership change
+                        const currentPartner = getPartner(currentPlayerId);
+                        const currentPartnerId = currentPartner?.id || null;
+
+                        if (newPartnerId !== currentPartnerId) {
+                          await handleUpdatePartnership(
+                            currentPlayerId,
+                            newPartnerId,
+                          );
+                        }
+                      }}
+                      renderLeftIcon={() =>
+                        selectedPartnerId ? (
+                          <IconButton
+                            icon="close"
+                            size={16}
+                            onPress={async () => {
+                              setSelectedPartnerId(null);
+
+                              // Automatically remove the partnership
+                              const currentPartner =
+                                getPartner(currentPlayerId);
+                              if (currentPartner) {
+                                await handleUpdatePartnership(
+                                  currentPlayerId,
+                                  null,
+                                );
+                              }
+                            }}
+                          />
+                        ) : null
+                      }
+                      disable={
+                        getAvailablePartners(currentPlayerId).length === 0
+                      }
+                    />
+
+                    {getAvailablePartners(currentPlayerId).length === 0 && (
+                      <Text
+                        variant="labelSmall"
+                        style={{
+                          color: theme.colors.onSurfaceVariant,
+                          marginTop: 4,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        No available players for partnership
+                      </Text>
+                    )}
+                  </View>
+
+                  <Divider style={{ margin: 10 }} />
                   {stats && (
-                    <View style={{ marginBottom: 16 }}>
+                    <View style={{ marginBottom: 2 }}>
                       <Text
                         variant="bodyMedium"
                         style={{ marginBottom: 12, fontWeight: "500" }}
@@ -810,7 +981,9 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
             })()}
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={handleClosePlayerDetails}>Close</Button>
+          <Button mode="contained" onPress={handleClosePlayerDetails}>
+            Close
+          </Button>
         </Dialog.Actions>
       </Dialog>
     </SafeAreaView>

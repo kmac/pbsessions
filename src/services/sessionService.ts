@@ -361,4 +361,93 @@ export class SessionService {
       updatedAt: new Date().toISOString(),
     };
   };
+  static addPartnership = (
+    session: Session,
+    player1Id: string,
+    player2Id: string,
+  ): Session => {
+    if (
+      !session.playerIds.includes(player1Id) ||
+      !session.playerIds.includes(player2Id)
+    ) {
+      throw new Error("Both players must be in the session");
+    }
+
+    const partnerships = session.partnershipConstraint?.partnerships || [];
+
+    // Check if either player is already in a partnership
+    const existingPartnership = partnerships.find(
+      (p) =>
+        p.player1Id === player1Id ||
+        p.player2Id === player1Id ||
+        p.player1Id === player2Id ||
+        p.player2Id === player2Id,
+    );
+
+    if (existingPartnership) {
+      throw new Error("One or both players are already in a partnership");
+    }
+
+    const { v4: uuidv4 } = require("uuid");
+    const newPartnership = {
+      id: uuidv4(),
+      player1Id,
+      player2Id,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedPartnerships = [...partnerships, newPartnership];
+
+    return {
+      ...session,
+      partnershipConstraint: {
+        partnerships: updatedPartnerships,
+        enforceAllPairings:
+          session.partnershipConstraint?.enforceAllPairings || false,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+  };
+
+  static removePartnership = (session: Session, playerId: string): Session => {
+    const partnerships = session.partnershipConstraint?.partnerships || [];
+
+    const updatedPartnerships = partnerships.filter(
+      (p) => p.player1Id !== playerId && p.player2Id !== playerId,
+    );
+
+    return {
+      ...session,
+      partnershipConstraint:
+        updatedPartnerships.length > 0
+          ? {
+              partnerships: updatedPartnerships,
+              enforceAllPairings:
+                session.partnershipConstraint?.enforceAllPairings || false,
+            }
+          : undefined,
+      updatedAt: new Date().toISOString(),
+    };
+  };
+
+  static updatePartnership = (
+    session: Session,
+    playerId: string,
+    newPartnerId: string | null,
+  ): Session => {
+    // First remove any existing partnership for this player
+    let updatedSession = SessionService.removePartnership(session, playerId);
+
+    // If newPartnerId is provided, create new partnership
+    if (newPartnerId) {
+      updatedSession = SessionService.addPartnership(
+        updatedSession,
+        playerId,
+        newPartnerId,
+      );
+    }
+
+    return updatedSession;
+  };
 }
