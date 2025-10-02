@@ -156,8 +156,14 @@ export const PlayerButton: React.FC<PlayerButtonProps> = ({
           flexDirection: "column",
         }}
       >
-        {icon && <Icon source={icon} size={20} />}
+      <View
+        style={{
+          flexDirection: "row",
+        }}
+      >
+        {icon && <Icon source={icon} size={20} color={theme.colors.tertiary} />}
         {getPlayerText(playerName)}
+        </View>
         <View
           style={{
             flexDirection: "row",

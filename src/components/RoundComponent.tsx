@@ -203,6 +203,28 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
     return session.pausedPlayerIds?.includes(playerId);
   };
 
+  // Get all players currently assigned to games
+  const assignedPlayerIds = new Set([
+    ...currentRound.games.flatMap((game) => [
+      game.serveTeam.player1Id,
+      game.serveTeam.player2Id,
+      game.receiveTeam.player1Id,
+      game.receiveTeam.player2Id,
+    ]),
+    ...currentRound.sittingOutIds,
+  ]);
+
+  // Get unassigned players (in session but not assigned to any game or sitting out)
+  const unassignedPlayers: Player[] = sessionPlayers.filter(
+    (player) => !assignedPlayerIds.has(player.id) && !isPlayerPaused(player.id),
+  );
+
+  // Combine paused and unassigned players
+  const unavailableAndUnassignedPlayers: Player[] = [
+    ...pausedPlayers,
+    ...unassignedPlayers,
+  ];
+
   const playerSelectDisabled = (player: Player | undefined) => {
     if (!player) {
       return true;
@@ -637,7 +659,7 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
         </View>
       )}
 
-      {pausedPlayers.length > 0 && (
+      {unavailableAndUnassignedPlayers.length > 0 && (
         <View style={{ marginBottom: 24 }}>
           <Text
             variant="titleMedium"
@@ -646,23 +668,26 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
               marginBottom: 12,
             }}
           >
-            Unavailable
+            Unassigned
           </Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {pausedPlayers.map((player) => (
-              <PlayerButton
-                key={player.id}
-                icon="pause"
-                player={player}
-                partner={getPartner(player.id)}
-                stats={getPlayerStats(session, player.id)}
-                selected={false}
-                disabled={false}
-                showRating={showRatingEnabled}
-                onPress={() => {}}
-                onLongPress={() => handleLongPress(player)}
-              />
-            ))}
+            {unavailableAndUnassignedPlayers.map((player) => {
+              const isPaused = isPlayerPaused(player.id);
+              return (
+                <PlayerButton
+                  key={player.id}
+                  icon={isPaused ? "pause" : "account-question"}
+                  player={player}
+                  partner={getPartner(player.id)}
+                  stats={getPlayerStats(session, player.id)}
+                  selected={false}
+                  disabled={false}
+                  showRating={showRatingEnabled}
+                  onPress={() => {}}
+                  onLongPress={() => handleLongPress(player)}
+                />
+              );
+            })}
           </View>
         </View>
       )}

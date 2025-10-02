@@ -849,8 +849,7 @@ export default function LiveSessionScreen() {
                 : `Round ${currentRoundNumber} Games`}
             </Text>
 
-            {!isRoundCompleted &&
-              hasActiveRound &&
+            {isRoundInProgress &&
               currentRound.games.length > 3 && (
                 <Surface
                   style={{
@@ -889,7 +888,7 @@ export default function LiveSessionScreen() {
               ratingSwitch={true}
             />
 
-            {!isRoundCompleted && hasActiveRound && (
+            {isRoundInProgress && (
               <Surface
                 style={{
                   backgroundColor: theme.colors.tertiaryContainer,
