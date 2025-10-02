@@ -676,7 +676,7 @@ export const RoundComponent: React.FC<RoundComponentProps> = ({
               return (
                 <PlayerButton
                   key={player.id}
-                  icon={isPaused ? "pause" : "account-question"}
+                  icon={isPaused ? "pause" : ""}
                   player={player}
                   partner={getPartner(player.id)}
                   stats={getPlayerStats(session, player.id)}

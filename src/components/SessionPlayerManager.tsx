@@ -13,17 +13,19 @@ import {
   Divider,
   Icon,
   IconButton,
-  Menu,
   Searchbar,
   SegmentedButtons,
   Surface,
   Switch,
   Text,
+  TextInput,
   useTheme,
 } from "react-native-paper";
+import { Picker } from "@react-native-picker/picker";
 import { Dropdown } from "react-native-element-dropdown";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAppSelector } from "../store";
+import { useAppDispatch, useAppSelector } from "../store";
+import { addPlayerThunk } from "../store/actions/playerActions";
 import { renderPlayerCard } from "./render/playerCardRenderer";
 import {
   Player,
@@ -34,6 +36,7 @@ import {
 import { TopDescription } from "./TopDescription";
 import { v4 as uuidv4 } from "uuid";
 import { getPlayer } from "../utils/util";
+import { Alert } from "../utils/alert";
 
 const useStyles = () => {
   const theme = useTheme();
@@ -155,6 +158,12 @@ const useStyles = () => {
           alignItems: "center",
           marginHorizontal: 16,
         },
+        newPlayerForm: {
+          padding: 16,
+          borderRadius: 12,
+          marginHorizontal: 16,
+          marginBottom: 16,
+        },
       }),
     [theme],
   );
@@ -171,7 +180,7 @@ interface SessionPlayerManagerProps {
   onClose: () => void;
 }
 
-type ViewMode = "combined" | "players" | "groups";
+type ViewMode = "groups" | "players" | "new";
 
 export default function SessionPlayerManager({
   visible,
@@ -183,13 +192,20 @@ export default function SessionPlayerManager({
   onPartnershipConstraintChange,
   onClose,
 }: SessionPlayerManagerProps) {
+  console.log(`🔄 SessionPlayerManager received selectedPlayerIds:`, selectedPlayerIds.length, selectedPlayerIds);
   const styles = useStyles();
   const theme = useTheme();
+  const dispatch = useAppDispatch();
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
 
   const [viewMode, setViewMode] = useState<ViewMode>("groups");
   const [searchQuery, setSearchQuery] = useState("");
+  const [newPlayerName, setNewPlayerName] = useState("");
+  const [newPlayerGender, setNewPlayerGender] = useState<
+    "male" | "female" | null
+  >(null);
+  const [newPlayerRating, setNewPlayerRating] = useState("");
   const [detailsDialogPlayer, setDetailsDialogPlayer] = useState<Player | null>(
     null,
   );
@@ -246,23 +262,6 @@ export default function SessionPlayerManager({
     return players.find((p) => p.id === partnerId);
   };
 
-  // const getAvailableForLinking = (playerId: string): Player[] => {
-  //   const currentPartner = getPlayerPartner(playerId);
-  //   // if (currentPartner) {
-  //   //   return [];
-  //   // }
-  //
-  //   const partneredPlayerIds = new Set(
-  //     partnerships.flatMap((p) => [p.player1Id, p.player2Id]),
-  //   );
-  //
-  //   return players.filter(
-  //     (p) =>
-  //       p.id !== playerId &&
-  //       //isPlayerSelected(p.id) &&
-  //       !partneredPlayerIds.has(p.id),
-  //   );
-  // };
   const getAvailablePartners = (playerId: string): Player[] => {
     const currentPartner = getPlayerPartner(playerId);
 
@@ -281,9 +280,88 @@ export default function SessionPlayerManager({
     });
   };
 
+  const handleAddNewPlayer = async () => {
+    if (!newPlayerName.trim()) {
+      Alert.alert("Validation Error", "Player name is required");
+      return;
+    }
+
+    // Check if player with same name already exists
+    const existingPlayer = players.find(
+      (p) => p.name.toLowerCase() === newPlayerName.trim().toLowerCase()
+    );
+    if (existingPlayer) {
+      Alert.alert("Player Exists", "A player with this name already exists");
+      return;
+    }
+
+    // Parse rating if provided
+    let rating: number | undefined;
+    if (newPlayerRating.trim()) {
+      const parsedRating = parseFloat(newPlayerRating.trim());
+      if (isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+        Alert.alert("Invalid Rating", "Rating must be between 1.0 and 5.0");
+        return;
+      }
+      rating = parsedRating;
+    }
+
+    // Create new player data
+    const playerData = {
+      name: newPlayerName.trim(),
+      gender: newPlayerGender || undefined,
+      rating: rating,
+      isActive: true,
+    };
+
+    try {
+      // Use the async thunk to add the player
+      const resultAction = await dispatch(addPlayerThunk(playerData));
+
+      if (addPlayerThunk.fulfilled.match(resultAction)) {
+        const newPlayer = resultAction.payload;
+
+        // Automatically select the new player
+        onSelectionChange([...selectedPlayerIds, newPlayer.id]);
+
+        // Reset form
+        setNewPlayerName("");
+        setNewPlayerGender(null);
+        setNewPlayerRating("");
+
+        // Switch to players view to show the newly added player
+        setViewMode("players");
+
+        Alert.alert(
+          "Player Added",
+          `${newPlayer.name} has been created and added to your selection`,
+        );
+      } else if (addPlayerThunk.rejected.match(resultAction)) {
+        Alert.alert(
+          "Error",
+          (resultAction.payload as string) || "Failed to add player",
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "An unexpected error occurred while adding the player",
+      );
+      console.error("Error adding player:", error);
+    }
+  };
+
   const togglePlayer = (player: Player) => {
+    console.log(`🎯 togglePlayer: ${player.name}`);
+    console.log(`🔍 Current selectedPlayerIds:`, selectedPlayerIds);
+    console.log(
+      `🔍 isPlayerSelected(${player.id}):`,
+      isPlayerSelected(player.id),
+    );
     const playerId = player.id;
     if (isPlayerSelected(playerId)) {
+      const newIds = selectedPlayerIds.filter((id) => id !== playerId);
+      console.log(`📤 Removing player ${playerId}, new IDs:`, newIds);
       onSelectionChange(selectedPlayerIds.filter((id) => id !== playerId));
       // Remove from paused if unselected
       if (isPlayerPaused(playerId)) {
@@ -294,6 +372,8 @@ export default function SessionPlayerManager({
       // Remove any partnerships involving this player
       handlePlayerAction(player, "unlink");
     } else {
+      const newIds = [...selectedPlayerIds, playerId];
+      console.log(`📤 Adding player, new IDs:`, newIds);
       onSelectionChange([...selectedPlayerIds, playerId]);
     }
   };
@@ -536,6 +616,98 @@ export default function SessionPlayerManager({
     );
   };
 
+  const renderNewPlayerForm = () => (
+    <Surface style={styles.newPlayerForm}>
+      <Text
+        variant="titleMedium"
+        style={{ fontWeight: "600", marginBottom: 16 }}
+      >
+        Create New Player
+      </Text>
+
+      <TextInput
+        mode="outlined"
+        label="Player Name *"
+        value={newPlayerName}
+        onChangeText={setNewPlayerName}
+        placeholder="Enter player name"
+        style={{ marginBottom: 16 }}
+        autoFocus={viewMode === "new"}
+      />
+
+      <Text
+        variant="labelMedium"
+        style={{
+          marginBottom: 4,
+          color: theme.colors.onSurface,
+        }}
+      >
+        Gender (optional)
+      </Text>
+      <Surface
+        style={{
+          borderRadius: 4,
+          borderWidth: 1,
+          borderColor: theme.colors.outline,
+          marginBottom: 16,
+        }}
+      >
+        <Picker
+          selectedValue={newPlayerGender}
+          onValueChange={(value) =>
+            setNewPlayerGender(value as "male" | "female" | null)
+          }
+          style={{ height: 40 }}
+        >
+          <Picker.Item label="Select gender" value={null} />
+          <Picker.Item label="Male" value="male" />
+          <Picker.Item label="Female" value="female" />
+        </Picker>
+      </Surface>
+
+      <TextInput
+        mode="outlined"
+        label="Rating (optional)"
+        value={newPlayerRating}
+        onChangeText={setNewPlayerRating}
+        placeholder="1.0 - 5.0"
+        keyboardType="decimal-pad"
+        style={{ marginBottom: 24 }}
+      />
+
+      <Button
+        mode="contained"
+        icon="account-plus"
+        onPress={handleAddNewPlayer}
+        disabled={!newPlayerName.trim()}
+        contentStyle={{ padding: 4 }}
+      >
+        Create Player
+      </Button>
+
+      <Text
+        variant="bodySmall"
+        style={{
+          marginTop: 12,
+          textAlign: "center",
+          color: theme.colors.onSurfaceVariant,
+          fontStyle: "italic",
+        }}
+      >
+        The player will be added to the system and automatically selected
+      </Text>
+    </Surface>
+  );
+
+  console.log(
+    `🎨 Rendering - selectedPlayers.length: ${selectedPlayers.length}`,
+  );
+  console.log(
+    `🎨 Rendering - filteredSelectedPlayers.length: ${filteredSelectedPlayers.length}`,
+  );
+  console.log(
+    `🎨 Rendering - available players count: ${filteredPlayers.filter((player) => !isPlayerSelected(player.id)).length}`,
+  );
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container}>
@@ -558,7 +730,7 @@ export default function SessionPlayerManager({
 
         <TopDescription
           visible={true}
-          description="Select Players for Session (Use details menu to pause player or setup partnership)"
+          description={`Select Players for Session (Use details menu to pause player or setup partnership).\nAny changes made here will need to be saved in the main parent dialog.`}
         />
 
         {/* Partnership Summary */}
@@ -566,7 +738,7 @@ export default function SessionPlayerManager({
           <Surface style={styles.partnershipSummary}>
             <Text style={styles.partnershipTitle}>Fixed Partnerships:</Text>
             <View style={styles.partnershipChips}>
-              {partnerships.map((partnership) => {
+              {partnerships.map((partnership, index) => {
                 const player1 = players.find(
                   (p) => p.id === partnership.player1Id,
                 );
@@ -574,18 +746,9 @@ export default function SessionPlayerManager({
                   (p) => p.id === partnership.player2Id,
                 );
                 return (
-                  <Text>
+                  <Text key={`partnership-${index}`}>
                     {player1?.name} & {player2?.name}
                   </Text>
-                  //   <Chip
-                  //   key={partnership.id}
-                  //   icon="account-heart"
-                  //   compact
-                  //   mode="outlined"
-                  //   style={{ backgroundColor: theme.colors.tertiaryContainer }}
-                  // >
-                  //   {player1?.name} & {player2?.name}
-                  // </Chip>
                 );
               })}
             </View>
@@ -606,11 +769,16 @@ export default function SessionPlayerManager({
               label: `Individual (${players.length})`,
               icon: "account-outline",
             },
+            {
+              value: "new",
+              label: "Add New",
+              icon: "account-plus-outline",
+            },
           ]}
           style={{ margin: 16 }}
         />
 
-        {viewMode === "players" && (
+        {(viewMode === "players" || viewMode === "groups") && (
           <View style={styles.searchContainer}>
             <Searchbar
               placeholder="Search players..."
@@ -623,69 +791,78 @@ export default function SessionPlayerManager({
         )}
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={true}>
-          {selectedPlayers.length > 0 && (
-            <Surface style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                Selected Players ({selectedPlayers.length})
-              </Text>
-              <View>
-                {filteredSelectedPlayers
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map((player) => (
-                    <View key={`selected-${player.id}`}>
-                      {renderPlayer(player)}
-                    </View>
-                  ))}
-              </View>
-            </Surface>
-          )}
-
-          <Divider horizontalInset={true} style={styles.divider} />
-
-          <Surface style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {viewMode === "groups" ? "Available Groups" : "Available Players"}
-            </Text>
-
-            {viewMode === "groups" ? (
-              groups.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <IconButton icon="account-multiple-outline" />
-                  <Text style={styles.emptyText}>No groups available</Text>
-                  <Text style={styles.emptySubtext}>
-                    Create groups to quickly add players
+          {viewMode === "new" ? (
+            renderNewPlayerForm()
+          ) : (
+            <>
+              {selectedPlayers.length > 0 && (
+                <Surface style={styles.section}>
+                  <Text style={styles.sectionTitle}>
+                    Selected Players ({selectedPlayers.length})
                   </Text>
-                </View>
-              ) : (
-                <View>
-                  {[...groups]
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((group) => renderGroup(group))}
-                </View>
-              )
-            ) : (
-              <View>
-                {filteredPlayers
-                  .filter((player) => !isPlayerSelected(player.id))
-                  .sort((a, b) => a.name.localeCompare(b.name)).length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <IconButton icon="account-plus-outline" />
-                    <Text style={styles.emptyText}>No players found</Text>
-                    <Text style={styles.emptySubtext}>
-                      {searchQuery
-                        ? "Try a different search term"
-                        : "Add players first"}
-                    </Text>
+                  <View>
+                    {filteredSelectedPlayers
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((player) => (
+                        <View key={`selected-${player.id}`}>
+                          {renderPlayer(player)}
+                        </View>
+                      ))}
                   </View>
+                </Surface>
+              )}
+
+              <Divider horizontalInset={true} style={styles.divider} />
+
+              <Surface style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  {viewMode === "groups"
+                    ? "Available Groups"
+                    : "Available Players"}
+                </Text>
+
+                {viewMode === "groups" ? (
+                  groups.length === 0 ? (
+                    <View style={styles.emptyState}>
+                      <IconButton icon="account-multiple-outline" />
+                      <Text style={styles.emptyText}>No groups available</Text>
+                      <Text style={styles.emptySubtext}>
+                        Create groups to quickly add players
+                      </Text>
+                    </View>
+                  ) : (
+                    <View>
+                      {[...groups]
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((group) => renderGroup(group))}
+                    </View>
+                  )
                 ) : (
-                  filteredPlayers
-                    .filter((player) => !isPlayerSelected(player.id))
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((player) => renderPlayer(player))
+                  <View>
+                    {filteredPlayers
+                      .filter((player) => !isPlayerSelected(player.id))
+                      .sort((a, b) => a.name.localeCompare(b.name)).length ===
+                    0 ? (
+                      <View style={styles.emptyState}>
+                        <IconButton icon="account-plus-outline" />
+                        <Text style={styles.emptyText}>No players found</Text>
+                        <Text style={styles.emptySubtext}>
+                          {searchQuery
+                            ? "Try a different search term"
+                            : "Add players first"}
+                        </Text>
+                      </View>
+                    ) : (
+                      filteredPlayers
+                        .filter((player) => !isPlayerSelected(player.id))
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((player) => renderPlayer(player))
+                    )}
+                  </View>
                 )}
-              </View>
-            )}
-          </Surface>
+              </Surface>
+            </>
+          )}
         </ScrollView>
 
         <Dialog

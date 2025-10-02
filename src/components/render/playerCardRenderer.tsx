@@ -1,11 +1,6 @@
 import React from "react";
 import { View } from "react-native";
-import {
-  Card,
-  Chip,
-  IconButton,
-  Text,
-} from "react-native-paper";
+import { Card, Chip, IconButton, Text } from "react-native-paper";
 import { Player } from "@/src/types";
 import { getShortGender } from "@/src/utils/util";
 import { APP_CONFIG } from "@/src/constants";
@@ -45,12 +40,7 @@ export function renderPlayerCard(
     showDetailsButton = true,
   } = config;
 
-  const {
-    onToggle,
-    onPlayerAction,
-    onLinkPartner,
-    onShowDetails,
-  } = handlers;
+  const { onToggle, onPlayerAction, onLinkPartner, onShowDetails } = handlers;
 
   return (
     <View
@@ -94,7 +84,14 @@ export function renderPlayerCard(
                 <Text variant="bodySmall">{getShortGender(player.gender)}</Text>
 
                 {/* Status chips */}
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                    marginTop: 4,
+                  }}
+                >
                   {partnerName && (
                     <Chip
                       icon="account-multiple-outline"
@@ -138,13 +135,18 @@ export function renderPlayerCard(
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             {showActions && (
+              // TODO grey out this button if player cannot be untoggled
+
               <IconButton
                 icon={isSelected ? "check-circle" : "circle-outline"}
                 size={32}
                 iconColor={
                   isSelected ? theme.colors.primary : theme.colors.outline
                 }
-                onPress={() => onToggle(player)}
+                onPress={() => {
+                  console.log(`calling onToggle for ${player.name}`);
+                  onToggle(player);
+                }}
               />
             )}
 

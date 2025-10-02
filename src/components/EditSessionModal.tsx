@@ -34,8 +34,8 @@ import {
 import { deepEqual } from "../utils/util";
 import { isNarrowScreen } from "../utils/screenUtil";
 import { validateSessionSize } from "../utils/validation";
-import CourtManager from "./CourtManager";
-import SessionPlayerManager from "./SessionPlayerManager";
+import { CourtManager } from "./CourtManager";
+import { SessionPlayerManager } from "./SessionPlayerManager";
 import { TopDescription } from "./TopDescription";
 import { Alert } from "../utils/alert";
 
@@ -102,6 +102,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   const [showCourtManager, setShowCourtManager] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
     useState(false);
+  const currentPlayerIdsRef = useRef<string[]>([]);
 
   // This `useEffect` is handling **form initialization and
   // reset logic** when the modal opens or key dependencies
@@ -154,7 +155,12 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
       };
     }
 
+    // used in updatePlayerIds:
+    currentPlayerIdsRef.current = newFormData.playerIds;
+
     setFormData(newFormData);
+
+    console.log(`updating initialFormData ${newFormData.playerIds}`);
 
     // Store initial values using the newFormData, not the stale formData
     initialFormData.current = {
@@ -174,7 +180,15 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   }, [session, visible]); // effect is only activated if any of these change
 
   const hasUnsavedChanges = () => {
-    return !deepEqual(formData, initialFormData.current);
+    // Create a temporary formData object with the current ref values for comparison
+    const currentFormDataWithRef = {
+      ...formData,
+      playerIds: currentPlayerIdsRef.current, // Use the immediate ref value
+    };
+    console.log(
+      `hasUnsavedChanges: checking currentFormDataWithRef.playerIds: ${currentFormDataWithRef.playerIds} vs ${initialFormData.current.playerIds}`,
+    );
+    return !deepEqual(currentFormDataWithRef, initialFormData.current);
   };
 
   const handleBackPress = () => {
@@ -191,6 +205,9 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   };
 
   const handleReset = () => {
+
+    currentPlayerIdsRef.current = [...initialFormData.current.playerIds];
+
     setFormData({
       name: initialFormData.current.name,
       dateTime: initialFormData.current.dateTime,
@@ -221,7 +238,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
       return;
     }
     const validation = validateSessionSize(
-      formData.playerIds.length,
+      currentPlayerIdsRef.current.length,
       activeCourts.length,
     );
     if (!validation.isValid) {
@@ -232,7 +249,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
     const sessionData = {
       name: formData.name.trim(),
       dateTime: formData.dateTime,
-      playerIds: formData.playerIds,
+      playerIds: currentPlayerIdsRef.current,
       pausedPlayerIds: formData.pausedPlayerIds,
       partnershipConstraint: formData.partnershipConstraint,
       courts: formData.courts,
@@ -244,7 +261,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
     initialFormData.current = {
       name: formData.name.trim(),
       dateTime: formData.dateTime,
-      playerIds: [...formData.playerIds],
+      playerIds: [...currentPlayerIdsRef.current],
       pausedPlayerIds: [...formData.pausedPlayerIds],
       partnershipConstraint: {
         partnerships: [...formData.partnershipConstraint.partnerships],
@@ -257,6 +274,9 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
 
     if (session) {
       onSave({ ...session, ...sessionData });
+      if (validation.warning) {
+        Alert.alert("Session Saved", validation.warning);
+      }
     } else {
       onSave(sessionData);
       if (validation.warning) {
@@ -266,20 +286,25 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   };
 
   const getSelectedPlayers = () => {
-    return players.filter((p) => formData.playerIds.includes(p.id));
+    // return players.filter((p) => formData.playerIds.includes(p.id));
+    return players.filter((p) => currentPlayerIdsRef.current.includes(p.id));
   };
 
   const getActiveCourts = () => {
     return formData.courts.filter((c) => c.isActive);
   };
 
-  const updatePlayerIdsOrig = (playerIds: string[]) => {
-    console.log(`updatePlayerIds: playerIds: ${playerIds}`);
-    setFormData({ ...formData, playerIds });
-  };
   const updatePlayerIds = useCallback((playerIds: string[]) => {
-    console.log(`updatePlayerIds: playerIds: ${playerIds}`);
-    setFormData((prev) => ({ ...prev, playerIds }));
+    console.log(
+      `updatePlayerIds: playerIds count: ${playerIds.length}`,
+      playerIds,
+    );
+    currentPlayerIdsRef.current = playerIds;
+    setFormData((prev) => {
+      const newFormData = { ...prev, playerIds };
+      console.log(`📝 Updated formData.playerIds to:`, newFormData.playerIds);
+      return newFormData;
+    });
   }, []);
 
   const handlePausedPlayers = (pausedPlayerIds: string[]) => {
@@ -364,25 +389,27 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
             }
           />
           {hasUnsavedChanges() && (
-            <Button
-              icon="restore"
-              mode="outlined"
-              compact={isNarrowScreen()}
-              onPress={handleReset}
-              style={{ marginRight: 4 }}
-            >
-              Reset
-            </Button>
+            <>
+              <Button
+                icon="restore"
+                mode="outlined"
+                compact={isNarrowScreen()}
+                onPress={handleReset}
+                style={{ marginRight: 4 }}
+              >
+                Reset
+              </Button>
+              <Button
+                icon="content-save"
+                mode="contained"
+                onPress={handleSave}
+                compact={isNarrowScreen()}
+                style={{ marginRight: 4 }}
+              >
+                Save
+              </Button>
+            </>
           )}
-          <Button
-            icon="content-save"
-            mode="contained"
-            onPress={handleSave}
-            compact={isNarrowScreen()}
-            style={{ marginRight: 4 }}
-          >
-            Save
-          </Button>
         </Appbar.Header>
         <SafeAreaView
           style={{ flex: 1, backgroundColor: theme.colors.background }}
@@ -908,9 +935,11 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
 
           <SessionPlayerManager
             visible={showPlayerManager}
-            selectedPlayerIds={formData.playerIds}
+            //selectedPlayerIds={formData.playerIds}
+            selectedPlayerIds={currentPlayerIdsRef.current}
             pausedPlayerIds={formData.pausedPlayerIds}
             partnershipConstraint={formData.partnershipConstraint}
+            session={session || undefined}
             onSelectionChange={updatePlayerIds}
             onPausedPlayersChange={handlePausedPlayers}
             onPartnershipConstraintChange={handlePartnershipConstraintChange}
@@ -964,4 +993,4 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
       </Modal>
     </>
   );
-}
+};
