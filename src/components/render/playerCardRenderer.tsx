@@ -13,6 +13,8 @@ export interface PlayerCardConfig {
   showActions?: boolean;
   showPauseButton?: boolean;
   showDetailsButton?: boolean;
+  canBeRemoved?: boolean;
+  removalReason?: string | null;
 }
 
 export interface PlayerCardHandlers {
@@ -28,7 +30,7 @@ export interface PlayerCardHandlers {
 export function renderPlayerCard(
   config: PlayerCardConfig,
   handlers: PlayerCardHandlers,
-  theme: any, // or proper theme type
+  theme: any,
 ): React.ReactElement {
   const {
     player,
@@ -38,9 +40,23 @@ export function renderPlayerCard(
     showActions = true,
     showPauseButton = true,
     showDetailsButton = true,
+    canBeRemoved = true, // Default to true for backwards compatibility
+    removalReason = null,
   } = config;
 
   const { onToggle, onPlayerAction, onLinkPartner, onShowDetails } = handlers;
+
+  const getToggleIcon = () => {
+    if (!isSelected) return "circle-outline";
+    if (!canBeRemoved) return "lock-outline";
+    return "check-circle";
+  };
+
+  const getToggleColor = () => {
+    if (!isSelected) return theme.colors.outline;
+    if (!canBeRemoved) return theme.colors.error;
+    return theme.colors.primary;
+  };
 
   return (
     <View
@@ -50,6 +66,7 @@ export function renderPlayerCard(
         backgroundColor: isSelected
           ? theme.colors.primaryContainer
           : theme.colors.surface,
+        //opacity: !isSelected || canBeRemoved ? 1 : 0.7, // Slightly dim locked players
       }}
     >
       <Card.Content>
@@ -61,6 +78,7 @@ export function renderPlayerCard(
           }}
         >
           <View style={{ flex: 1 }}>
+            {/* ... existing player info ... */}
             <View
               style={{
                 flexDirection: "row",
@@ -98,10 +116,6 @@ export function renderPlayerCard(
                       compact
                       mode="flat"
                       textStyle={{ fontSize: 12 }}
-                      // style={{
-                      //   backgroundColor: theme.colors.tertiaryContainer,
-                      //   borderColor: theme.colors.tertiary,
-                      // }}
                     >
                       {partnerName}
                     </Chip>
@@ -113,11 +127,23 @@ export function renderPlayerCard(
                       mode="flat"
                       textStyle={{ fontSize: 10 }}
                       style={{
-                        //backgroundColor: theme.colors.secondaryContainer,
                         backgroundColor: theme.colors.tertiaryContainer,
                       }}
                     >
                       Paused
+                    </Chip>
+                  )}
+                  {false && isSelected && !canBeRemoved && (
+                    <Chip
+                      icon="lock-outline"
+                      compact
+                      mode="flat"
+                      textStyle={{ fontSize: 10 }}
+                      style={{
+                        backgroundColor: theme.colors.errorContainer,
+                      }}
+                    >
+                      Cannot Remove
                     </Chip>
                   )}
                 </View>
@@ -135,14 +161,10 @@ export function renderPlayerCard(
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             {showActions && (
-              // TODO grey out this button if player cannot be untoggled
-
               <IconButton
-                icon={isSelected ? "check-circle" : "circle-outline"}
+                icon={getToggleIcon()}
                 size={32}
-                iconColor={
-                  isSelected ? theme.colors.primary : theme.colors.outline
-                }
+                iconColor={getToggleColor()}
                 onPress={() => {
                   console.log(`calling onToggle for ${player.name}`);
                   onToggle(player);
@@ -150,23 +172,10 @@ export function renderPlayerCard(
               />
             )}
 
-            {/* {false && showDetailsButton && onShowDetails && (
-              <Chip
-                icon="view-dashboard-edit-outline"
-                compact
-                mode="outlined"
-                textStyle={{ fontSize: 10 }}
-                style={{
-                  backgroundColor: theme.colors.secondaryContainer,
-                }}
-                onPress={() => onShowDetails && onShowDetails(player)}
-              >
-                Details
-              </Chip>
-            )} */}
             {showDetailsButton && onShowDetails && (
               <IconButton
-                icon="circle-edit-outline"
+                // icon="circle-edit-outline"
+                icon="pencil"
                 mode="outlined"
                 size={20}
                 style={{

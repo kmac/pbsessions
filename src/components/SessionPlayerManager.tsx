@@ -32,6 +32,8 @@ import {
   Group,
   FixedPartnership,
   PartnershipConstraint,
+  Session,
+  SessionState,
 } from "../types";
 import { TopDescription } from "./TopDescription";
 import { v4 as uuidv4 } from "uuid";
@@ -174,6 +176,7 @@ interface SessionPlayerManagerProps {
   selectedPlayerIds: string[];
   pausedPlayerIds?: string[];
   partnershipConstraint?: PartnershipConstraint;
+  session?: Session;
   onSelectionChange: (playerIds: string[]) => void;
   onPausedPlayersChange?: (pausedPlayerIds: string[]) => void;
   onPartnershipConstraintChange?: (constraint?: PartnershipConstraint) => void;
@@ -182,24 +185,29 @@ interface SessionPlayerManagerProps {
 
 type ViewMode = "groups" | "players" | "new";
 
-export default function SessionPlayerManager({
+export const SessionPlayerManager: React.FC<SessionPlayerManagerProps> = ({
   visible,
   selectedPlayerIds,
   pausedPlayerIds = [],
   partnershipConstraint,
+  session,
   onSelectionChange,
   onPausedPlayersChange,
   onPartnershipConstraintChange,
   onClose,
-}: SessionPlayerManagerProps) {
-  console.log(`🔄 SessionPlayerManager received selectedPlayerIds:`, selectedPlayerIds.length, selectedPlayerIds);
+}) => {
+  console.log(
+    `🔄 SessionPlayerManager received selectedPlayerIds:`,
+    selectedPlayerIds.length,
+    selectedPlayerIds,
+  );
   const styles = useStyles();
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { players } = useAppSelector((state) => state.players);
   const { groups } = useAppSelector((state) => state.groups);
 
-  const [viewMode, setViewMode] = useState<ViewMode>("groups");
+  const [viewMode, setViewMode] = useState<ViewMode>("players");
   const [searchQuery, setSearchQuery] = useState("");
   const [newPlayerName, setNewPlayerName] = useState("");
   const [newPlayerGender, setNewPlayerGender] = useState<
@@ -288,7 +296,7 @@ export default function SessionPlayerManager({
 
     // Check if player with same name already exists
     const existingPlayer = players.find(
-      (p) => p.name.toLowerCase() === newPlayerName.trim().toLowerCase()
+      (p) => p.name.toLowerCase() === newPlayerName.trim().toLowerCase(),
     );
     if (existingPlayer) {
       Alert.alert("Player Exists", "A player with this name already exists");
@@ -351,18 +359,65 @@ export default function SessionPlayerManager({
     }
   };
 
+  const hasPlayerPlayedInSession = (playerId: string): boolean => {
+    if (!session?.liveData?.rounds) return false;
+
+    return session.liveData.rounds.some((round) =>
+      round.games.some(
+        (game) =>
+          game.serveTeam.player1Id === playerId ||
+          game.serveTeam.player2Id === playerId ||
+          game.receiveTeam.player1Id === playerId ||
+          game.receiveTeam.player2Id === playerId,
+      ),
+    );
+  };
+
+  const canPlayerBeRemoved = (playerId: string): boolean => {
+    // If session is new, all players can be removed
+    if (!session || session.state === SessionState.New) {
+      return true;
+    }
+
+    // For live/completed sessions, only allow removal if player hasn't played
+    return !hasPlayerPlayedInSession(playerId);
+  };
+
+  const getPlayerRemovalReason = (playerId: string): string | null => {
+    if (canPlayerBeRemoved(playerId)) {
+      return null;
+    }
+
+    if (hasPlayerPlayedInSession(playerId)) {
+      return (
+        "Player has already played in this session.\n\n" +
+        "Use the Pause function (inside the player configuration) to exclude this player from any new games."
+      );
+    }
+
+    return "Cannot remove player from active session";
+  };
+
   const togglePlayer = (player: Player) => {
     console.log(`🎯 togglePlayer: ${player.name}`);
-    console.log(`🔍 Current selectedPlayerIds:`, selectedPlayerIds);
-    console.log(
-      `🔍 isPlayerSelected(${player.id}):`,
-      isPlayerSelected(player.id),
-    );
     const playerId = player.id;
+
     if (isPlayerSelected(playerId)) {
+      // Check if player can be removed
+      if (!canPlayerBeRemoved(playerId)) {
+        const reason = getPlayerRemovalReason(playerId);
+        Alert.alert(
+          "Cannot Remove Player",
+          `${player.name} cannot be removed. ${reason}`,
+          [{ text: "OK" }],
+        );
+        return;
+      }
+
       const newIds = selectedPlayerIds.filter((id) => id !== playerId);
       console.log(`📤 Removing player ${playerId}, new IDs:`, newIds);
-      onSelectionChange(selectedPlayerIds.filter((id) => id !== playerId));
+      onSelectionChange(newIds);
+
       // Remove from paused if unselected
       if (isPlayerPaused(playerId)) {
         onPausedPlayersChange?.(
@@ -374,7 +429,7 @@ export default function SessionPlayerManager({
     } else {
       const newIds = [...selectedPlayerIds, playerId];
       console.log(`📤 Adding player, new IDs:`, newIds);
-      onSelectionChange([...selectedPlayerIds, playerId]);
+      onSelectionChange(newIds);
     }
   };
 
@@ -545,16 +600,20 @@ export default function SessionPlayerManager({
 
   const renderPlayer = (player: Player) => {
     const partner = getPlayerPartner(player.id);
+    const canRemove = canPlayerBeRemoved(player.id);
+    const isSelected = isPlayerSelected(player.id);
 
     return renderPlayerCard(
       {
         player,
-        isSelected: isPlayerSelected(player.id),
+        isSelected,
         isPaused: isPlayerPaused(player.id),
         partnerName: partner?.name,
         showActions: true,
         showPauseButton: true,
         showDetailsButton: true,
+        canBeRemoved: canRemove,
+        removalReason: getPlayerRemovalReason(player.id),
       },
       {
         onToggle: togglePlayer,
@@ -1046,4 +1105,4 @@ export default function SessionPlayerManager({
       </SafeAreaView>
     </Modal>
   );
-}
+};

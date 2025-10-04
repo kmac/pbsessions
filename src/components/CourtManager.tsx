@@ -30,14 +30,14 @@ interface CourtManagerProps {
   onClose: () => void;
 }
 
-export default function CourtManager({
+export const CourtManager: React.FC<CourtManagerProps> = ({
   visible,
   courts,
   addedCourts,
   sessionState,
   onCourtsChange,
   onClose,
-}: CourtManagerProps) {
+}) => {
   const theme = useTheme();
   const [localCourts, setLocalCourts] = useState<Court[]>([]);
   const [newCourts, setNewCourts] = useState<Court[]>([...addedCourts]);
@@ -316,26 +316,25 @@ export default function CourtManager({
         animationType="slide"
         presentationStyle="pageSheet"
       >
+        <Appbar.Header>
+          <Appbar.BackAction onPress={handleClose} />
+          <Appbar.Content
+            title={isNarrowScreen() ? "Configure" : "Court Configuration"}
+            titleStyle={{ fontWeight: "600" }}
+          />
+          <Button
+            icon="content-save"
+            mode="contained"
+            onPress={handleSave}
+            disabled={hasValidationErrors()}
+            style={{ marginRight: 8 }}
+          >
+            Save
+          </Button>
+        </Appbar.Header>
         <SafeAreaView
           style={{ flex: 1, backgroundColor: theme.colors.background }}
         >
-          <Appbar.Header>
-            <Appbar.BackAction onPress={handleClose} />
-            <Appbar.Content
-              title={isNarrowScreen() ? "Configure" : "Court Configuration"}
-              titleStyle={{ fontWeight: "600" }}
-            />
-            <Button
-              icon="content-save"
-              mode="contained"
-              onPress={handleSave}
-              disabled={hasValidationErrors()}
-              style={{ marginRight: 8 }}
-            >
-              Save
-            </Button>
-          </Appbar.Header>
-
           <ScrollView
             style={{ flex: 1, padding: 16 }}
             showsVerticalScrollIndicator={false}
@@ -699,35 +698,33 @@ export default function CourtManager({
               </Surface>
             )}
           </ScrollView>
+
+          <Dialog
+            visible={showCancelDialog}
+            onDismiss={() => setShowCancelDialog(false)}
+          >
+            <Dialog.Icon icon="alert-outline" />
+            <Dialog.Title>Unsaved Changes</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">
+                You have unsaved changes. Are you sure you want to close without
+                saving?
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowCancelDialog(false)}>
+                Continue Editing
+              </Button>
+              <Button
+                onPress={handleCancelConfirm}
+                textColor={theme.colors.error}
+              >
+                Discard Changes
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
         </SafeAreaView>
       </Modal>
-
-      <Portal>
-        <Dialog
-          visible={showCancelDialog}
-          onDismiss={() => setShowCancelDialog(false)}
-        >
-          <Dialog.Icon icon="alert-outline" />
-          <Dialog.Title>Unsaved Changes</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">
-              You have unsaved changes. Are you sure you want to close without
-              saving?
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowCancelDialog(false)}>
-              Continue Editing
-            </Button>
-            <Button
-              onPress={handleCancelConfirm}
-              textColor={theme.colors.error}
-            >
-              Discard Changes
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
     </>
   );
-}
+};
