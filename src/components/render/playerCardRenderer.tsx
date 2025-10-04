@@ -166,7 +166,6 @@ export function renderPlayerCard(
                 size={32}
                 iconColor={getToggleColor()}
                 onPress={() => {
-                  console.log(`calling onToggle for ${player.name}`);
                   onToggle(player);
                 }}
               />

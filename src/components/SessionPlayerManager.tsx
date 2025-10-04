@@ -196,11 +196,6 @@ export const SessionPlayerManager: React.FC<SessionPlayerManagerProps> = ({
   onPartnershipConstraintChange,
   onClose,
 }) => {
-  console.log(
-    `🔄 SessionPlayerManager received selectedPlayerIds:`,
-    selectedPlayerIds.length,
-    selectedPlayerIds,
-  );
   const styles = useStyles();
   const theme = useTheme();
   const dispatch = useAppDispatch();
@@ -399,7 +394,6 @@ export const SessionPlayerManager: React.FC<SessionPlayerManagerProps> = ({
   };
 
   const togglePlayer = (player: Player) => {
-    console.log(`🎯 togglePlayer: ${player.name}`);
     const playerId = player.id;
 
     if (isPlayerSelected(playerId)) {
@@ -415,7 +409,6 @@ export const SessionPlayerManager: React.FC<SessionPlayerManagerProps> = ({
       }
 
       const newIds = selectedPlayerIds.filter((id) => id !== playerId);
-      console.log(`📤 Removing player ${playerId}, new IDs:`, newIds);
       onSelectionChange(newIds);
 
       // Remove from paused if unselected
@@ -428,7 +421,6 @@ export const SessionPlayerManager: React.FC<SessionPlayerManagerProps> = ({
       handlePlayerAction(player, "unlink");
     } else {
       const newIds = [...selectedPlayerIds, playerId];
-      console.log(`📤 Adding player, new IDs:`, newIds);
       onSelectionChange(newIds);
     }
   };
@@ -437,7 +429,7 @@ export const SessionPlayerManager: React.FC<SessionPlayerManagerProps> = ({
     player: Player,
     action: "pause" | "unpause" | "link" | "unlink",
   ) => {
-    console.log(`handlePlayerAction: ${player.name}, ${action}`);
+    // console.log(`handlePlayerAction: ${player.name}, ${action}`);
 
     switch (action) {
       case "pause":
@@ -474,7 +466,7 @@ export const SessionPlayerManager: React.FC<SessionPlayerManagerProps> = ({
   };
 
   const handleLinkPartner = (player1: Player, player2: Player) => {
-    console.log(`handleLinkPartner: ${player1.name} and ${player2.name}`);
+    // console.log(`handleLinkPartner: ${player1.name} and ${player2.name}`);
     const newPartnership: FixedPartnership = {
       id: uuidv4(),
       player1Id: player1.id,
@@ -758,15 +750,6 @@ export const SessionPlayerManager: React.FC<SessionPlayerManagerProps> = ({
     </Surface>
   );
 
-  console.log(
-    `🎨 Rendering - selectedPlayers.length: ${selectedPlayers.length}`,
-  );
-  console.log(
-    `🎨 Rendering - filteredSelectedPlayers.length: ${filteredSelectedPlayers.length}`,
-  );
-  console.log(
-    `🎨 Rendering - available players count: ${filteredPlayers.filter((player) => !isPlayerSelected(player.id)).length}`,
-  );
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container}>

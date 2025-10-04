@@ -160,8 +160,6 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
 
     setFormData(newFormData);
 
-    console.log(`updating initialFormData ${newFormData.playerIds}`);
-
     // Store initial values using the newFormData, not the stale formData
     initialFormData.current = {
       name: newFormData.name,
@@ -302,7 +300,6 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
     currentPlayerIdsRef.current = playerIds;
     setFormData((prev) => {
       const newFormData = { ...prev, playerIds };
-      console.log(`📝 Updated formData.playerIds to:`, newFormData.playerIds);
       return newFormData;
     });
   }, []);
