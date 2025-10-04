@@ -6,6 +6,7 @@ import {
   Banner,
   Button,
   Card,
+  Divider,
   FAB,
   Icon,
   IconButton,
@@ -25,6 +26,7 @@ import {
   getCurrentRoundNumber,
 } from "@/src/services/sessionService";
 import { getSessionPlayers, getSessionPausedPlayers } from "@/src/utils/util";
+import { isNarrowScreen } from "../utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
 import { updateCurrentRoundThunk } from "@/src/store/actions/sessionActions";
 import {
@@ -54,7 +56,6 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
   const [selectedPlayers, setSelectedPlayers] = useState(
     new Map<string, Player>(),
   );
-  const [bannerVisible, setBannerVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [canSwapPlayers, setCanSwapPlayers] = useState(false);
@@ -64,6 +65,15 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
 
   const { players } = useAppSelector((state) => state.players);
   const { sessions } = useAppSelector((state) => state.sessions);
+  const isFirstRound = () => {
+    const length = sessions.find((s) => s.id === sessionId)?.liveData?.rounds
+      ?.length;
+    if (length) {
+      return length < 1;
+    }
+    return true;
+  };
+  const [bannerVisible, setBannerVisible] = useState(isFirstRound);
 
   const toggleBanner = () => {
     let visible = bannerVisible;
@@ -176,7 +186,15 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
               }
             />
             {onEditSession && (
-              <Appbar.Action icon="pencil" onPress={onEditSession} />
+              <Button
+                icon="pencil"
+                mode="outlined"
+                onPress={onEditSession}
+                compact={isNarrowScreen()}
+                style={{ marginRight: 4 }}
+              >
+                {isNarrowScreen() ? "Session" : "Session"}
+              </Button>
             )}
             <Appbar.Action
               icon="help-circle"
@@ -208,6 +226,9 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
             </View>
             <Banner
               visible={bannerVisible}
+              contentStyle={{
+                width: "90%",
+              }}
               actions={[
                 {
                   label: "Dismiss",
@@ -217,35 +238,49 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
                 },
               ]}
             >
-              <TopDescription
-                visible={true}
-                description={`Configure players and court settings for this round.\nSelect a player or court to enable further actions. Start the round when ready.`}
-              />
               <View
                 style={{
+                  alignItems: "stretch",
                   marginTop: 20,
                 }}
               >
+                <TopDescription
+                  visible={true}
+                  description={
+                    "Configure players and court settings for this round.\n" +
+                    "Select a player or court to enable further actions.\n" +
+                    "Start the round when ready."
+                  }
+                />
                 <Card>
                   <List.Item
-                    title="Start Round"
-                    description="Select the 'Start Round' button to begin playing."
+                    title="Select Single Player"
+                    description="Selecting a single player will show the number of times they have sat out."
                   />
                   <List.Item
-                    title="Swap any Players"
-                    description="Select any two players to enable the swap action. You can swap active or sitting-out players."
+                    title="Swap Any Two Players"
+                    description="Select any two players to enable the swap action. You can swap any active or sitting-out players."
                   />
                   <List.Item
                     title="Long Press on Player"
-                    description="Long-press on any player button to show details, pause player, or set partnership."
+                    description="Long-press on any player button to show details, pause player, or setup a fixed partnership."
                   />
                   <List.Item
                     title="Courts"
                     description="Select any court to enable/disable/modify the court parameters."
                   />
                   <List.Item
-                    title="Edit Session"
-                    description="Modify session settings like courts, players, or session details."
+                    title="Reshuffle"
+                    description="Create a new lineup by reshuffling all players."
+                  />
+                  <List.Item
+                    title="Start Round"
+                    description="Select the 'Start Round' button to begin playing."
+                  />
+                  <Divider />
+                  <List.Item
+                    title="Edit Session (top right)"
+                    description="View the session settings to modify courts, add players, or change session-level details (e.g. using scoring or ratings)."
                   />
                 </Card>
               </View>
@@ -310,18 +345,6 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
                     >
                       {isSmallScreen ? "Stats" : "Player Stats"}
                     </Button>
-
-                    {onEditSession && (
-                      <Button
-                        icon="pencil"
-                        mode="outlined"
-                        onPress={onEditSession}
-                        contentStyle={{ padding: 2 }}
-                        style={isSmallScreen ? { flex: 1 } : undefined}
-                      >
-                        Edit Session
-                      </Button>
-                    )}
                   </View>
                 </View>
               </View>

@@ -87,8 +87,6 @@ export const validateSessionSize = (playerCount: number, courtCount: number): {
 
   if (playerCount < minRequired) {
     return {
-      //isValid: false,
-      //error: `Need at least ${minRequired} players for ${courtCount} court(s)`
       isValid: true,
       warning: `You have more courts (${courtCount}) than required for ${playerCount} players.`
     };

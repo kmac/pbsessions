@@ -849,8 +849,7 @@ export default function LiveSessionScreen() {
                 : `Round ${currentRoundNumber} Games`}
             </Text>
 
-            {isRoundInProgress &&
-              currentRound.games.length > 3 && (
+            {isRoundInProgress && (
                 <Surface
                   style={{
                     backgroundColor: theme.colors.tertiaryContainer,
@@ -888,7 +887,8 @@ export default function LiveSessionScreen() {
               ratingSwitch={true}
             />
 
-            {isRoundInProgress && (
+            {isRoundInProgress &&
+              currentRound.games.length > 3 && (
               <Surface
                 style={{
                   backgroundColor: theme.colors.tertiaryContainer,
@@ -922,7 +922,7 @@ export default function LiveSessionScreen() {
         )}
 
         {/* Round Action Button */}
-        <View style={{ marginBottom: 18 }}>{getRoundActionButton()}</View>
+        <View style={{ marginBottom: 20 }}>{getRoundActionButton()}</View>
 
         {/* Previous Rounds Summary */}
         {numCompletedRounds > 0 && (
