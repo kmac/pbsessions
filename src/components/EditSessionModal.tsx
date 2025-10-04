@@ -183,9 +183,9 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
       ...formData,
       playerIds: currentPlayerIdsRef.current, // Use the immediate ref value
     };
-    console.log(
-      `hasUnsavedChanges: checking currentFormDataWithRef.playerIds: ${currentFormDataWithRef.playerIds} vs ${initialFormData.current.playerIds}`,
-    );
+    // console.log(
+    //   `hasUnsavedChanges: checking currentFormDataWithRef.playerIds: ${currentFormDataWithRef.playerIds} vs ${initialFormData.current.playerIds}`,
+    // );
     return !deepEqual(currentFormDataWithRef, initialFormData.current);
   };
 

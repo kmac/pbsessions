@@ -204,7 +204,7 @@ export default function SettingsTab() {
       }}
       elevation={1}
     >
-      <TabHeader title="Pickleball Sessions" />
+      <TabHeader title="Pickleball Sessions" showIcon={true} />
     </Surface>
   );
 
@@ -386,7 +386,7 @@ export default function SettingsTab() {
             </Text>
           </View>
           <RadioButton.Group
-            value={appSettings.defaultCourtLayout}
+            value={appSettings.defaultCourtLayout || "horizontal"}
             onValueChange={(value) => {
               updateSettings({
                 defaultCourtLayout:

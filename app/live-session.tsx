@@ -641,9 +641,9 @@ export default function LiveSessionScreen() {
         <Appbar.Content
           title={
             <Text
-              variant="titleMedium"
+              variant="titleLarge"
               style={{
-                fontWeight: "400",
+                fontWeight: "500",
               }}
             >
               {liveSession.name}

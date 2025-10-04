@@ -247,38 +247,38 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
                 <TopDescription
                   visible={true}
                   description={
-                    "Configure players and court settings for this round.\n" +
-                    "Select a player or court to enable further actions.\n" +
-                    "Start the round when ready."
+                    "Configure players and court settings for this round. " +
+                    "Select a player or court to enable further actions. " +
+                    "Start the round when ready to play."
                   }
                 />
                 <Card>
-                  <List.Item
+                  <List.Item descriptionNumberOfLines={5}
                     title="Select Single Player"
                     description="Selecting a single player will show the number of times they have sat out."
                   />
-                  <List.Item
+                  <List.Item descriptionNumberOfLines={5}
                     title="Swap Any Two Players"
                     description="Select any two players to enable the swap action. You can swap any active or sitting-out players."
                   />
-                  <List.Item
+                  <List.Item descriptionNumberOfLines={5}
                     title="Long Press on Player"
                     description="Long-press on any player button to show details, pause player, or setup a fixed partnership."
                   />
-                  <List.Item
+                  <List.Item descriptionNumberOfLines={5}
                     title="Courts"
                     description="Select any court to enable/disable/modify the court parameters."
                   />
-                  <List.Item
+                  <List.Item descriptionNumberOfLines={5}
                     title="Reshuffle"
                     description="Create a new lineup by reshuffling all players."
                   />
-                  <List.Item
+                  <List.Item descriptionNumberOfLines={5}
                     title="Start Round"
                     description="Select the 'Start Round' button to begin playing."
                   />
                   <Divider />
-                  <List.Item
+                  <List.Item descriptionNumberOfLines={5}
                     title="Edit Session (top right)"
                     description="View the session settings to modify courts, add players, or change session-level details (e.g. using scoring or ratings)."
                   />

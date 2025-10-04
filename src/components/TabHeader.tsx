@@ -3,14 +3,15 @@ import { Avatar, Text, useTheme } from "react-native-paper";
 
 interface TabHeaderProps {
   title: string;
+  showIcon?: boolean;
 }
 
-export const TabHeader: React.FC<TabHeaderProps> = ({ title }) => {
+export const TabHeader: React.FC<TabHeaderProps> = ({ title, showIcon=false }) => {
   const theme = useTheme();
 
   return (
     <>
-      {false && (
+      {false && showIcon && (
         <Image
           style={{
             width: 48,
@@ -26,16 +27,21 @@ export const TabHeader: React.FC<TabHeaderProps> = ({ title }) => {
           source={require("@/assets/images/pbsessions.webp")}
         />
       )}
+      {showIcon && (
       <Avatar.Image
-        size={32}
+        size={48}
         source={require("@/assets/images/pbsessions.webp")}
         style={{
           marginRight: 10,
           backgroundColor: "grey",
         }}
       />
+      )}
       <View style={{ flex: 1 }}>
-        <Text variant="headlineSmall" style={{ fontWeight: "bold" }}>
+        <Text variant="headlineSmall" style={{
+          fontWeight: "bold",
+          marginLeft: showIcon ? 2 : 12,
+        }}>
           {title}
         </Text>
       </View>

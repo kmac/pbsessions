@@ -115,7 +115,7 @@ function LoadingScreen() {
           fontSize: 16,
         }}
       >
-        Loading Pickleball Sessions...
+        Loading Sessions...
       </Text>
     </View>
   );

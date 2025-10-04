@@ -20,9 +20,9 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
   const obj1Json = JSON.stringify(obj1);
   const obj2Json = JSON.stringify(obj2);
   if (obj1Json !== obj2Json) {
-    console.log(
-      `deepEqual diff: ${findSubstringDifferences(obj1Json, obj2Json)}`,
-    );
+    // console.log(
+    //   `deepEqual diff: ${findSubstringDifferences(obj1Json, obj2Json)}`,
+    // );
     return false;
   }
   return true;
