@@ -8,7 +8,6 @@ import {
   Card,
   Divider,
   FAB,
-  Icon,
   IconButton,
   List,
   Surface,
@@ -33,7 +32,6 @@ import {
   registerCourtUpdateCallback,
   unregisterCourtUpdateCallback,
 } from "@/src/store/middleware/courtUpdateListener";
-import { useModalBackHandler } from "@/src/hooks/useBackHandler";
 
 interface BetweenRoundsModalProps {
   visible: boolean;
@@ -50,10 +48,6 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
   onClose,
   onEditSession,
 }) => {
-
-  // Handle Android back button for this modal
-  useModalBackHandler(visible, onClose);
-
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { width } = useWindowDimensions();
@@ -63,6 +57,7 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
   );
   const scrollViewRef = useRef<ScrollView>(null);
   const [statsModalVisible, setStatsModalVisible] = useState(false);
+
   const [canSwapPlayers, setCanSwapPlayers] = useState(false);
   const [swapPlayersHandler, setSwapPlayersHandler] = useState<
     (() => void) | null
@@ -171,6 +166,7 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
         visible={visible && !statsModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={onClose}
       >
         <SafeAreaView
           style={{ flex: 1, backgroundColor: theme.colors.background }}
@@ -258,32 +254,39 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
                   }
                 />
                 <Card>
-                  <List.Item descriptionNumberOfLines={5}
+                  <List.Item
+                    descriptionNumberOfLines={5}
                     title="Select Single Player"
                     description="Selecting a single player will show the number of times they have sat out."
                   />
-                  <List.Item descriptionNumberOfLines={5}
+                  <List.Item
+                    descriptionNumberOfLines={5}
                     title="Swap Any Two Players"
                     description="Select any two players to enable the swap action. You can swap any active or sitting-out players."
                   />
-                  <List.Item descriptionNumberOfLines={5}
+                  <List.Item
+                    descriptionNumberOfLines={5}
                     title="Long Press on Player"
                     description="Long-press on any player button to show details, pause player, or setup a fixed partnership."
                   />
-                  <List.Item descriptionNumberOfLines={5}
+                  <List.Item
+                    descriptionNumberOfLines={5}
                     title="Courts"
                     description="Select any court to enable/disable/modify the court parameters."
                   />
-                  <List.Item descriptionNumberOfLines={5}
+                  <List.Item
+                    descriptionNumberOfLines={5}
                     title="Reshuffle"
                     description="Create a new lineup by reshuffling all players."
                   />
-                  <List.Item descriptionNumberOfLines={5}
+                  <List.Item
+                    descriptionNumberOfLines={5}
                     title="Start Round"
                     description="Select the 'Start Round' button to begin playing."
                   />
                   <Divider />
-                  <List.Item descriptionNumberOfLines={5}
+                  <List.Item
+                    descriptionNumberOfLines={5}
                     title="Edit Session (top right)"
                     description="View the session settings to modify courts, add players, or change session-level details (e.g. using scoring or ratings)."
                   />
@@ -378,7 +381,9 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
         visible={statsModalVisible}
         players={sessionPlayers}
         stats={playerStats}
-        onClose={() => setStatsModalVisible(false)}
+        onClose={() => {
+          setStatsModalVisible(false);
+        }}
       />
     </>
   );

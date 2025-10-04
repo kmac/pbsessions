@@ -174,7 +174,6 @@ const RootLayoutNav = () => {
       <PaperProvider theme={theme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="live-session" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </PaperProvider>

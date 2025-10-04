@@ -68,39 +68,33 @@ export default function SettingsTab() {
   const [importContent, setImportContent] = useState("");
   const [exportContent, setExportContent] = useState("");
 
-  // Handle back button for Settings tab dialogs
-
-
-  // TODO this looks like garbage:
-
-
-  useBackHandler(() => {
-    // Check for open dialogs and close them in priority order
-    if (aboutDialogVisible) {
-      setAboutDialogVisible(false);
-      return true;
-    }
-    if (clearDataDialogVisible) {
-      setClearDataDialogVisible(false);
-      return true;
-    }
-    if (exportDialogVisible) {
-      setExportDialogVisible(false);
-      return true;
-    }
-    if (importDialogVisible) {
-      setImportDialogVisible(false);
-      return true;
-    }
-
-    // No dialogs open, allow default behavior
-    return false;
-  }, [
-    aboutDialogVisible,
-    clearDataDialogVisible,
-    exportDialogVisible,
-    importDialogVisible,
-  ]);
+  // // Handle back button for Settings tab dialogs
+  // useBackHandler(() => {
+  //   // Check for open dialogs and close them in priority order
+  //   if (aboutDialogVisible) {
+  //     setAboutDialogVisible(false);
+  //     return true;
+  //   }
+  //   if (clearDataDialogVisible) {
+  //     setClearDataDialogVisible(false);
+  //     return true;
+  //   }
+  //   if (exportDialogVisible) {
+  //     setExportDialogVisible(false);
+  //     return true;
+  //   }
+  //   if (importDialogVisible) {
+  //     setImportDialogVisible(false);
+  //     return true;
+  //   }
+  //   // No dialogs open, allow default behavior
+  //   return false;
+  // }, [
+  //   aboutDialogVisible,
+  //   clearDataDialogVisible,
+  //   exportDialogVisible,
+  //   importDialogVisible,
+  // ]);
 
   useEffect(() => {
     const loadVersionInfo = async () => {

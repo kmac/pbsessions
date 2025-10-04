@@ -512,17 +512,22 @@ export const GroupPlayerManager: React.FC<GroupPlayerManagerProps> = ({
     </Surface>
   );
 
+  const handleBackPress = () => {
+    onCancel();
+  }
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={handleBackPress}
     >
       <SafeAreaView
         style={{ flex: 1, backgroundColor: theme.colors.background }}
       >
         <Appbar.Header>
-          <Appbar.BackAction onPress={onCancel} />
+          <Appbar.BackAction onPress={handleBackPress} />
           <Appbar.Content
             title={
               <Text

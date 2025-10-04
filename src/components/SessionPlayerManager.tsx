@@ -750,11 +750,20 @@ export const SessionPlayerManager: React.FC<SessionPlayerManagerProps> = ({
     </Surface>
   );
 
+  const handleBackPress = () => {
+    onClose();
+  }
+
   return (
-    <Modal visible={visible} animationType="slide">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleBackPress}
+    >
       <SafeAreaView style={styles.container}>
         <Appbar.Header>
-          <Appbar.BackAction onPress={onClose} />
+          <Appbar.BackAction onPress={handleBackPress} />
           <Appbar.Content
             title={
               <Text

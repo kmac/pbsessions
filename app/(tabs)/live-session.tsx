@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, ScrollView, BackHandler } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   Appbar,
   Button,
@@ -71,78 +72,89 @@ export default function LiveSessionScreen() {
   // TODO we should have a way to look this up - probably need to use redux since it will be global
   const liveSession = sessions.find((s) => s.state === SessionState.Live);
 
-  // Handle Android back button for live session
-  useBackHandler(() => {
-    // Check if any modals are open
-    if (
-      scoreModalVisible ||
-      statsModalVisible ||
-      betweenRoundsVisible ||
-      editSessionModalVisible ||
-      generateRoundsModalVisible
-    ) {
-      // Close the topmost modal
-      if (generateRoundsModalVisible) {
-        setGenerateRoundsModalVisible(false);
-      } else if (editSessionModalVisible) {
-        setEditSessionModalVisible(false);
-      } else if (betweenRoundsVisible) {
-        setBetweenRoundsVisible(false);
-      } else if (scoreModalVisible) {
-        setScoreModalVisible(false);
-      } else if (statsModalVisible) {
-        setStatsModalVisible(false);
-      }
-      // Prevent default back action
-      return true;
-    }
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
 
-    // If no modals open, handle session navigation
-    if (liveSession) {
-      const isRoundInProgress = liveSession.liveData?.rounds.some((round) =>
-        round.games.some((game) => game.startedAt && !game.isCompleted),
+        // // Check if any modals are open
+        // if (
+        //   scoreModalVisible ||
+        //   statsModalVisible ||
+        //   betweenRoundsVisible ||
+        //   editSessionModalVisible ||
+        //   generateRoundsModalVisible
+        // ) {
+        //   // Close the topmost modal
+        //   if (generateRoundsModalVisible) {
+        //     setGenerateRoundsModalVisible(false);
+        //   } else if (editSessionModalVisible) {
+        //     setEditSessionModalVisible(false);
+        //   } else if (betweenRoundsVisible) {
+        //     setBetweenRoundsVisible(false);
+        //   } else if (scoreModalVisible) {
+        //     setScoreModalVisible(false);
+        //   } else if (statsModalVisible) {
+        //     setStatsModalVisible(false);
+        //   }
+        //   // Prevent default back action
+        //   return true;
+        // }
+
+        // If no modals open, handle session navigation
+        if (liveSession) {
+          const isRoundInProgress = liveSession.liveData?.rounds.some((round) =>
+            round.games.some((game) => game.startedAt && !game.isCompleted),
+          );
+
+          if (isRoundInProgress) {
+            Alert.alert(
+              "Session in Progress",
+              "You have games in progress. Are you sure you want to leave?",
+              [
+                { text: "Stay", style: "cancel" },
+                {
+                  text: "Leave",
+                  style: "destructive",
+                  onPress: () => router.navigate("/sessions"),
+                },
+              ],
+            );
+          } else {
+            Alert.alert(
+              "Leave Session",
+              "Are you sure you want to leave this live session?",
+              [
+                { text: "Stay", style: "cancel" },
+                {
+                  text: "Leave",
+                  onPress: () => router.navigate("/sessions"),
+                },
+              ],
+            );
+          }
+          // Prevent default back action
+          return true;
+        }
+
+        // No live session, allow normal navigation
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
       );
 
-      if (isRoundInProgress) {
-        Alert.alert(
-          "Session in Progress",
-          "You have games in progress. Are you sure you want to leave?",
-          [
-            { text: "Stay", style: "cancel" },
-            {
-              text: "Leave",
-              style: "destructive",
-              onPress: () => router.navigate("/sessions"),
-            },
-          ],
-        );
-      } else {
-        Alert.alert(
-          "Leave Session",
-          "Are you sure you want to leave this live session?",
-          [
-            { text: "Stay", style: "cancel" },
-            {
-              text: "Leave",
-              onPress: () => router.navigate("/sessions"),
-            },
-          ],
-        );
-      }
-      // Prevent default back action
-      return true;
-    }
-
-    // No live session, allow normal navigation
-    return false;
-  }, [
-    scoreModalVisible,
-    statsModalVisible,
-    betweenRoundsVisible,
-    editSessionModalVisible,
-    generateRoundsModalVisible,
-    liveSession,
-  ]);
+      return () => subscription.remove();
+    }, [
+      // scoreModalVisible,
+      // statsModalVisible,
+      // betweenRoundsVisible,
+      // editSessionModalVisible,
+      // generateRoundsModalVisible,
+      liveSession,
+    ]),
+  );
 
   if (!liveSession || !liveSession.liveData) {
     return (

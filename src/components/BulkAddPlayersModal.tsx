@@ -16,7 +16,6 @@ import { Picker } from "@react-native-picker/picker";
 import { addMultiplePlayers } from "../store/slices/playersSlice";
 import { Player } from "../types";
 import { Alert } from "../utils/alert";
-import { useModalBackHandler } from "@/src/hooks/useBackHandler";
 
 interface BulkAddPlayersModalProps {
   visible: boolean;
@@ -41,31 +40,6 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
   const [players, setPlayers] = useState<PlayerInput[]>([
     { id: "1", name: "", email: "", phone: "", gender: undefined, rating: "" },
   ]);
-
-  // Handle Android back button for this modal
-  useModalBackHandler(visible, () => {
-    // Check if there's unsaved player data
-    const hasUnsavedData = players.some(
-      (player) =>
-        player.name.trim() !== "" ||
-        player.email.trim() !== "" ||
-        player.phone?.trim() !== "" ||
-        player.rating.trim() !== "",
-    );
-
-    if (hasUnsavedData) {
-      Alert.alert(
-        "Unsaved Changes",
-        "You have unsaved player data. Are you sure you want to close?",
-        [
-          { text: "Keep Editing", style: "cancel" },
-          { text: "Discard", style: "destructive", onPress: onClose },
-        ],
-      );
-    } else {
-      onClose();
-    }
-  });
 
   const addPlayerRow = () => {
     const newId = (players.length + 1).toString();
@@ -161,11 +135,36 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
     onClose();
   };
 
+  const handleBackButton = () => {
+    // Check if there's unsaved player data
+    const hasUnsavedData = players.some(
+      (player) =>
+        player.name.trim() !== "" ||
+        player.email.trim() !== "" ||
+        player.phone?.trim() !== "" ||
+        player.rating.trim() !== "",
+    );
+
+    if (hasUnsavedData) {
+      Alert.alert(
+        "Unsaved Changes",
+        "You have unsaved player data. Are you sure you want to close?",
+        [
+          { text: "Keep Editing", style: "cancel" },
+          { text: "Discard", style: "destructive", onPress: handleCancel },
+        ],
+      );
+    } else {
+      handleCancel();
+    }
+  }
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={handleBackButton}
     >
       <SafeAreaView
         style={{ flex: 1, backgroundColor: theme.colors.background }}

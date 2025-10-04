@@ -13,16 +13,12 @@ import {
 } from "react-native-paper";
 import {
   Users,
-  Clock,
   Star,
-  BarChart3,
-  UserCheck,
 } from "lucide-react-native";
 import { PlayerStatsDisplay } from "@/src/components/PlayerStatsDisplay";
 import { Player, PlayerStats } from "../types";
 import { getPlayer } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
-import { useModalBackHandler } from "@/src/hooks/useBackHandler";
 
 type SortOption = "name" | "gamesPlayed" | "gamesSatOut" | "totalScore";
 
@@ -43,9 +39,6 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   const [sortBy, setSortBy] = useState<SortOption>("gamesPlayed");
 
   const narrowScreen = isNarrowScreen();
-
-  // Handle Android back button for this modal
-  useModalBackHandler(visible, onClose);
 
   const getPlayerStats = (playerId: string): PlayerStats => {
     return (
@@ -286,11 +279,16 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
     </View>
   );
 
+  const handleBackPress = () => {
+    onClose();
+  }
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={handleBackPress}
     >
       <SafeAreaView
         style={{ flex: 1, backgroundColor: theme.colors.background }}

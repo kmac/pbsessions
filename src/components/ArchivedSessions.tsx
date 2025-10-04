@@ -223,6 +223,7 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={onCancel}
     >
       <Appbar.Header>
         <Appbar.BackAction onPress={onCancel} />
