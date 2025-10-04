@@ -33,13 +33,14 @@ import {
   registerCourtUpdateCallback,
   unregisterCourtUpdateCallback,
 } from "@/src/store/middleware/courtUpdateListener";
+import { useModalBackHandler } from "@/src/hooks/useBackHandler";
 
 interface BetweenRoundsModalProps {
   visible: boolean;
   sessionId: string;
   onStartRound: () => void;
   onClose: () => void;
-  onEditSession?: () => void; // Add new prop for edit session callback
+  onEditSession?: () => void;
 }
 
 export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
@@ -49,6 +50,10 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
   onClose,
   onEditSession,
 }) => {
+
+  // Handle Android back button for this modal
+  useModalBackHandler(visible, onClose);
+
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { width } = useWindowDimensions();

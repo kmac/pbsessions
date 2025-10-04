@@ -42,6 +42,7 @@ import Colors from "@/src/ui/styles/colors";
 import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system";
 import * as DocumentPicker from "expo-document-picker";
+import { useBackHandler } from "@/src/hooks/useBackHandler";
 
 export default function SettingsTab() {
   const theme = useTheme();
@@ -58,6 +59,48 @@ export default function SettingsTab() {
   const [restoreDialogVisible, setRestoreDialogVisible] = useState(false);
   const [restoreJsonData, setRestoreJsonData] = useState("");
   const [versionInfo, setVersionInfo] = useState<string>("");
+
+  // State for various dialogs and modals
+  const [importDialogVisible, setImportDialogVisible] = useState(false);
+  const [exportDialogVisible, setExportDialogVisible] = useState(false);
+  const [clearDataDialogVisible, setClearDataDialogVisible] = useState(false);
+  const [aboutDialogVisible, setAboutDialogVisible] = useState(false);
+  const [importContent, setImportContent] = useState("");
+  const [exportContent, setExportContent] = useState("");
+
+  // Handle back button for Settings tab dialogs
+
+
+  // TODO this looks like garbage:
+
+
+  useBackHandler(() => {
+    // Check for open dialogs and close them in priority order
+    if (aboutDialogVisible) {
+      setAboutDialogVisible(false);
+      return true;
+    }
+    if (clearDataDialogVisible) {
+      setClearDataDialogVisible(false);
+      return true;
+    }
+    if (exportDialogVisible) {
+      setExportDialogVisible(false);
+      return true;
+    }
+    if (importDialogVisible) {
+      setImportDialogVisible(false);
+      return true;
+    }
+
+    // No dialogs open, allow default behavior
+    return false;
+  }, [
+    aboutDialogVisible,
+    clearDataDialogVisible,
+    exportDialogVisible,
+    importDialogVisible,
+  ]);
 
   useEffect(() => {
     const loadVersionInfo = async () => {
@@ -533,9 +576,7 @@ export default function SettingsTab() {
         >
           Pickleball Sessions
         </Text>
-        <Text>
-          {versionInfo}
-        </Text>
+        <Text>{versionInfo}</Text>
         <Text
           variant="bodyMedium"
           style={{

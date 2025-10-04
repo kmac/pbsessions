@@ -3,7 +3,7 @@ import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 import { Court } from "@/src/types";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
-import { getPlayerRating } from "./RoundGameCard";
+import { getPlayerRating } from "./PlayerButton";
 
 export interface CourtButtonProps {
   court: Court;

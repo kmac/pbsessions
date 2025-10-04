@@ -38,6 +38,7 @@ import { CourtManager } from "./CourtManager";
 import { SessionPlayerManager } from "./SessionPlayerManager";
 import { TopDescription } from "./TopDescription";
 import { Alert } from "../utils/alert";
+import { useBackHandler } from "@/src/hooks/useBackHandler";
 
 interface EditSessionModalProps {
   visible: boolean;
@@ -103,6 +104,50 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
     useState(false);
   const currentPlayerIdsRef = useRef<string[]>([]);
+
+  // Handle Android back button for this modal
+  useBackHandler(() => {
+    if (!visible) return false;
+
+    // Close nested modals first
+    if (showUnsavedChangesDialog) {
+      setShowUnsavedChangesDialog(false);
+      return true;
+    }
+    if (showCourtManager) {
+      setShowCourtManager(false);
+      return true;
+    }
+    if (showPlayerManager) {
+      setShowPlayerManager(false);
+      return true;
+    }
+
+    // Check for unsaved changes in main modal
+    const hasChanges = !deepEqual(formData, initialFormData.current);
+    if (hasChanges) {
+      Alert.alert(
+        "Unsaved Changes",
+        "You have unsaved changes. Are you sure you want to close?",
+        [
+          { text: "Keep Editing", style: "cancel" },
+          { text: "Discard", style: "destructive", onPress: onCancel },
+        ],
+      );
+      return true;
+    }
+
+    // No changes, close normally
+    onCancel();
+    return true;
+  }, [
+    visible,
+    showUnsavedChangesDialog,
+    showCourtManager,
+    showPlayerManager,
+    formData,
+    onCancel,
+  ]);
 
   // This `useEffect` is handling **form initialization and
   // reset logic** when the modal opens or key dependencies
@@ -203,7 +248,6 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   };
 
   const handleReset = () => {
-
     currentPlayerIdsRef.current = [...initialFormData.current.playerIds];
 
     setFormData({

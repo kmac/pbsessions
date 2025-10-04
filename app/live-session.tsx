@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, ScrollView } from "react-native";
+import { View, ScrollView, BackHandler } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
@@ -32,6 +32,7 @@ import {
 } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 import { Player, Results, Score, Session, SessionState } from "@/src/types";
+import { useBackHandler } from "@/src/hooks/useBackHandler";
 
 import {
   applyNextRoundThunk,
@@ -70,6 +71,79 @@ export default function LiveSessionScreen() {
   // TODO we should have a way to look this up - probably need to use redux since it will be global
   const liveSession = sessions.find((s) => s.state === SessionState.Live);
 
+  // Handle Android back button for live session
+  useBackHandler(() => {
+    // Check if any modals are open
+    if (
+      scoreModalVisible ||
+      statsModalVisible ||
+      betweenRoundsVisible ||
+      editSessionModalVisible ||
+      generateRoundsModalVisible
+    ) {
+      // Close the topmost modal
+      if (generateRoundsModalVisible) {
+        setGenerateRoundsModalVisible(false);
+      } else if (editSessionModalVisible) {
+        setEditSessionModalVisible(false);
+      } else if (betweenRoundsVisible) {
+        setBetweenRoundsVisible(false);
+      } else if (scoreModalVisible) {
+        setScoreModalVisible(false);
+      } else if (statsModalVisible) {
+        setStatsModalVisible(false);
+      }
+      // Prevent default back action
+      return true;
+    }
+
+    // If no modals open, handle session navigation
+    if (liveSession) {
+      const isRoundInProgress = liveSession.liveData?.rounds.some((round) =>
+        round.games.some((game) => game.startedAt && !game.isCompleted),
+      );
+
+      if (isRoundInProgress) {
+        Alert.alert(
+          "Session in Progress",
+          "You have games in progress. Are you sure you want to leave?",
+          [
+            { text: "Stay", style: "cancel" },
+            {
+              text: "Leave",
+              style: "destructive",
+              onPress: () => router.navigate("/sessions"),
+            },
+          ],
+        );
+      } else {
+        Alert.alert(
+          "Leave Session",
+          "Are you sure you want to leave this live session?",
+          [
+            { text: "Stay", style: "cancel" },
+            {
+              text: "Leave",
+              onPress: () => router.navigate("/sessions"),
+            },
+          ],
+        );
+      }
+      // Prevent default back action
+      return true;
+    }
+
+    // No live session, allow normal navigation
+    return false;
+  }, [
+    scoreModalVisible,
+    statsModalVisible,
+    betweenRoundsVisible,
+    editSessionModalVisible,
+    generateRoundsModalVisible,
+    liveSession,
+  ]);
+
   if (!liveSession || !liveSession.liveData) {
     return (
       <SafeAreaView style={{ flex: 1 }}>
@@ -104,12 +178,8 @@ export default function LiveSessionScreen() {
     );
   }
 
-  // if (!liveSession.courts) {
-  //   dispatch(updateCourts(liveSession ? [...liveSession.courts] : []));
-  // }
-
   const currentRoundIndex = getCurrentRoundIndex(liveSession);
-  const currentRoundNumber = getRoundNumber(currentRoundIndex); // For display
+  const currentRoundNumber = getRoundNumber(currentRoundIndex);
   const currentRound = getCurrentRound(liveSession, true);
 
   const hasActiveRound =
@@ -401,7 +471,6 @@ export default function LiveSessionScreen() {
     };
 
     const generateNextRound = () => {
-
       // Check if finished
       if (successfulRounds >= numRounds) {
         // Update our session with all the new rounds.
@@ -850,35 +919,35 @@ export default function LiveSessionScreen() {
             </Text>
 
             {isRoundInProgress && (
-                <Surface
+              <Surface
+                style={{
+                  backgroundColor: theme.colors.tertiaryContainer,
+                }}
+              >
+                <View
                   style={{
-                    backgroundColor: theme.colors.tertiaryContainer,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginTop: 12,
+                    marginBottom: 12,
+                    gap: 12,
                   }}
                 >
-                  <View
+                  <Icon source="autorenew" size={26} />
+                  <Text
+                    variant="bodyMedium"
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginTop: 12,
-                      marginBottom: 12,
-                      gap: 12,
+                      fontWeight: "500",
+                      fontStyle: "italic",
+                      fontSize: 16,
                     }}
                   >
-                    <Icon source="autorenew" size={26} />
-                    <Text
-                      variant="bodyMedium"
-                      style={{
-                        fontWeight: "500",
-                        fontStyle: "italic",
-                        fontSize: 16,
-                      }}
-                    >
-                      Games in progress...
-                    </Text>
-                  </View>
-                </Surface>
-              )}
+                    Games in progress...
+                  </Text>
+                </View>
+              </Surface>
+            )}
 
             <RoundComponent
               key={currentRoundIndex}
@@ -887,8 +956,7 @@ export default function LiveSessionScreen() {
               ratingSwitch={true}
             />
 
-            {isRoundInProgress &&
-              currentRound.games.length > 3 && (
+            {isRoundInProgress && currentRound.games.length > 3 && (
               <Surface
                 style={{
                   backgroundColor: theme.colors.tertiaryContainer,

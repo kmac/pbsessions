@@ -49,6 +49,7 @@ import { TopDescription } from "@/src/components/TopDescription";
 import { BulkAddPlayersModal } from "@/src/components/BulkAddPlayersModal";
 import { Alert } from "@/src/utils/alert";
 import { APP_CONFIG } from "@/src/constants";
+import { useBackHandler } from "@/src/hooks/useBackHandler";
 
 import { useTheme } from "react-native-paper";
 
@@ -80,6 +81,53 @@ export default function PlayersTab() {
       (player.email &&
         player.email.toLowerCase().includes(searchQuery.toLowerCase())),
   );
+
+  // Handle back button for Players tab modals
+  useBackHandler(() => {
+    // Check for open modals and close them in priority order
+    if (exportDialogVisible) {
+      setExportDialogVisible(false);
+      return true;
+    }
+    if (importDialogVisible) {
+      setImportDialogVisible(false);
+      return true;
+    }
+    if (groupSelectionModalVisible) {
+      setGroupSelectionModalVisible(false);
+      return true;
+    }
+    if (bulkPlayerAddModalVisible) {
+      setBulkPlayerAddModalVisible(false);
+      return true;
+    }
+    if (playerAddModalVisible || editingPlayer) {
+      setPlayerAddModalVisible(false);
+      setEditingPlayer(null);
+      return true;
+    }
+    if (menuVisible) {
+      setMenuVisible(false);
+      return true;
+    }
+    // Check if we're in selection mode
+    if (selectedPlayerIds.length > 0) {
+      setSelectedPlayerIds([]);
+      return true;
+    }
+    
+    // No modals open, allow default behavior (app exit confirmation will be handled by TabLayout)
+    return false;
+  }, [
+    exportDialogVisible,
+    importDialogVisible, 
+    groupSelectionModalVisible,
+    bulkPlayerAddModalVisible,
+    playerAddModalVisible,
+    editingPlayer,
+    menuVisible,
+    selectedPlayerIds.length
+  ]);
 
   const handleAddPlayer = (
     playerData: Omit<Player, "id" | "createdAt" | "updatedAt">,

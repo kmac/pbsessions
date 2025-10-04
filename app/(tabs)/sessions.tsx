@@ -32,6 +32,7 @@ import { ViewSessionModal } from "@/src/components/ViewSessionModal";
 import { TabHeader } from "@/src/components/TabHeader";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
+import { useBackHandler } from "@/src/hooks/useBackHandler";
 import {
   endSessionThunk,
   startLiveSessionThunk,
@@ -61,6 +62,44 @@ export default function SessionsTab() {
     (session) => session.state === SessionState.Live,
   );
   const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
+
+  // Handle back button for Sessions tab modals and menus
+  useBackHandler(() => {
+    // Check for open modals and close them in priority order
+    if (viewSessionModalVisible) {
+      setViewSessionModalVisible(false);
+      setViewingSession(null);
+      return true;
+    }
+    if (editSessionModalVisible) {
+      setEditSessionModalVisible(false);
+      setEditingSession(null);
+      return true;
+    }
+    if (modalArchiveVisible) {
+      setArchiveModalVisible(false);
+      return true;
+    }
+    if (menuVisible) {
+      setMenuVisible(false);
+      return true;
+    }
+    // Check for any open session menus
+    const hasOpenSessionMenu = Object.values(sessionMenuVisible).some(visible => visible);
+    if (hasOpenSessionMenu) {
+      setSessionMenuVisible({});
+      return true;
+    }
+    
+    // No modals open, allow default behavior
+    return false;
+  }, [
+    viewSessionModalVisible,
+    editSessionModalVisible,
+    modalArchiveVisible,
+    menuVisible,
+    sessionMenuVisible
+  ]);
 
   const getSession = (sessionId: string) => {
     return sessions.find((session) => session.id === sessionId);

@@ -22,6 +22,7 @@ import { RoundComponent } from "@/src/components/RoundComponent";
 import { Session, SessionState, Game, Round } from "@/src/types";
 import { getPlayerName, getSessionPlayers } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
+import { useBackHandler } from "@/src/hooks/useBackHandler";
 
 interface ViewSessionModalProps {
   visible: boolean;
@@ -41,6 +42,25 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
   const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set());
   const [allExpanded, setAllExpanded] = useState(false);
   const { players } = useAppSelector((state) => state.players);
+
+  // Handle Android back button for this modal and nested modals
+  useBackHandler(() => {
+    if (!visible) return false;
+
+    // Close nested modals first
+    if (statsModalVisible) {
+      setStatsModalVisible(false);
+      return true;
+    }
+    if (menuVisible) {
+      setMenuVisible(false);
+      return true;
+    }
+
+    // Close main modal
+    onCancel();
+    return true;
+  }, [visible, statsModalVisible, menuVisible, onCancel]);
 
   if (!session) {
     return null;
@@ -347,10 +367,11 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
           style={{ flex: 1, backgroundColor: theme.colors.background }}
         >
           <Appbar.Header>
-            <Appbar.BackAction onPress={() => {
-              collapseAllRounds();
-              onCancel();
-            }}
+            <Appbar.BackAction
+              onPress={() => {
+                collapseAllRounds();
+                onCancel();
+              }}
             />
             <Appbar.Content
               title={
@@ -489,7 +510,9 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
             <FlatList
               data={rounds}
               renderItem={renderRound}
-              keyExtractor={(item, index) => `round-${index}-${item.games.length}`}
+              keyExtractor={(item, index) =>
+                `round-${index}-${item.games.length}`
+              }
               contentContainerStyle={styles.listContainer}
               ListFooterComponent={
                 <View>
@@ -545,7 +568,7 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
       />
     </>
   );
-}
+};
 
 const styles = StyleSheet.create({
   headerContainer: {

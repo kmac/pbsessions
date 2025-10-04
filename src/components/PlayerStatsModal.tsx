@@ -22,6 +22,7 @@ import { PlayerStatsDisplay } from "@/src/components/PlayerStatsDisplay";
 import { Player, PlayerStats } from "../types";
 import { getPlayer } from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
+import { useModalBackHandler } from "@/src/hooks/useBackHandler";
 
 type SortOption = "name" | "gamesPlayed" | "gamesSatOut" | "totalScore";
 
@@ -42,6 +43,9 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   const [sortBy, setSortBy] = useState<SortOption>("gamesPlayed");
 
   const narrowScreen = isNarrowScreen();
+
+  // Handle Android back button for this modal
+  useModalBackHandler(visible, onClose);
 
   const getPlayerStats = (playerId: string): PlayerStats => {
     return (

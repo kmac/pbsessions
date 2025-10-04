@@ -13,7 +13,9 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+import { Alert } from "@/src/utils/alert";
 import { Court, Game, Player, Results } from "../types";
+import { useModalBackHandler } from "@/src/hooks/useBackHandler";
 
 interface RoundScoreEntryModalProps {
   visible: boolean;
@@ -45,6 +47,27 @@ export const RoundScoreEntryModal: React.FC<RoundScoreEntryModalProps> = ({
   const theme = useTheme();
   const [courtScores, setCourtScores] = useState<CourtScore[]>([]);
 
+  // Handle Android back button for this modal
+  useModalBackHandler(visible, () => {
+    // Check if there are unsaved scores
+    const hasUnsavedScores = courtScores.some(
+      (score) =>
+        score.hasScore && (score.serveScore > 0 || score.receiveScore > 0),
+    );
+
+    if (hasUnsavedScores) {
+      Alert.alert(
+        "Unsaved Scores",
+        "You have unsaved scores. Are you sure you want to close?",
+        [
+          { text: "Keep Editing", style: "cancel" },
+          { text: "Discard", style: "destructive", onPress: onClose },
+        ],
+      );
+    } else {
+      onClose();
+    }
+  });
   const getCourtName = (courtId: string): string => {
     return courts.find((c) => c.id === courtId)?.name || "unknown";
   };
@@ -362,7 +385,7 @@ export const RoundScoreEntryModal: React.FC<RoundScoreEntryModalProps> = ({
                       dense
                       style={{
                         width: 60,
-                        textAlign: "center"
+                        textAlign: "center",
                       }}
                       contentStyle={{
                         textAlign: "center",
@@ -491,4 +514,4 @@ export const RoundScoreEntryModal: React.FC<RoundScoreEntryModalProps> = ({
       </SafeAreaView>
     </Modal>
   );
-}
+};
