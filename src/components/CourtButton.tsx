@@ -25,18 +25,18 @@ export const CourtButton: React.FC<CourtButtonProps> = ({
       activeOpacity={0.7}
       style={{
         borderRadius: 8,
-        borderWidth: 1,
-        borderStyle: "dotted",
+        borderWidth: 0.5,
+        //borderStyle: "dotted",
         paddingVertical: 12,
         //paddingVertical: isNarrowScreen() ? 8 : 12,
         //paddingHorizontal: 16,
         paddingHorizontal: isNarrowScreen() ? 12 : 16,
-        elevation: 2,
+        // elevation: 2,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         //shadowOpacity: 0.2,
         shadowOpacity: 0.4,
-        shadowRadius: 2,
+        shadowRadius: 4,
         // backgroundColor: theme.colors.secondaryContainer,
         borderColor: theme.colors.outline,
         // borderColor: selected

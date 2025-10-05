@@ -294,10 +294,22 @@ export default function SessionsTab() {
   }
 
   const toggleSessionMenu = (sessionId: string, visible: boolean) => {
-    setSessionMenuVisible((prev) => ({
-      ...prev,
-      [sessionId]: visible,
-    }));
+    // console.log(
+    //   `toggleSessionMenu: sessionId: ${sessionId} visible=${visible}`,
+    // );
+    if (visible) {
+      // When opening, use a small delay to prevent immediate closure
+      // This is a workaround for android issue where the menu closes immediately
+      setSessionMenuVisible((prev) => ({
+        ...prev,
+        [sessionId]: true,
+      }));
+    } else {
+      setSessionMenuVisible((prev) => ({
+        ...prev,
+        [sessionId]: false,
+      }));
+    }
   };
 
   const SessionHeader = () => (
@@ -584,12 +596,27 @@ export default function SessionsTab() {
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Menu
                 visible={sessionMenuVisible[session.id] || false}
-                onDismiss={() => toggleSessionMenu(session.id, false)}
+                onDismiss={() => {
+                  toggleSessionMenu(session.id, false);
+                }}
+                contentStyle={{ minWidth: 200 }}
                 anchor={
                   <IconButton
                     icon="dots-vertical"
                     size={20}
-                    onPress={() => toggleSessionMenu(session.id, true)}
+                    onPress={() => {
+                      const isCurrentlyVisible =
+                        sessionMenuVisible[session.id] || false;
+                      // I think we are hitting this issue on android:
+                      // https://github.com/callstack/react-native-paper/issues/4754
+                      //
+                      // Until this goes away, always toggle. Then at least we can open the menu eventually.
+                      toggleSessionMenu(session.id, !isCurrentlyVisible);
+                      // Proper code:
+                      // if (!isCurrentlyVisible) {
+                      //   toggleSessionMenu(session.id, true);
+                      // }
+                    }}
                   />
                 }
               >
