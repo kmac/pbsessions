@@ -10,15 +10,10 @@ import { BackHandler } from "react-native";
 export const useBackHandler = (
   handler: () => boolean,
   deps: any[] = [],
-  debugName?: string,
 ) => {
-  //useEffect(() => {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        // console.log(
-        //   `[useBackHandler${debugName ? ` ${debugName}` : ""}] in onBackPress, calling handler`,
-        // );
         return handler();
       };
 
@@ -28,9 +23,6 @@ export const useBackHandler = (
       );
 
       return () => {
-        // console.log(
-        //   `[useBackHandler${debugName ? ` ${debugName}` : ""}] removing event listener`,
-        // );
         backHandler.remove();
       };
     }, deps),

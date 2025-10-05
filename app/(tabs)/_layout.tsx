@@ -12,7 +12,6 @@ function TabNavigationWrapper({ children }: { children: React.ReactNode }) {
 
   // Handle back button for tab navigation
   useBackHandler(() => {
-    // console.log('[TabNavigationWrapper] Back pressed, currentTab:', currentTab);
     // Check if we're on the first/main tab
     if (currentTab === "sessions" || !currentTab) {
       Alert.alert("Exit App", "Are you sure you want to exit?", [
@@ -21,21 +20,16 @@ function TabNavigationWrapper({ children }: { children: React.ReactNode }) {
           text: "Exit",
           style: "destructive",
           onPress: () => {
-            // For Expo, we can't actually exit the app, but we can minimize it
-            // BackHandler.exitApp() is available but not recommended for UX
-            // Instead, just let the default behavior handle it
             BackHandler.exitApp();
             return false;
           },
         },
       ]);
       // Prevent default back action to show our alert
-      // console.log('[TabNavigationWrapper] Showing exit alert, returning true');
       return true;
     }
 
     // For other tabs, allow normal back navigation
-    // console.log('[TabNavigationWrapper] Not on sessions tab, returning false');
     return false;
   }, [currentTab]);
 

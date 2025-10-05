@@ -26,7 +26,6 @@ import { GroupPlayerManager } from "@/src/components/GroupPlayerManager";
 import { TabHeader } from "@/src/components/TabHeader";
 import { TopDescription } from "@/src/components/TopDescription";
 import { Alert } from "@/src/utils/alert";
-import { useBackHandler } from "@/src/hooks/useBackHandler";
 
 export default function GroupsTab() {
   const theme = useTheme();
@@ -39,24 +38,6 @@ export default function GroupsTab() {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const isAppInitialized = useAppSelector((state) => state.app.isInitialized);
-
-  // // Handle back button for Groups tab modals
-  // useBackHandler(() => {
-  //   // Check for open modals and close them in priority order
-  //   if (playerManagerVisible) {
-  //     setPlayerManagerVisible(false);
-  //     setSelectedGroup(null);
-  //     return true;
-  //   }
-  //   if (groupModalVisible || editingGroup) {
-  //     setGroupModalVisible(false);
-  //     setEditingGroup(null);
-  //     return true;
-  //   }
-  //
-  //   // No modals open, allow default behavior
-  //   return false;
-  // }, [playerManagerVisible, groupModalVisible, editingGroup]);
 
   const handleDeleteGroup = (group: Group) => {
     Alert.alert(

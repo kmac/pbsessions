@@ -33,7 +33,6 @@ import {
 } from "@/src/utils/util";
 import { Alert } from "@/src/utils/alert";
 import { Player, Results, Score, Session, SessionState } from "@/src/types";
-import { useBackHandler } from "@/src/hooks/useBackHandler";
 
 import {
   applyNextRoundThunk,
