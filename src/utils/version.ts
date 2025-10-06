@@ -111,7 +111,7 @@ export class VersionManager {
    */
   public async compareVersion(otherVersion: string): Promise<number> {
     const currentVersion = await this.getVersion();
-    console.log(`currentVersion: ${currentVersion}`)
+    // console.log(`currentVersion: ${currentVersion}`)
     return this.compareVersionStrings(currentVersion, otherVersion);
   }
 
