@@ -37,7 +37,7 @@ export class VersionManager {
 
     if (Platform.OS === "web") {
       // For web, get version from Constants which reads from app.json/package.json
-      console.log(`expoConfig: ${Constants.expoConfig?.version}`)
+      //console.log(`expoConfig: ${Constants.expoConfig?.version}`)
       version =
         Constants.expoConfig?.version ||
         "1.0.0";
