@@ -50,3 +50,5 @@ local/
 
 expo-env.d.ts
 # @end expo-cli
+
+wrangler*.*
