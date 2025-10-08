@@ -751,7 +751,15 @@ export default function SessionsTab() {
         paddingVertical: 64,
       }}
     >
-      <Icon source="calendar" size={48} />
+      {/*<Icon source="view-grid" size={48} />*/}
+      <Avatar.Image
+        size={64}
+        source={require("@/assets/images/pbsessions.webp")}
+        style={{
+          marginRight: 10,
+          backgroundColor: "grey",
+        }}
+      />
       <Text
         variant="titleMedium"
         style={{

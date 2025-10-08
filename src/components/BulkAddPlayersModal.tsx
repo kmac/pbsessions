@@ -29,6 +29,7 @@ interface PlayerInput {
   phone?: string;
   gender?: "male" | "female";
   rating: string;
+  notes: string;
 }
 
 export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
@@ -38,7 +39,15 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
   const theme = useTheme();
   const dispatch = useDispatch();
   const [players, setPlayers] = useState<PlayerInput[]>([
-    { id: "1", name: "", email: "", phone: "", gender: undefined, rating: "" },
+    {
+      id: "1",
+      name: "",
+      email: "",
+      phone: "",
+      gender: undefined,
+      rating: "",
+      notes: "",
+    },
   ]);
 
   const addPlayerRow = () => {
@@ -52,6 +61,7 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
         phone: "",
         gender: undefined,
         rating: "",
+        notes: "",
       },
     ]);
   };
@@ -96,7 +106,8 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
           email: p.email.trim() || undefined,
           phone: p.phone?.trim() || undefined,
           gender: p.gender,
-          rating,
+          rating: rating,
+          notes: p.notes.trim() || undefined,
         };
       });
 
@@ -113,6 +124,7 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
           phone: "",
           gender: undefined,
           rating: "",
+          notes: "",
         },
       ]);
       onClose();
@@ -130,6 +142,7 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
         phone: "",
         gender: undefined,
         rating: "",
+        notes: "",
       },
     ]);
     onClose();
@@ -142,7 +155,8 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
         player.name.trim() !== "" ||
         player.email.trim() !== "" ||
         player.phone?.trim() !== "" ||
-        player.rating.trim() !== "",
+        player.rating.trim() !== "" ||
+        player.notes.trim() !== "",
     );
 
     if (hasUnsavedData) {
@@ -157,7 +171,7 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
     } else {
       handleCancel();
     }
-  }
+  };
 
   return (
     <Modal
@@ -268,58 +282,6 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
                     marginBottom: 12,
                   }}
                 >
-                  <View style={{ flex: 2 }}>
-                    <Text
-                      variant="labelMedium"
-                      style={{
-                        marginBottom: 4,
-                        color: theme.colors.onSurface,
-                      }}
-                    >
-                      Email
-                    </Text>
-                    <TextInput
-                      mode="outlined"
-                      value={player.email}
-                      onChangeText={(text) =>
-                        updatePlayer(player.id, "email", text)
-                      }
-                      placeholder="Email (optional)"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      dense
-                    />
-                  </View>
-                  <View style={{ flex: 2 }}>
-                    <Text
-                      variant="labelMedium"
-                      style={{
-                        marginBottom: 4,
-                        color: theme.colors.onSurface,
-                      }}
-                    >
-                      Phone
-                    </Text>
-                    <TextInput
-                      mode="outlined"
-                      value={player.phone}
-                      onChangeText={(text) =>
-                        updatePlayer(player.id, "phone", text)
-                      }
-                      placeholder="Phone (optional)"
-                      keyboardType="phone-pad"
-                      autoCapitalize="none"
-                      dense
-                    />
-                  </View>
-                </View>
-
-                <View
-                  style={{
-                    flexDirection: "row",
-                    gap: 12,
-                  }}
-                >
                   <View style={{ flex: 1 }}>
                     <Text
                       variant="labelMedium"
@@ -371,6 +333,82 @@ export const BulkAddPlayersModal: React.FC<BulkAddPlayersModalProps> = ({
                       dense
                     />
                   </View>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 12,
+                    marginBottom: 12,
+                  }}
+                >
+                  <View style={{ flex: 2 }}>
+                    <Text
+                      variant="labelMedium"
+                      style={{
+                        marginBottom: 4,
+                        color: theme.colors.onSurface,
+                      }}
+                    >
+                      Email
+                    </Text>
+                    <TextInput
+                      mode="outlined"
+                      value={player.email}
+                      onChangeText={(text) =>
+                        updatePlayer(player.id, "email", text)
+                      }
+                      placeholder="Email (optional)"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      dense
+                    />
+                  </View>
+                  <View style={{ flex: 2 }}>
+                    <Text
+                      variant="labelMedium"
+                      style={{
+                        marginBottom: 4,
+                        color: theme.colors.onSurface,
+                      }}
+                    >
+                      Phone
+                    </Text>
+                    <TextInput
+                      mode="outlined"
+                      value={player.phone}
+                      onChangeText={(text) =>
+                        updatePlayer(player.id, "phone", text)
+                      }
+                      placeholder="Phone (optional)"
+                      keyboardType="phone-pad"
+                      autoCapitalize="none"
+                      dense
+                    />
+                  </View>
+                </View>
+
+                <View>
+                  <Text
+                    variant="labelMedium"
+                    style={{
+                      marginBottom: 4,
+                      color: theme.colors.onSurface,
+                    }}
+                  >
+                    Notes
+                  </Text>
+                  <TextInput
+                    mode="outlined"
+                    value={player.notes}
+                    onChangeText={(text) =>
+                      updatePlayer(player.id, "notes", text)
+                    }
+                    placeholder="Additional notes (optional)"
+                    multiline
+                    numberOfLines={2}
+                    dense
+                  />
                 </View>
               </Card.Content>
             </Card>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Image,
   View,
@@ -10,9 +10,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
-  Avatar,
+  Banner,
   Button,
+  Card,
   Chip,
+  Divider,
   Icon,
   IconButton,
   List,
@@ -20,7 +22,6 @@ import {
   Surface,
   Text,
   TextInput,
-  FAB,
   Menu,
   Portal,
   Checkbox,
@@ -60,7 +61,7 @@ export default function PlayersTab() {
   const groups = useSelector((state: RootState) => state.groups.groups);
 
   const [menuVisible, setMenuVisible] = useState(false);
-  const [playerAddModalVisible, setPlayerAddModalVisible] = useState(false);
+  const [playerEditModalVisible, setPlayerEditModalVisible] = useState(false);
   const [bulkPlayerAddModalVisible, setBulkPlayerAddModalVisible] =
     useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
@@ -73,6 +74,16 @@ export default function PlayersTab() {
   const [importDialogVisible, setImportDialogVisible] = useState(false);
   const [importCsvContent, setImportCsvContent] = useState("");
   const isAppInitialized = useAppSelector((state) => state.app.isInitialized);
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const toggleBanner = () => {
+    let visible = bannerVisible;
+    setBannerVisible(!visible);
+    if (!visible && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: 0, animated: true });
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredPlayers = allPlayers.filter(
@@ -86,13 +97,13 @@ export default function PlayersTab() {
     playerData: Omit<Player, "id" | "createdAt" | "updatedAt">,
   ) => {
     dispatch(addPlayer(playerData));
-    setPlayerAddModalVisible(false);
+    setPlayerEditModalVisible(false);
   };
 
   const handleUpdatePlayer = (playerData: Player) => {
     dispatch(updatePlayer(playerData));
     setEditingPlayer(null);
-    setPlayerAddModalVisible(false);
+    setPlayerEditModalVisible(false);
   };
 
   const handleSavePlayer = (
@@ -136,7 +147,7 @@ export default function PlayersTab() {
 
   const handleEditPlayer = (player: Player) => {
     setEditingPlayer(player);
-    setPlayerAddModalVisible(true);
+    setPlayerEditModalVisible(true);
   };
 
   function getPlayerGroups(playerId: string): Group[] {
@@ -532,7 +543,21 @@ export default function PlayersTab() {
                     />
                   </View>
                 )
-              : undefined
+              : () => (
+                  <View
+                    style={{
+                      marginLeft: 4,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <IconButton
+                      icon="pencil"
+                      mode="contained"
+                      onPress={() => handleEditPlayer(player)}
+                    />
+                  </View>
+                )
           }
           onPress={() => handlePlayerSelection(player.id)}
           style={{
@@ -733,10 +758,83 @@ export default function PlayersTab() {
         }}
         showsVerticalScrollIndicator={true}
         ListHeaderComponent={
-          <TopDescription
-            visible={true}
-            description="Configure individual players"
-          />
+          <ScrollView
+            ref={scrollViewRef}
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1 }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <IconButton
+                icon={bannerVisible ? "chevron-up" : "chevron-down"}
+                onPress={() => {
+                  toggleBanner();
+                }}
+              />
+            </View>
+            <Banner
+              visible={bannerVisible}
+              contentStyle={{
+                width: "90%",
+              }}
+              actions={[
+                {
+                  label: "Dismiss",
+                  onPress: () => {
+                    setBannerVisible(false);
+                  },
+                },
+              ]}
+            >
+              <View
+                style={{
+                  alignItems: "stretch",
+                  marginTop: 20,
+                }}
+              >
+                <TopDescription
+                  visible={true}
+                  description={
+                    "Configure individual players. " +
+                    "Use this screen to add individual players to make them eligible to play. "
+                  }
+                />
+                <Card>
+                  <List.Item
+                    descriptionNumberOfLines={5}
+                    title="Add Player(s)"
+                    description="The top button lets you add multiple players at a time."
+                  />
+                  <Divider />
+                  <List.Item
+                    descriptionNumberOfLines={5}
+                    title="Edit Player"
+                    description="Select the edit icon to edit an individual player."
+                  />
+                  <List.Item
+                    descriptionNumberOfLines={5}
+                    title="Player data"
+                    description={
+                      "Aside from a name, all other player data is optional. " +
+                      "You can specifiy contact info, gender, or rating. " +
+                      "The rating field can be used for advanced court assignment."
+                    }
+                  />
+                  <List.Item
+                    descriptionNumberOfLines={5}
+                    title="Multiple selecton"
+                    description="Select multiple players to quickly add to an existing group or bulk delete."
+                  />
+                </Card>
+              </View>
+            </Banner>
+          </ScrollView>
         }
         ListEmptyComponent={
           <View
@@ -771,7 +869,7 @@ export default function PlayersTab() {
       <SelectionActionBar />
 
       <Modal
-        visible={playerAddModalVisible}
+        visible={playerEditModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
       >
@@ -779,7 +877,7 @@ export default function PlayersTab() {
           player={editingPlayer}
           onSave={handleSavePlayer}
           onCancel={() => {
-            setPlayerAddModalVisible(false);
+            setPlayerEditModalVisible(false);
             setEditingPlayer(null);
           }}
         />

@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
   Button,
+  Card,
   HelperText,
   Surface,
   Text,
@@ -32,9 +33,9 @@ export const PlayerForm: React.FC<PlayerFormProps> = ({
     name: "",
     email: "",
     phone: "",
-    // gender: "" as "male" | "female" | "other" | "",
     gender: "" as "male" | "female" | "",
     rating: "",
+    notes: "",
   });
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export const PlayerForm: React.FC<PlayerFormProps> = ({
         phone: player.phone || "",
         gender: player.gender || "",
         rating: player.rating?.toString() || "",
+        notes: player.notes || "",
       });
     }
   }, [player]);
@@ -69,7 +71,8 @@ export const PlayerForm: React.FC<PlayerFormProps> = ({
       email: formData.email.trim() || undefined,
       phone: formData.phone.trim() || undefined,
       gender: formData.gender || undefined,
-      rating,
+      rating: rating,
+      notes: formData.notes.trim() || undefined,
     };
 
     if (player) {
@@ -112,135 +115,201 @@ export const PlayerForm: React.FC<PlayerFormProps> = ({
       >
         <Surface
           style={{
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 16,
+            padding: 12,
+            borderRadius: 8,
+            marginBottom: 24,
+            backgroundColor: theme.colors.primaryContainer,
           }}
         >
           <Text
-            variant="labelLarge"
+            variant="bodyMedium"
             style={{
-              marginBottom: 8,
-              color: theme.colors.onSurface,
+              color: theme.colors.onPrimaryContainer,
+              textAlign: "center",
             }}
           >
-            Name *
-          </Text>
-          <View>
-            <TextInput
-              mode="outlined"
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-              placeholder="Enter player name"
-              autoFocus={!player}
-            />
-            <HelperText type="error" visible={!formData.name}>
-              Name is required
-            </HelperText>
-          </View>
-
-          <Text
-            variant="labelLarge"
-            style={{
-              marginBottom: 8,
-              color: theme.colors.onSurface,
-            }}
-          >
-            Email
-          </Text>
-          <TextInput
-            mode="outlined"
-            value={formData.email}
-            onChangeText={(text) => setFormData({ ...formData, email: text })}
-            placeholder="Email (optional)"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            style={{ marginBottom: 16 }}
-          />
-
-          <Text
-            variant="labelLarge"
-            style={{
-              marginBottom: 8,
-              color: theme.colors.onSurface,
-            }}
-          >
-            Phone
-          </Text>
-          <TextInput
-            mode="outlined"
-            value={formData.phone}
-            onChangeText={(text) => setFormData({ ...formData, phone: text })}
-            placeholder="Phone (optional)"
-            keyboardType="phone-pad"
-            style={{ marginBottom: 16 }}
-          />
-
-          <Text
-            variant="labelLarge"
-            style={{
-              marginBottom: 8,
-              color: theme.colors.onSurface,
-            }}
-          >
-            Gender
-          </Text>
-          <Surface
-            style={{
-              borderRadius: 4,
-              borderWidth: 1,
-              borderColor: theme.colors.outline,
-              marginBottom: 16,
-            }}
-          >
-            <Picker
-              selectedValue={formData.gender}
-              onValueChange={(value) =>
-                setFormData({ ...formData, gender: value })
-              }
-              style={{
-                height: 50,
-                color: theme.colors.onSurface,
-                backgroundColor: theme.colors.surface,
-              }}
-              itemStyle={{
-                color: theme.colors.onSurface,
-              }}
-            >
-              <Picker.Item label="Select (optional)" value="" />
-              <Picker.Item label="Male" value="male" />
-              <Picker.Item label="Female" value="female" />
-              {/* <Picker.Item label="Other" value="other" /> */}
-            </Picker>
-          </Surface>
-
-          <Text
-            variant="labelLarge"
-            style={{
-              marginBottom: 8,
-              color: theme.colors.onSurface,
-            }}
-          >
-            Rating (0.0 - 10.0)
-          </Text>
-          <TextInput
-            mode="outlined"
-            value={formData.rating}
-            onChangeText={(text) => setFormData({ ...formData, rating: text })}
-            placeholder="Enter rating (DUPR-style)"
-            keyboardType="decimal-pad"
-          />
-          <Text
-            variant="bodySmall"
-            style={{
-              color: theme.colors.onSurfaceVariant,
-              marginTop: 4,
-            }}
-          >
-            Optional: DUPR-style rating for skill-based court assignments
+            {player
+              ? "Edit player details. Only the name is required."
+              : "Add a new player. Only the name is required."}
           </Text>
         </Surface>
+
+        <Card style={{ marginBottom: 16 }}>
+          <Card.Content>
+            <View style={{ marginBottom: 0 }}>
+              <Text
+                variant="labelMedium"
+                style={{
+                  marginBottom: 4,
+                  color: theme.colors.onSurface,
+                }}
+              >
+                Name *
+              </Text>
+              <TextInput
+                mode="outlined"
+                value={formData.name}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, name: text })
+                }
+                placeholder="Enter player name"
+                autoFocus={!player}
+                dense
+              />
+              <HelperText type="error" visible={!formData.name}>
+                Name is required
+              </HelperText>
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text
+                  variant="labelMedium"
+                  style={{
+                    marginBottom: 4,
+                    color: theme.colors.onSurface,
+                  }}
+                >
+                  Gender
+                </Text>
+                <Surface
+                  style={{
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: theme.colors.outline,
+                  }}
+                >
+                  <Picker
+                    selectedValue={formData.gender}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, gender: value })
+                    }
+                    style={{ height: 40 }}
+                    //itemStyle={{ backgroundColor: 'cyan', color: 'red' }}
+                  >
+                    <Picker.Item label="Select (optional)" value="" />
+                    <Picker.Item label="Male" value="male" />
+                    <Picker.Item label="Female" value="female" />
+                  </Picker>
+                </Surface>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  variant="labelMedium"
+                  style={{
+                    marginBottom: 4,
+                    color: theme.colors.onSurface,
+                  }}
+                >
+                  Rating
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  value={formData.rating}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, rating: text })
+                  }
+                  placeholder="0.0 (optional)"
+                  keyboardType="decimal-pad"
+                  dense
+                />
+              </View>
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
+              <View style={{ flex: 2 }}>
+                <Text
+                  variant="labelMedium"
+                  style={{
+                    marginBottom: 4,
+                    color: theme.colors.onSurface,
+                  }}
+                >
+                  Email
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  value={formData.email}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, email: text })
+                  }
+                  placeholder="Email (optional)"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  dense
+                />
+              </View>
+              <View style={{ flex: 2 }}>
+                <Text
+                  variant="labelMedium"
+                  style={{
+                    marginBottom: 4,
+                    color: theme.colors.onSurface,
+                  }}
+                >
+                  Phone
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  value={formData.phone}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, phone: text })
+                  }
+                  placeholder="Phone (optional)"
+                  keyboardType="phone-pad"
+                  autoCapitalize="none"
+                  dense
+                />
+              </View>
+            </View>
+
+            <View>
+              <Text
+                variant="labelMedium"
+                style={{
+                  marginBottom: 4,
+                  color: theme.colors.onSurface,
+                }}
+              >
+                Notes
+              </Text>
+              <TextInput
+                mode="outlined"
+                value={formData.notes}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, notes: text })
+                }
+                placeholder="Additional notes (optional)"
+                multiline
+                numberOfLines={3}
+                style={{ marginBottom: 8 }}
+              />
+            </View>
+
+            {/*<Text
+              variant="bodySmall"
+              style={{
+                color: theme.colors.onSurfaceVariant,
+                marginTop: 4,
+              }}
+            >
+              Optional: DUPR-style rating (0.0-10.0) for skill-based court assignments
+            </Text>*/}
+          </Card.Content>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
-}
+};
