@@ -36,6 +36,7 @@ import {
 } from "@/src/store/slices/playersSlice";
 import { updateGroup } from "@/src/store/slices/groupsSlice";
 import { getShortGender } from "@/src/utils/util";
+import { parsePlayersFromCsv } from "@/src/utils/csv";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import {
   copyToClipboard,
@@ -188,7 +189,10 @@ export default function PlayersTab() {
 
   const handleImportPlayers = async () => {
     try {
-      const { importedPlayers, errors } = parsePlayersFromCsv(importCsvContent);
+      const { importedPlayers, errors } = parsePlayersFromCsv(
+        allPlayers,
+        importCsvContent,
+      );
 
       // Show errors if any
       if (errors.length > 0) {
@@ -247,163 +251,6 @@ export default function PlayersTab() {
     const fileName = `${APP_CONFIG.NAME}-players-${new Date().toISOString().split("T")[0]}.json`;
     saveToFile(exportCsvContent, fileName, () => setExportDialogVisible(false));
   };
-
-  const parsePlayersFromCsv = (
-    csvContent: string,
-  ): {
-    importedPlayers: Omit<Player, "id" | "createdAt" | "updatedAt">[];
-    errors: string[];
-  } => {
-    const importedPlayers: Omit<Player, "id" | "createdAt" | "updatedAt">[] =
-      [];
-    const errors: string[] = [];
-
-    try {
-      // Parse CSV
-      const lines = csvContent.trim().split("\n");
-      if (lines.length < 2) {
-        errors.push("CSV data must contain headers and at least one data row.");
-        return { importedPlayers, errors };
-      }
-
-      const headers = lines[0]
-        .split(",")
-        .map((h) => h.replace(/"/g, "").trim().toLowerCase());
-      const expectedHeaders = [
-        "name",
-        "email",
-        "phone",
-        "gender",
-        "rating",
-        "notes",
-      ];
-
-      // Validate that name header exists (required field)
-      if (!headers.includes("name")) {
-        errors.push('CSV must contain a "name" column.');
-        return { importedPlayers, errors };
-      }
-
-      // Parse data rows
-      for (let i = 1; i < lines.length; i++) {
-        try {
-          // Parse CSV row with proper quote handling
-          const values: string[] = [];
-          let current = "";
-          let inQuotes = false;
-
-          for (let j = 0; j < lines[i].length; j++) {
-            const char = lines[i][j];
-            if (char === '"') {
-              if (inQuotes && lines[i][j + 1] === '"') {
-                current += '"';
-                j++; // Skip next quote
-              } else {
-                inQuotes = !inQuotes;
-              }
-            } else if (char === "," && !inQuotes) {
-              values.push(current.trim());
-              current = "";
-            } else {
-              current += char;
-            }
-          }
-          values.push(current.trim()); // Add last value
-
-          const rowData: any = {};
-          headers.forEach((header, index) => {
-            rowData[header] = values[index] || "";
-          });
-
-          // Validate required fields
-          if (!rowData.name || rowData.name.trim() === "") {
-            errors.push(`Row ${i + 1}: Name is required`);
-            continue;
-          }
-
-          // Check for duplicate names (case-insensitive)
-          const existingPlayer = allPlayers.find(
-            (p) =>
-              p.name.toLowerCase().trim() === rowData.name.toLowerCase().trim(),
-          );
-          if (existingPlayer) {
-            errors.push(
-              `Row ${i + 1}: Player "${rowData.name}" already exists`,
-            );
-            continue;
-          }
-
-          // Validate and convert rating
-          let rating: number | undefined = undefined;
-          if (rowData.rating && rowData.rating.trim() !== "") {
-            const ratingNum = parseFloat(rowData.rating);
-            if (isNaN(ratingNum) || ratingNum < 0 || ratingNum > 10) {
-              errors.push(
-                `Row ${i + 1}: Invalid rating "${rowData.rating}" (must be 0-10)`,
-              );
-              continue;
-            }
-            rating = ratingNum;
-          }
-
-          // Validate gender
-          const validGenders = ["male", "female", "other"];
-          let gender: "male" | "female" | undefined = undefined;
-          if (rowData.gender && rowData.gender.trim() !== "") {
-            const genderLower = rowData.gender.toLowerCase().trim();
-            if (!validGenders.includes(genderLower)) {
-              errors.push(
-                `Row ${i + 1}: Invalid gender "${rowData.gender}" (must be: male, female, other)`,
-              );
-              continue;
-            }
-            gender = genderLower as "male" | "female";
-          }
-
-          // Create player object
-          const playerData: Omit<Player, "id" | "createdAt" | "updatedAt"> = {
-            name: rowData.name.trim(),
-            email: rowData.email?.trim() || undefined,
-            phone: rowData.phone?.trim() || undefined,
-            gender: gender,
-            rating: rating,
-            notes: rowData.notes?.trim() || undefined,
-          };
-
-          importedPlayers.push(playerData);
-        } catch (error) {
-          errors.push(
-            `Row ${i + 1}: Parse error - ${error instanceof Error ? error.message : "Unknown error"}`,
-          );
-        }
-      }
-    } catch (error) {
-      errors.push(
-        `Parse error: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
-
-    return { importedPlayers, errors };
-  };
-
-  function getAvatarName(name: string, props: any) {
-    let initials: string = "";
-    if (name.length > 1) {
-      name.split(" ").forEach((val) => {
-        initials += val.charAt(0);
-      });
-    } else {
-      initials = name.charAt(0);
-    }
-
-    return (
-      <Avatar.Text
-        /*...props*/ style={{ marginLeft: 12 }}
-        label={initials}
-        size={40}
-      />
-    );
-  }
 
   const handlePlayerSelection = (playerId: string) => {
     setSelectedPlayerIds((prev) => {
