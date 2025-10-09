@@ -520,7 +520,7 @@ export default function LiveSessionScreen() {
         if (!currentSession) {
           Alert.alert(
             "Round Generation Error",
-            `Generated ${successfulRounds} rounds. Error generating round ${successfulRounds + 1}.`,
+            `Error generating round ${successfulRounds + 1}: no current session.`,
             [{ text: "OK" }],
           );
           closeGenerateRoundsModal();
@@ -554,7 +554,7 @@ export default function LiveSessionScreen() {
         if (!currentSession) {
           Alert.alert(
             "Round Generation Error",
-            `Generated ${successfulRounds} rounds. Error completing round ${successfulRounds + 1}.`,
+            `Error completing round ${successfulRounds + 1}: no current session`,
             [{ text: "OK" }],
           );
           closeGenerateRoundsModal();
@@ -562,21 +562,11 @@ export default function LiveSessionScreen() {
 
         successfulRounds++;
         generateNextRound();
-        currentSession.liveData?.rounds.forEach((round) => {
-          round.games.forEach((game) => {
-            if (!game.score) {
-              Alert.alert(
-                "Round Generation Error",
-                `game does not have a score: ${round}`,
-                [{ text: "OK" }],
-              );
-            }
-          });
-        });
+
       } catch (error) {
         Alert.alert(
           "Round Generation Error",
-          `Successfully generated ${successfulRounds} rounds. Error generating round ${successfulRounds + 1}: ${error}`,
+          `Error generating round ${successfulRounds + 1}: ${error}`,
           [{ text: "OK" }],
         );
         closeGenerateRoundsModal();
