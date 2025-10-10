@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, FlatList, Modal } from "react-native";
+import { View, FlatList, Modal, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
@@ -11,6 +11,9 @@ import {
   Surface,
   Text,
   useTheme,
+  Portal,
+  Dialog,
+  TextInput,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
@@ -20,6 +23,8 @@ import {
 import { ViewSessionModal } from "@/src/components/ViewSessionModal";
 import { Session, SessionState } from "@/src/types";
 import { Alert } from "@/src/utils/alert";
+import { exportSessionResultsToCsv } from "@/src/utils/csv";
+import { saveToFile, copyToClipboard } from "@/src/utils/fileClipboardUtil";
 
 interface ArchivedSessionsProps {
   visible: boolean;
@@ -37,6 +42,11 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
 
   const [viewSessionModalVisible, setViewSessionModalVisible] = useState(false);
   const [viewingSession, setViewingSession] = useState<Session | null>(null);
+  const [exportDialogVisible, setExportDialogVisible] = useState(false);
+  const [exportCsvContent, setExportCsvContent] = useState("");
+  const [exportingSession, setExportingSession] = useState<Session | null>(
+    null,
+  );
 
   const handleRestoreSession = (session: Session) => {
     Alert.alert(
@@ -109,6 +119,40 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
     setViewSessionModalVisible(false);
   }
 
+  const handleExportSession = async (session: Session) => {
+    try {
+      const csvData = exportSessionResultsToCsv(session, players);
+      const fileName = `${session.name.replace(/[^a-zA-Z0-9]/g, "_")}_results.csv`;
+
+      if (Platform.OS !== "web") {
+        await saveToFile(csvData, fileName);
+      } else {
+        setExportingSession(session);
+        setExportCsvContent(csvData);
+        setExportDialogVisible(true);
+      }
+    } catch (error) {
+      console.error("Failed to export CSV:", error);
+      Alert.alert("Export Failed", "Failed to export session data.");
+    }
+  };
+
+  const handleCopyToClipboard = async () => {
+    copyToClipboard(exportCsvContent, () => {
+      setExportDialogVisible(false);
+      setExportingSession(null);
+    });
+  };
+
+  const handleSaveToFile = async () => {
+    if (!exportingSession) return;
+    const fileName = `${exportingSession.name.replace(/[^a-zA-Z0-9]/g, "_")}_results.csv`;
+    saveToFile(exportCsvContent, fileName, () => {
+      setExportDialogVisible(false);
+      setExportingSession(null);
+    });
+  };
+
   const renderSession = ({ item }: { item: Session }) => {
     const sessionPlayers = getSessionPlayers(item);
     const activeCourts = item.courts.filter((c) => c.isActive);
@@ -153,14 +197,14 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
           </View>
 
           <View style={{ flexDirection: "row", marginBottom: 12, gap: 8 }}>
-            <Chip icon="account-group" compact={true}>
+            <Chip icon="account-group" compact>
               {sessionPlayers.length} players
             </Chip>
-            <Chip icon="map-marker-outline" compact={true}>
+            <Chip icon="map-marker-outline" compact>
               {activeCourts.length} courts
             </Chip>
             {activeCourts.some((c) => c.minimumRating) && (
-              <Chip icon="cog-outline" compact={true}>
+              <Chip icon="cog-outline" compact>
                 Rated
               </Chip>
             )}
@@ -189,30 +233,33 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
         </Card.Content>
 
         <Card.Actions style={{ justifyContent: "space-between" }}>
-          <>
-            <Button
-              icon="archive"
-              mode="outlined"
-              onPress={() => handleViewSession(item)}
-            >
-              View Session
-            </Button>
-            <View style={{ flexDirection: "row", gap: 4 }}>
-              <IconButton
-                icon="restore"
-                mode="contained"
-                disabled={false}
-                onPress={() => {
-                  handleRestoreSession(item);
-                }}
-              />
-              <IconButton
-                icon="delete"
-                mode="contained-tonal"
-                onPress={() => handleDeleteSession(item)}
-              />
-            </View>
-          </>
+          <Button
+            icon="archive"
+            mode="outlined"
+            onPress={() => handleViewSession(item)}
+          >
+            View Session
+          </Button>
+          <View style={{ flexDirection: "row", gap: 4 }}>
+            <IconButton
+              icon="file-export-outline"
+              mode="contained-tonal"
+              onPress={() => handleExportSession(item)}
+            />
+            <IconButton
+              icon="restore"
+              mode="contained"
+              disabled={false}
+              onPress={() => {
+                handleRestoreSession(item);
+              }}
+            />
+            <IconButton
+              icon="delete"
+              mode="contained-tonal"
+              onPress={() => handleDeleteSession(item)}
+            />
+          </View>
         </Card.Actions>
       </Card>
     );
@@ -279,7 +326,77 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
           session={viewingSession}
           onCancel={closeViewSessionModal}
         />
+
+        {/* Export CSV Dialog */}
+        <Dialog
+          visible={exportDialogVisible}
+          onDismiss={() => {
+            setExportDialogVisible(false);
+            setExportingSession(null);
+          }}
+          style={{ maxHeight: "80%" }}
+        >
+          <Dialog.Title>Export Session Results</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+              {Platform.OS === "web"
+                ? "Download or copy the CSV data below:"
+                : "Save to file or copy the CSV data below:"}
+            </Text>
+            <TextInput
+              mode="outlined"
+              multiline
+              value={exportCsvContent}
+              editable={false}
+              style={{
+                flex: 1,
+                minHeight: 340,
+                maxHeight: "60%",
+                fontSize: 12,
+                fontFamily: "monospace",
+              }}
+              contentStyle={{
+                paddingVertical: 8,
+              }}
+              scrollEnabled={true}
+            />
+          </Dialog.Content>
+          <Dialog.Actions
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            <Button
+              mode="contained-tonal"
+              onPress={() => {
+                setExportDialogVisible(false);
+                setExportingSession(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Button
+                mode="outlined"
+                onPress={handleCopyToClipboard}
+                icon="content-copy"
+              >
+                Copy
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleSaveToFile}
+                icon={Platform.OS === "web" ? "download" : "content-save"}
+              >
+                {Platform.OS === "web" ? "Download" : "Save File"}
+              </Button>
+            </View>
+          </Dialog.Actions>
+        </Dialog>
       </SafeAreaView>
     </Modal>
   );
-}
+};

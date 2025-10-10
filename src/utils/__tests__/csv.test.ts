@@ -1,5 +1,8 @@
-import { Player } from "@/src/types";
-import { parsePlayersFromCsv } from "@/src/utils/csv";
+import { Player, Session, SessionState, Game, Round, Court } from "@/src/types";
+import {
+  parsePlayersFromCsv,
+  exportSessionResultsToCsv,
+} from "@/src/utils/csv";
 
 // Mock data for testing
 const mockAllPlayers: Player[] = [
@@ -11,6 +14,104 @@ const mockAllPlayers: Player[] = [
     updatedAt: new Date().toISOString(),
   },
 ];
+
+const mockPlayers: Player[] = [
+  {
+    id: "player1",
+    name: "Alice Smith",
+    email: "alice@test.com",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "player2",
+    name: "Bob Johnson",
+    email: "bob@test.com",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "player3",
+    name: "Charlie, Wilson",
+    email: "charlie@test.com",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "player4",
+    name: 'Diana "The Ace" Brown',
+    email: "diana@test.com",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+const mockCourts: Court[] = [
+  {
+    id: "court1",
+    name: "Court A",
+    isActive: true,
+  },
+  {
+    id: "court2",
+    name: "Court B",
+    isActive: true,
+  },
+];
+
+const createMockGame = (
+  id: string,
+  courtId: string,
+  servePlayer1Id: string,
+  servePlayer2Id: string,
+  receivePlayer1Id: string,
+  receivePlayer2Id: string,
+  serveScore?: number,
+  receiveScore?: number,
+): Game => ({
+  id,
+  sessionId: "session1",
+  courtId,
+  serveTeam: {
+    player1Id: servePlayer1Id,
+    player2Id: servePlayer2Id,
+  },
+  receiveTeam: {
+    player1Id: receivePlayer1Id,
+    player2Id: receivePlayer2Id,
+  },
+  isCompleted: serveScore !== undefined && receiveScore !== undefined,
+  score:
+    serveScore !== undefined && receiveScore !== undefined
+      ? {
+          serveScore,
+          receiveScore,
+        }
+      : undefined,
+});
+
+const createMockSession = (
+  rounds: Round[],
+  playerIds: string[] = ["player1", "player2", "player3", "player4"],
+): Session => ({
+  id: "session1",
+  name: "Test Session",
+  dateTime: new Date().toISOString(),
+  playerIds,
+  courts: mockCourts,
+  state: SessionState.Complete,
+  scoring: true,
+  showRatings: false,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  liveData:
+    rounds.length > 0
+      ? {
+          rounds,
+          playerStats: [],
+        }
+      : undefined,
+});
 
 describe("parsePlayersFromCsv", () => {
   describe("Valid CSV parsing", () => {
@@ -189,8 +290,12 @@ describe("parsePlayersFromCsv", () => {
       const result = parsePlayersFromCsv(mockAllPlayers, csvContent);
 
       expect(result.errors).toHaveLength(2);
-      expect(result.errors[0]).toContain('Row 4: Invalid gender "other" (must be: male, female)');
-      expect(result.errors[1]).toContain('Row 5: Invalid gender "invalid" (must be: male, female)');
+      expect(result.errors[0]).toContain(
+        'Row 4: Invalid gender "other" (must be: male, female)',
+      );
+      expect(result.errors[1]).toContain(
+        'Row 5: Invalid gender "invalid" (must be: male, female)',
+      );
       expect(result.importedPlayers).toHaveLength(2);
       expect(result.importedPlayers[0].gender).toBe("male");
       expect(result.importedPlayers[1].gender).toBe("female");
@@ -315,3 +420,449 @@ describe("parsePlayersFromCsv", () => {
   });
 });
 
+describe("exportSessionResultsToCsv", () => {
+  describe("Basic functionality", () => {
+    it("should export session with single round and single game", () => {
+      const games = [
+        createMockGame(
+          "game1",
+          "court1",
+          "player1",
+          "player2",
+          "player3",
+          "player4",
+          11,
+          7,
+        ),
+      ];
+      const rounds = [{ games, sittingOutIds: [] }];
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(2); // Header + 1 data row
+      expect(lines[0]).toBe(
+        "Round - Court,Serve Player 1,Serve Player 2,Serve Score,Receive Player 1,Receive Player 2,Receive Score",
+      );
+      expect(lines[1]).toBe(
+        '1 - Court A,Alice Smith,Bob Johnson,11,"Charlie, Wilson","Diana ""The Ace"" Brown",7',
+      );
+    });
+
+    it("should export session with multiple rounds and games", () => {
+      const round1Games = [
+        createMockGame(
+          "game1",
+          "court1",
+          "player1",
+          "player2",
+          "player3",
+          "player4",
+          11,
+          7,
+        ),
+        createMockGame(
+          "game2",
+          "court2",
+          "player3",
+          "player4",
+          "player1",
+          "player2",
+          8,
+          11,
+        ),
+      ];
+      const round2Games = [
+        createMockGame(
+          "game3",
+          "court1",
+          "player1",
+          "player3",
+          "player2",
+          "player4",
+          11,
+          9,
+        ),
+      ];
+      const rounds = [
+        { games: round1Games, sittingOutIds: [] },
+        { games: round2Games, sittingOutIds: [] },
+      ];
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(4); // Header + 3 data rows
+      expect(lines[0]).toBe(
+        "Round - Court,Serve Player 1,Serve Player 2,Serve Score,Receive Player 1,Receive Player 2,Receive Score",
+      );
+      expect(lines[1]).toBe(
+        '1 - Court A,Alice Smith,Bob Johnson,11,"Charlie, Wilson","Diana ""The Ace"" Brown",7',
+      );
+      expect(lines[2]).toBe(
+        '1 - Court B,"Charlie, Wilson","Diana ""The Ace"" Brown",8,Alice Smith,Bob Johnson,11',
+      );
+      expect(lines[3]).toBe(
+        '2 - Court A,Alice Smith,"Charlie, Wilson",11,Bob Johnson,"Diana ""The Ace"" Brown",9',
+      );
+    });
+
+    it("should handle games without scores", () => {
+      const games = [
+        createMockGame(
+          "game1",
+          "court1",
+          "player1",
+          "player2",
+          "player3",
+          "player4",
+        ),
+        createMockGame(
+          "game2",
+          "court2",
+          "player3",
+          "player4",
+          "player1",
+          "player2",
+          11,
+          7,
+        ),
+      ];
+      const rounds = [{ games, sittingOutIds: [] }];
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(3); // Header + 2 data rows
+      expect(lines[1]).toBe(
+        '1 - Court A,Alice Smith,Bob Johnson,,"Charlie, Wilson","Diana ""The Ace"" Brown",',
+      );
+      expect(lines[2]).toBe(
+        '1 - Court B,"Charlie, Wilson","Diana ""The Ace"" Brown",11,Alice Smith,Bob Johnson,7',
+      );
+    });
+  });
+
+  describe("Edge cases", () => {
+    it("should handle session with no rounds", () => {
+      const session = createMockSession([]);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(1); // Header only
+      expect(lines[0]).toBe(
+        "Round - Court,Serve Player 1,Serve Player 2,Serve Score,Receive Player 1,Receive Player 2,Receive Score",
+      );
+    });
+
+    it("should handle session with no liveData", () => {
+      const session: Session = {
+        id: "session1",
+        name: "Test Session",
+        dateTime: new Date().toISOString(),
+        playerIds: ["player1", "player2"],
+        courts: mockCourts,
+        state: SessionState.New,
+        scoring: true,
+        showRatings: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        // No liveData property
+      };
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(1); // Header only
+      expect(lines[0]).toBe(
+        "Round - Court,Serve Player 1,Serve Player 2,Serve Score,Receive Player 1,Receive Player 2,Receive Score",
+      );
+    });
+
+    it("should handle missing players gracefully", () => {
+      const games = [
+        createMockGame(
+          "game1",
+          "court1",
+          "unknown1",
+          "player2",
+          "player3",
+          "unknown2",
+          11,
+          7,
+        ),
+      ];
+      const rounds = [{ games, sittingOutIds: [] }];
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(2);
+      expect(lines[1]).toBe(
+        '1 - Court A,Unknown Player,Bob Johnson,11,"Charlie, Wilson",Unknown Player,7',
+      );
+    });
+
+    it("should handle missing courts gracefully", () => {
+      const games = [
+        createMockGame(
+          "game1",
+          "unknownCourt",
+          "player1",
+          "player2",
+          "player3",
+          "player4",
+          11,
+          7,
+        ),
+      ];
+      const rounds = [{ games, sittingOutIds: [] }];
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(2);
+      expect(lines[1]).toBe(
+        '1 - Unknown Court,Alice Smith,Bob Johnson,11,"Charlie, Wilson","Diana ""The Ace"" Brown",7',
+      );
+    });
+  });
+
+  describe("CSV escaping", () => {
+    it("should properly escape player names with commas", () => {
+      const games = [
+        createMockGame(
+          "game1",
+          "court1",
+          "player3",
+          "player1",
+          "player2",
+          "player4",
+          11,
+          7,
+        ),
+      ];
+      const rounds = [{ games, sittingOutIds: [] }];
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines[1]).toContain('"Charlie, Wilson"');
+    });
+
+    it("should properly escape player names with quotes", () => {
+      const games = [
+        createMockGame(
+          "game1",
+          "court1",
+          "player1",
+          "player4",
+          "player2",
+          "player3",
+          11,
+          7,
+        ),
+      ];
+      const rounds = [{ games, sittingOutIds: [] }];
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines[1]).toContain('"Diana ""The Ace"" Brown"');
+    });
+
+    it("should handle court names with special characters", () => {
+      const specialCourts: Court[] = [
+        {
+          id: "court1",
+          name: "Court A, Main",
+          isActive: true,
+        },
+        {
+          id: "court2",
+          name: 'Court "Premier"',
+          isActive: true,
+        },
+      ];
+
+      const session: Session = {
+        ...createMockSession([]),
+        courts: specialCourts,
+        liveData: {
+          rounds: [
+            {
+              games: [
+                createMockGame(
+                  "game1",
+                  "court1",
+                  "player1",
+                  "player2",
+                  "player3",
+                  "player4",
+                  11,
+                  7,
+                ),
+                createMockGame(
+                  "game2",
+                  "court2",
+                  "player1",
+                  "player2",
+                  "player3",
+                  "player4",
+                  8,
+                  11,
+                ),
+              ],
+              sittingOutIds: [],
+            },
+          ],
+          playerStats: [],
+        },
+      };
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines[1]).toContain('"1 - Court A, Main"');
+      expect(lines[2]).toContain('"1 - Court ""Premier"""');
+    });
+
+    it("should handle numeric scores correctly", () => {
+      const games = [
+        createMockGame(
+          "game1",
+          "court1",
+          "player1",
+          "player2",
+          "player3",
+          "player4",
+          0,
+          15,
+        ),
+        createMockGame(
+          "game2",
+          "court2",
+          "player1",
+          "player2",
+          "player3",
+          "player4",
+          21,
+          19,
+        ),
+      ];
+      const rounds = [{ games, sittingOutIds: [] }];
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines[1]).toContain(",0,");
+      expect(lines[1]).toContain(",15");
+      expect(lines[2]).toContain(",21,");
+      expect(lines[2]).toContain(",19");
+    });
+  });
+
+  describe("Data integrity", () => {
+    it("should maintain correct round numbering", () => {
+      const rounds = Array.from({ length: 5 }, (_, i) => ({
+        games: [
+          createMockGame(
+            `game${i}`,
+            "court1",
+            "player1",
+            "player2",
+            "player3",
+            "player4",
+          ),
+        ],
+        sittingOutIds: [],
+      }));
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(6); // Header + 5 data rows
+      expect(lines[1]).toMatch("1 - Court A");
+      expect(lines[2]).toMatch("2 - Court A");
+      expect(lines[3]).toMatch("3 - Court A");
+      expect(lines[4]).toMatch("4 - Court A");
+      expect(lines[5]).toMatch("5 - Court A");
+    });
+
+    it("should handle empty rounds", () => {
+      const rounds = [
+        {
+          games: [
+            createMockGame(
+              "game1",
+              "court1",
+              "player1",
+              "player2",
+              "player3",
+              "player4",
+            ),
+          ],
+          sittingOutIds: [],
+        },
+        { games: [], sittingOutIds: [] }, // Empty round
+        {
+          games: [
+            createMockGame(
+              "game2",
+              "court1",
+              "player1",
+              "player2",
+              "player3",
+              "player4",
+            ),
+          ],
+          sittingOutIds: [],
+        },
+      ];
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(3); // Header + 2 data rows (empty round produces no rows)
+      expect(lines[1]).toMatch("1 - Court A");
+      expect(lines[2]).toMatch("3 - Court A"); // Round 3, not 2, because round 2 was empty
+    });
+
+    it("should preserve original team assignments", () => {
+      // Test that player1/player2 assignments are maintained correctly
+      const games = [
+        createMockGame(
+          "game1",
+          "court1",
+          "player2",
+          "player1",
+          "player4",
+          "player3",
+          11,
+          7,
+        ),
+      ];
+      const rounds = [{ games, sittingOutIds: [] }];
+      const session = createMockSession(rounds);
+
+      const result = exportSessionResultsToCsv(session, mockPlayers);
+
+      const lines = result.split("\n");
+      // Should show Bob Johnson as Serve Player 1 and Alice Smith as Serve Player 2
+      expect(lines[1]).toBe(
+        '1 - Court A,Bob Johnson,Alice Smith,11,"Diana ""The Ace"" Brown","Charlie, Wilson",7',
+      );
+    });
+  });
+});

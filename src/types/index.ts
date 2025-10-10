@@ -139,7 +139,7 @@ export interface RoundAssignment {
   sittingOutIds: string[];
 }
 
-// TODO this should go away with full theme support?:
+// Creates a union of string literals based on the keys of the `Colors.light` object:
 export type Color = keyof typeof Colors.light;
 
 export type CourtLayout = "horizontal" | "vertical";

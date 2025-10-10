@@ -1,4 +1,5 @@
-import { Player } from "@/src/types";
+import { Player, Session, Game, Round } from "@/src/types";
+import { getSessionPlayers, getPlayerName, getCourtName } from "./util";
 
 export const parsePlayersFromCsv = (
   allPlayers: Player[],
@@ -145,4 +146,74 @@ export const parsePlayersFromCsv = (
   }
 
   return { importedPlayers, errors };
+};
+
+// Helper function to escape CSV values
+const escapeCsvValue = (value: string | number | undefined | null): string => {
+  if (value === null || value === undefined) return "";
+
+  const str = String(value);
+  // If the value contains comma, quote, or newline, wrap in quotes and escape internal quotes
+  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+export const exportSessionResultsToCsv = (
+  session: Session,
+  allPlayers: Player[],
+): string => {
+  const sessionPlayers = getSessionPlayers(session, allPlayers);
+  const rounds = session.liveData?.rounds || [];
+
+  const headers = [
+    "Round - Court",
+    "Serve Player 1",
+    "Serve Player 2",
+    "Serve Score",
+    "Receive Player 1",
+    "Receive Player 2",
+    "Receive Score",
+  ];
+
+  const csvRows: string[] = [];
+  csvRows.push(headers.join(","));
+
+  // Generate data rows
+  rounds.forEach((round: Round, roundIndex: number) => {
+    round.games.forEach((game: Game) => {
+      const courtName = getCourtName(session.courts, game.courtId);
+      const servePlayer1Name = getPlayerName(
+        sessionPlayers,
+        game.serveTeam.player1Id,
+      );
+      const servePlayer2Name = getPlayerName(
+        sessionPlayers,
+        game.serveTeam.player2Id,
+      );
+      const receivePlayer1Name = getPlayerName(
+        sessionPlayers,
+        game.receiveTeam.player1Id,
+      );
+      const receivePlayer2Name = getPlayerName(
+        sessionPlayers,
+        game.receiveTeam.player2Id,
+      );
+
+      const row = [
+        escapeCsvValue(`${roundIndex + 1} - ${courtName}`),
+        escapeCsvValue(servePlayer1Name),
+        escapeCsvValue(servePlayer2Name),
+        escapeCsvValue(game.score?.serveScore),
+        escapeCsvValue(receivePlayer1Name),
+        escapeCsvValue(receivePlayer2Name),
+        escapeCsvValue(game.score?.receiveScore),
+      ];
+
+      csvRows.push(row.join(","));
+    });
+  });
+
+  return csvRows.join("\n");
 };

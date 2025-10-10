@@ -32,14 +32,6 @@ This is an Expo react native TypeScript project using redux for storage, and tes
 - Proper TypeScript error types
 - Redux error state management in slices
 
-### Testing
-- Jest with React Native preset
-- Tests are under `__tests__/` folders in `.test.ts/.spec.ts` files
-- Use React Testing Library for component tests
-- Coverage reports available with `npm run test:coverage`
-- Mock external dependencies
-- Aim for 80%+ test coverage
-
 ### Architecture
 - Expo top-level app structure in `src/app`
 - Components in `src/components/`
@@ -51,6 +43,14 @@ This is an Expo react native TypeScript project using redux for storage, and tes
 - Prefer built-in browser APIs when possible
 - Always check if dependency already exists before adding new ones
 - Use exact versions in package.json
+
+### Testing
+- Jest with React Native preset
+- Tests are under `__tests__/` folders in `*.test.ts` files
+- Use React Testing Library for component tests
+- Coverage reports available with `npm run test:coverage`
+- Mock external dependencies
+- Aim for 80%+ test coverage
 
 
 ## Application Overview

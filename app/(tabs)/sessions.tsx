@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, FlatList } from "react-native";
+import { View, FlatList, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
@@ -16,6 +16,9 @@ import {
   Menu,
   Divider,
   IconButton,
+  Portal,
+  Dialog,
+  TextInput,
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
@@ -36,6 +39,8 @@ import {
   endSessionThunk,
   startLiveSessionThunk,
 } from "@/src/store/actions/sessionActions";
+import { exportSessionResultsToCsv } from "@/src/utils/csv";
+import { saveToFile, copyToClipboard } from "@/src/utils/fileClipboardUtil";
 
 export default function SessionsTab() {
   const theme = useTheme();
@@ -56,6 +61,9 @@ export default function SessionsTab() {
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [viewSessionModalVisible, setViewSessionModalVisible] = useState(false);
   const [viewingSession, setViewingSession] = useState<Session | null>(null);
+  const [exportDialogVisible, setExportDialogVisible] = useState(false);
+  const [exportCsvContent, setExportCsvContent] = useState("");
+  const [exportingSession, setExportingSession] = useState<Session | null>(null);
 
   const allLiveSessions = sessions.filter(
     (session) => session.state === SessionState.Live,
@@ -241,6 +249,40 @@ export default function SessionsTab() {
       return;
     }
     dispatch(archiveSession(session.id));
+  };
+
+  const handleExportSession = async (session: Session) => {
+    try {
+      const csvData = exportSessionResultsToCsv(session, players);
+      const fileName = `${session.name.replace(/[^a-zA-Z0-9]/g, "_")}_results.csv`;
+
+      if (Platform.OS !== "web") {
+        await saveToFile(csvData, fileName);
+      } else {
+        setExportingSession(session);
+        setExportCsvContent(csvData);
+        setExportDialogVisible(true);
+      }
+    } catch (error) {
+      console.error("Failed to export CSV:", error);
+      Alert.alert("Export Failed", "Failed to export session data.");
+    }
+  };
+
+  const handleCopyToClipboard = async () => {
+    copyToClipboard(exportCsvContent, () => {
+      setExportDialogVisible(false);
+      setExportingSession(null);
+    });
+  };
+
+  const handleSaveToFile = async () => {
+    if (!exportingSession) return;
+    const fileName = `${exportingSession.name.replace(/[^a-zA-Z0-9]/g, "_")}_results.csv`;
+    saveToFile(exportCsvContent, fileName, () => {
+      setExportDialogVisible(false);
+      setExportingSession(null);
+    });
   };
 
   const navigateToGroups = () => {
@@ -641,14 +683,24 @@ export default function SessionsTab() {
                   </>
                 )}
                 {isComplete(session) && (
-                  <Menu.Item
-                    leadingIcon="archive"
-                    onPress={() => {
-                      toggleSessionMenu(session.id, false);
-                      handleArchiveSession(session);
-                    }}
-                    title="Archive"
-                  />
+                  <>
+                    <Menu.Item
+                      leadingIcon="file-export-outline"
+                      onPress={() => {
+                        toggleSessionMenu(session.id, false);
+                        handleExportSession(session);
+                      }}
+                      title="Export"
+                    />
+                    <Menu.Item
+                      leadingIcon="archive"
+                      onPress={() => {
+                        toggleSessionMenu(session.id, false);
+                        handleArchiveSession(session);
+                      }}
+                      title="Archive"
+                    />
+                  </>
                 )}
                 {!isLive(session) && (
                   <Menu.Item
@@ -703,13 +755,22 @@ export default function SessionsTab() {
                 </Button>
               )}
               {isComplete(session) && (
-                <Button
-                  icon="archive"
-                  mode="text"
-                  onPress={() => handleArchiveSession(session)}
-                >
-                  Archive
-                </Button>
+                <>
+                  <Button
+                    icon="file-export-outline"
+                    mode="text"
+                    onPress={() => handleExportSession(session)}
+                  >
+                    Export
+                  </Button>
+                  <Button
+                    icon="archive"
+                    mode="text"
+                    onPress={() => handleArchiveSession(session)}
+                  >
+                    Archive
+                  </Button>
+                </>
               )}
               <Button
                 icon="delete"
@@ -879,6 +940,78 @@ export default function SessionsTab() {
         session={viewingSession}
         onCancel={closeViewSessionModal}
       />
+
+      <Portal>
+        {/* Export CSV Dialog */}
+        <Dialog
+          visible={exportDialogVisible}
+          onDismiss={() => {
+            setExportDialogVisible(false);
+            setExportingSession(null);
+          }}
+          style={{ maxHeight: "80%" }}
+        >
+          <Dialog.Title>Export Session Results</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+              {Platform.OS === "web"
+                ? "Download or copy the CSV data below:"
+                : "Save to file or copy the CSV data below:"}
+            </Text>
+            <TextInput
+              mode="outlined"
+              multiline
+              value={exportCsvContent}
+              editable={false}
+              style={{
+                flex: 1,
+                minHeight: 340,
+                maxHeight: "60%",
+                fontSize: 12,
+                fontFamily: "monospace",
+              }}
+              contentStyle={{
+                paddingVertical: 8,
+              }}
+              scrollEnabled={true}
+            />
+          </Dialog.Content>
+          <Dialog.Actions
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            <Button
+              mode="contained-tonal"
+              onPress={() => {
+                setExportDialogVisible(false);
+                setExportingSession(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Button
+                mode="outlined"
+                onPress={handleCopyToClipboard}
+                icon="content-copy"
+              >
+                Copy
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleSaveToFile}
+                icon={Platform.OS === "web" ? "download" : "content-save"}
+              >
+                {Platform.OS === "web" ? "Download" : "Save File"}
+              </Button>
+            </View>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }
