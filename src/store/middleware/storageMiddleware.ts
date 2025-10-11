@@ -15,8 +15,11 @@ const STORAGE_ACTIONS = [
   'groups/updateGroup',
   'groups/deleteGroup',
   'sessions/addSession',
+  'sessions/cloneSession',
   'sessions/updateSession',
-  'sessions/deleteSession',
+  'sessions/removeSession',
+  'sessions/archiveSession',
+  'sessions/restoreSession',
   'appSettings/setAppSettings',
 ] as const;
 

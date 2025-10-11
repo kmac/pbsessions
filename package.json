@@ -12,6 +12,7 @@
     "test:coverage": "jest --coverage",
     "prebuild": "expo prebuild --clean",
     "export": "expo export --platform web --clear",
+    "build": "npm run test && npm run prebuild && npm run export",
     "deploy-hosting": "npm run prebuild && npm run export && wrangler pages deploy --project-name pbsessions dist"
   },
   "dependencies": {
