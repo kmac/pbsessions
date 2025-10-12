@@ -1,6 +1,5 @@
 import { 
   getRoundNumber, 
-  getRoundIndex, 
   getCurrentRoundIndex,
   getCurrentRound,
   validateLive 
@@ -49,31 +48,6 @@ describe("SessionService - Round Index Helpers", () => {
 
     test("should handle negative numbers", () => {
       expect(getRoundNumber(-1)).toBe(0);
-    });
-  });
-
-  describe("getRoundIndex", () => {
-    test("should return next round index for session with rounds", () => {
-      expect(getRoundIndex(mockSession)).toBe(3); // Next round would be index 3
-    });
-
-    test("should return 0 for session with no rounds", () => {
-      const emptySession = {
-        ...mockSession,
-        liveData: {
-          rounds: [],
-          playerStats: [],
-        },
-      };
-      expect(getRoundIndex(emptySession)).toBe(0);
-    });
-
-    test("should return 0 for session without liveData", () => {
-      const sessionWithoutLiveData = {
-        ...mockSession,
-        liveData: undefined,
-      };
-      expect(getRoundIndex(sessionWithoutLiveData)).toBe(0);
     });
   });
 
@@ -188,17 +162,11 @@ describe("SessionService - Round Index Helpers", () => {
   });
 
   describe("Integration - Round number consistency", () => {
-    test("should maintain consistency between getRoundIndex and getCurrentRoundIndex", () => {
-      const nextRoundIndex = getRoundIndex(mockSession);
-      const currentRoundIndex = getCurrentRoundIndex(mockSession);
-      
-      expect(nextRoundIndex).toBe(currentRoundIndex + 1);
-    });
 
     test("should display correct round numbers", () => {
       const currentRoundIndex = getCurrentRoundIndex(mockSession);
       const displayRoundNumber = getRoundNumber(currentRoundIndex);
-      
+
       expect(currentRoundIndex).toBe(2); // Array index
       expect(displayRoundNumber).toBe(3); // Display number (1-based)
     });
@@ -213,11 +181,9 @@ describe("SessionService - Round Index Helpers", () => {
       };
 
       const currentRoundIndex = getCurrentRoundIndex(newSession);
-      const nextRoundIndex = getRoundIndex(newSession);
       const displayRoundNumber = getRoundNumber(currentRoundIndex);
 
       expect(currentRoundIndex).toBe(0);
-      expect(nextRoundIndex).toBe(0);
       expect(displayRoundNumber).toBe(1); // First round displays as "Round 1"
     });
   });

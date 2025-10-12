@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pickleball Sessions",
     "slug": "pickleball-sessions",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "platforms": ["ios", "android", "web"],
     "orientation": "portrait",
     "icon": "./assets/images/pbsessions.png",

@@ -9,7 +9,6 @@ import {
 } from "../../types";
 import {
   getCurrentRoundIndex,
-  getRoundIndex,
   getRoundNumber,
 } from "../sessionService";
 
@@ -1177,7 +1176,6 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
 
       // Verify final state
       expect(currentSession.liveData!.rounds).toHaveLength(3);
-      expect(getRoundIndex(currentSession)).toBe(3); // Next round would be 3
       expect(getCurrentRoundIndex(currentSession)).toBe(2); // Current round is 2
     });
   });
@@ -1216,7 +1214,6 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       // Import the helper functions
       const {
         getRoundNumber,
-        getRoundIndex,
         getCurrentRoundIndex,
       } = require("../sessionService");
 
@@ -1236,7 +1233,6 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
       };
 
       expect(getCurrentRoundIndex(emptySession)).toBe(0);
-      expect(getRoundIndex(emptySession)).toBe(0);
       expect(getRoundNumber(getCurrentRoundIndex(emptySession))).toBe(1);
 
       // Generate a round assignment
@@ -1268,7 +1264,6 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
 
       // Test round calculations after adding one round
       expect(getCurrentRoundIndex(sessionWithOneRound)).toBe(0); // Current round is index 0
-      expect(getRoundIndex(sessionWithOneRound)).toBe(1); // Next round would be index 1
       expect(getRoundNumber(getCurrentRoundIndex(sessionWithOneRound))).toBe(1); // Displays as "Round 1"
     });
 
@@ -1326,15 +1321,12 @@ describe("SessionCoordinator - generateRoundAssignment", () => {
         // Verify round calculations
         const {
           getRoundNumber,
-          getRoundIndex,
           getCurrentRoundIndex,
         } = require("../sessionService");
         const currentRoundIndex = getCurrentRoundIndex(currentSession);
-        const nextRoundIndex = getRoundIndex(currentSession);
         const displayNumber = getRoundNumber(currentRoundIndex);
 
         expect(currentRoundIndex).toBe(expectedRoundIndex);
-        expect(nextRoundIndex).toBe(expectedRoundIndex + 1);
         expect(displayNumber).toBe(expectedRoundIndex + 1);
       }
 

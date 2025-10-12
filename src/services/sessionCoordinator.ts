@@ -22,7 +22,7 @@ import {
   PartnershipUnit,
   PlayerAssignmentStrategy,
 } from "./strategy/PlayerAssignmentStrategy";
-import { getCurrentRoundIndex, getRoundIndex, getRoundNumber } from "./sessionService";
+import { getCurrentRoundIndex } from "./sessionService";
 
 type Strategy = "default" | "lottery" | "fairweight";
 
