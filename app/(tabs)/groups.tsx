@@ -171,7 +171,6 @@ export default function GroupsTab() {
         <Card.Actions style={{ justifyContent: "space-between" }}>
           <Button
             icon="account-multiple-plus-outline"
-            //mode="contained-tonal"
             mode="outlined"
             compact
             onPress={() => handleManagePlayers(group)}

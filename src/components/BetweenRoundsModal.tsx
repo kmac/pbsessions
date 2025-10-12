@@ -73,11 +73,12 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
     }
     return true;
   };
-  const [bannerVisible, setBannerVisible] = useState(isFirstRound);
+  //const [helpBannerVisible, setHelpBannerVisible] = useState(isFirstRound);
+  const [helpBannerVisible, setHelpBannerVisible] = useState(false);
 
   const toggleBanner = () => {
-    let visible = bannerVisible;
-    setBannerVisible(!visible);
+    let visible = helpBannerVisible;
+    setHelpBannerVisible(!visible);
     if (!visible && scrollViewRef.current) {
       scrollViewRef.current.scrollTo({ y: 0, animated: true });
     }
@@ -103,8 +104,6 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
     }
 
     const sessionPlayers: Player[] = getSessionPlayers(currentSession, players);
-
-    const { currentRound } = getCurrentRoundInfo(currentSession.liveData);
 
     const sessionCoordinator = new SessionCoordinator(
       currentSession,
@@ -175,15 +174,26 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
             <Appbar.BackAction onPress={onClose} />
             <Appbar.Content
               title={
-                <Text
-                  variant="titleLarge"
-                  style={{
-                    alignItems: "center",
-                    fontWeight: "600",
-                  }}
-                >
-                  New Round: {getCurrentRoundNumber(currentSession)}
-                </Text>
+                <>
+                  <Text
+                    variant="titleLarge"
+                    style={{
+                      alignItems: "center",
+                      fontWeight: "600",
+                    }}
+                  >
+                    New Round
+                  </Text>
+                  <Text
+                    variant="titleSmall"
+                    style={{
+                      alignItems: "center",
+                      fontWeight: "400",
+                    }}
+                  >
+                    Round {getCurrentRoundNumber(currentSession)}
+                  </Text>
+                </>
               }
             />
             {onEditSession && (
@@ -219,14 +229,16 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
               }}
             >
               <IconButton
-                icon={bannerVisible ? "chevron-up" : "chevron-down"}
+                icon={helpBannerVisible ? "chevron-up" : "chevron-down"}
+                size={16}
                 onPress={() => {
                   toggleBanner();
                 }}
               />
             </View>
+
             <Banner
-              visible={bannerVisible}
+              visible={helpBannerVisible}
               contentStyle={{
                 width: "90%",
               }}
@@ -234,7 +246,7 @@ export const BetweenRoundsModal: React.FC<BetweenRoundsModalProps> = ({
                 {
                   label: "Dismiss",
                   onPress: () => {
-                    setBannerVisible(false);
+                    setHelpBannerVisible(false);
                   },
                 },
               ]}

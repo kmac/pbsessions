@@ -74,7 +74,6 @@ export default function LiveSessionScreen() {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-
         // // Check if any modals are open
         // if (
         //   scoreModalVisible ||
@@ -418,9 +417,7 @@ export default function LiveSessionScreen() {
           icon="play"
           mode="contained"
           onPress={handleStartRound}
-          //buttonColor={theme.colors.secondary}
           contentStyle={{ paddingVertical: 2 }}
-          //style={{ marginBottom: 12 }}
         >
           Start Round
         </Button>
@@ -430,11 +427,9 @@ export default function LiveSessionScreen() {
           onPress={() => {
             setBetweenRoundsVisible(true);
           }}
-          //buttonColor={theme.colors.secondary}
           contentStyle={{ paddingVertical: 2 }}
-          //style={{ marginBottom: 12 }}
         >
-          Edit
+          Lineup
         </Button>
       </View>
     );
@@ -562,7 +557,6 @@ export default function LiveSessionScreen() {
 
         successfulRounds++;
         generateNextRound();
-
       } catch (error) {
         Alert.alert(
           "Round Generation Error",
@@ -710,14 +704,26 @@ export default function LiveSessionScreen() {
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content
           title={
-            <Text
-              variant="titleLarge"
-              style={{
-                fontWeight: "500",
-              }}
-            >
-              {liveSession.name}
-            </Text>
+            <>
+              <Text
+                variant="titleLarge"
+                style={{
+                  alignItems: "center",
+                  fontWeight: "600",
+                }}
+              >
+                Live Session
+              </Text>
+              <Text
+                variant="titleSmall"
+                style={{
+                  alignItems: "center",
+                  fontWeight: "400",
+                }}
+              >
+                {liveSession.name}
+              </Text>
+            </>
           }
         />
         <Menu

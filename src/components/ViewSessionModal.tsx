@@ -168,6 +168,7 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
             <Appbar.BackAction onPress={handleBackPress} />
             <Appbar.Content
               title={
+                <>
                 <Text
                   variant="titleLarge"
                   style={{
@@ -177,62 +178,21 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
                 >
                   Session Details
                 </Text>
+              <Text
+                    variant="titleSmall"
+                  style={{
+                    alignItems: "center",
+                    fontWeight: "400",
+                  }}
+                  >
+                {session.name}
+              </Text>
+                </>
               }
             />
           </Appbar.Header>
 
           <Surface style={styles.headerContainer}>
-            <View style={{ flexDirection: "column", marginBottom: 8 }}>
-              <Text variant="titleMedium" style={styles.sessionName}>
-                {session.name}
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignContent: "center",
-                  gap: 10,
-                  marginBottom: 1,
-                }}
-              >
-                <Text variant="bodyMedium" style={{ marginBottom: 8 }}>
-                  {formatDate(session.dateTime)}
-                </Text>
-                <Text variant="bodyMedium" style={{ marginBottom: 8 }}>
-                  {session.scoring ? "( Scoring, " : "( No Scoring, "}
-                  {session.showRatings ? "Ratings )" : "No Ratings )"}
-                </Text>
-              </View>
-              <View style={styles.sessionInfo}>
-                <View style={styles.sessionMetrics}>
-                  <Chip icon="account-group" compact>
-                    {session.playerIds.length} players
-                  </Chip>
-                  <Chip icon="map-marker-outline" compact>
-                    {session.courts.filter((c) => c.isActive).length} courts
-                  </Chip>
-                  {session.state === SessionState.Live ? (
-                    <Chip
-                      icon="record"
-                      style={{
-                        alignSelf: "flex-start",
-                        backgroundColor: theme.colors.inversePrimary,
-                      }}
-                      textStyle={{
-                        color: theme.colors.primary,
-                        fontWeight: "bold",
-                      }}
-                      compact={true}
-                    >
-                      LIVE
-                    </Chip>
-                  ) : (
-                    <Chip compact style={styles.stateChip}>
-                      {session.state}
-                    </Chip>
-                  )}
-                </View>
-              </View>
-            </View>
 
             {/* Combined Controls Row */}
             <View style={styles.controlsRow}>
@@ -312,6 +272,56 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
                 `round-${index}-${item.games.length}`
               }
               contentContainerStyle={styles.listContainer}
+              ListHeaderComponent={
+                <View style={{ flexDirection: "column", marginBottom: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <Text variant="bodyMedium">
+                      {formatDate(session.dateTime)}
+                    </Text>
+                    <Text variant="bodySmall">
+                      {session.scoring ? "(Scoring, " : "(No Scoring, "}
+                      {session.showRatings ? "Ratings)" : "No Ratings)"}
+                    </Text>
+                  </View>
+                  <View style={styles.sessionInfo}>
+                    <View style={styles.sessionMetrics}>
+                      <Chip icon="account-group" compact>
+                        {session.playerIds.length} players
+                      </Chip>
+                      <Chip icon="map-marker-outline" compact>
+                        {session.courts.filter((c) => c.isActive).length} courts
+                      </Chip>
+                      {session.state === SessionState.Live ? (
+                        <Chip
+                          icon="record"
+                          style={{
+                            alignSelf: "flex-start",
+                            backgroundColor: theme.colors.inversePrimary,
+                          }}
+                          textStyle={{
+                            color: theme.colors.primary,
+                            fontWeight: "bold",
+                          }}
+                          compact
+                        >
+                          LIVE
+                        </Chip>
+                      ) : (
+                        <Chip compact style={styles.stateChip}>
+                          {session.state}
+                        </Chip>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              }
               ListFooterComponent={
                 <View>
                   <Text

@@ -200,7 +200,7 @@ export const GroupForm: React.FC<GroupFormProps> = ({
             >
               <Button
                 icon="account-multiple-plus-outline"
-                mode="contained-tonal"
+                mode="outlined"
                 compact={true}
                 onPress={() => handleManagePlayers()}
                 contentStyle={{ paddingHorizontal: 12 }}

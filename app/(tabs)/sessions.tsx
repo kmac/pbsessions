@@ -63,7 +63,9 @@ export default function SessionsTab() {
   const [viewingSession, setViewingSession] = useState<Session | null>(null);
   const [exportDialogVisible, setExportDialogVisible] = useState(false);
   const [exportCsvContent, setExportCsvContent] = useState("");
-  const [exportingSession, setExportingSession] = useState<Session | null>(null);
+  const [exportingSession, setExportingSession] = useState<Session | null>(
+    null,
+  );
 
   const allLiveSessions = sessions.filter(
     (session) => session.state === SessionState.Live,
@@ -685,20 +687,28 @@ export default function SessionsTab() {
                 {isComplete(session) && (
                   <>
                     <Menu.Item
-                      leadingIcon="file-export-outline"
-                      onPress={() => {
-                        toggleSessionMenu(session.id, false);
-                        handleExportSession(session);
-                      }}
-                      title="Export"
-                    />
-                    <Menu.Item
                       leadingIcon="archive"
                       onPress={() => {
                         toggleSessionMenu(session.id, false);
                         handleArchiveSession(session);
                       }}
                       title="Archive"
+                    />
+                    <Menu.Item
+                      leadingIcon="delete"
+                      onPress={() => {
+                        toggleSessionMenu(session.id, false);
+                        handleDeleteSession(session);
+                      }}
+                      title="Delete"
+                    />
+                    <Menu.Item
+                      leadingIcon="file-export-outline"
+                      onPress={() => {
+                        toggleSessionMenu(session.id, false);
+                        handleExportSession(session);
+                      }}
+                      title="Export"
                     />
                   </>
                 )}
@@ -712,15 +722,6 @@ export default function SessionsTab() {
                     title="Clone"
                   />
                 )}
-                <Divider />
-                <Menu.Item
-                  leadingIcon="delete"
-                  onPress={() => {
-                    toggleSessionMenu(session.id, false);
-                    handleDeleteSession(session);
-                  }}
-                  title="Delete"
-                />
                 {true && __DEV__ && (
                   <Menu.Item
                     leadingIcon="delete"
@@ -770,15 +771,15 @@ export default function SessionsTab() {
                   >
                     Archive
                   </Button>
+                  <Button
+                    icon="delete"
+                    mode="text"
+                    onPress={() => handleDeleteSession(session)}
+                  >
+                    Delete
+                  </Button>
                 </>
               )}
-              <Button
-                icon="delete"
-                mode="text"
-                onPress={() => handleDeleteSession(session)}
-              >
-                Delete
-              </Button>
               {!isLive(session) && (
                 <Button
                   icon="content-duplicate"

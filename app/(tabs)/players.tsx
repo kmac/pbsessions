@@ -1010,7 +1010,7 @@ export default function PlayersTab() {
         <Dialog
           visible={exportDialogVisible}
           onDismiss={() => setExportDialogVisible(false)}
-          style={{ maxHeight: "80%" }}
+          style={{ maxHeight: "75%" }}
         >
           <Dialog.Title>Export Players</Dialog.Title>
           <Dialog.Content>
@@ -1046,8 +1046,9 @@ export default function PlayersTab() {
             }}
           >
             <Button
-              mode="contained-tonal"
+              mode="outlined"
               onPress={() => setExportDialogVisible(false)}
+              compact
             >
               Cancel
             </Button>
@@ -1056,6 +1057,7 @@ export default function PlayersTab() {
                 mode="outlined"
                 onPress={handleCopyToClipboard}
                 icon="content-copy"
+                compact
               >
                 Copy
               </Button>
@@ -1063,8 +1065,9 @@ export default function PlayersTab() {
                 mode="contained"
                 onPress={handleSaveToFile}
                 icon={Platform.OS === "web" ? "download" : "content-save"}
+                compact
               >
-                {Platform.OS === "web" ? "Download" : "Save File"}
+                {Platform.OS === "web" ? "Download" : "Save"}
               </Button>
             </View>
           </Dialog.Actions>
@@ -1074,7 +1077,7 @@ export default function PlayersTab() {
         <Dialog
           visible={importDialogVisible}
           onDismiss={handleCancelCsvImport}
-          style={{ height: "80%" }}
+          style={{ height: "70%" }}
         >
           <Dialog.Title>Import Players</Dialog.Title>
           <Dialog.Content>
@@ -1082,16 +1085,6 @@ export default function PlayersTab() {
               Select a file or paste CSV data to import. Expected format:{"\n"}
               name,email,phone,gender,rating,notes
             </Text>
-
-            <Button
-              mode="outlined"
-              onPress={handleSelectImportCsvFile}
-              icon="file-upload"
-              style={{ flex: 1, marginBottom: 12 }}
-            >
-              Select File
-            </Button>
-
             <TextInput
               mode="flat"
               multiline
@@ -1119,6 +1112,15 @@ export default function PlayersTab() {
               gap: 8,
             }}
           >
+            <Button
+              mode="outlined"
+              onPress={handleSelectImportCsvFile}
+              icon="file-upload"
+              compact
+            >
+              Select File
+            </Button>
+
             <Button
               mode="contained-tonal"
               onPress={() => {
