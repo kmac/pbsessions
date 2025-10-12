@@ -9,8 +9,9 @@ export const storageListenerMiddleware = createListenerMiddleware();
 // Specific actions that should trigger storage
 const STORAGE_ACTIONS = [
   'players/addPlayer',
+  'players/addMultiplePlayers',
   'players/updatePlayer',
-  'players/deletePlayer',
+  'players/removePlayer',
   'groups/addGroup',
   'groups/updateGroup',
   'groups/deleteGroup',
@@ -20,6 +21,7 @@ const STORAGE_ACTIONS = [
   'sessions/removeSession',
   'sessions/archiveSession',
   'sessions/restoreSession',
+  'sessions/setSessions',
   'appSettings/setAppSettings',
 ] as const;
 

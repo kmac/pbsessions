@@ -17,16 +17,6 @@ const playersSlice = createSlice({
   name: "players",
   initialState,
   reducers: {
-    // addPlayer: (state, action: PayloadAction<Omit<Player, 'id' | 'createdAt' | 'updatedAt'>>) => {
-    //   const now = new Date().toISOString();
-    //   const newPlayer: Player = {
-    //     ...action.payload,
-    //     id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-    //     createdAt: now,
-    //     updatedAt: now,
-    //   };
-    //   state.players.push(newPlayer);
-    // },
     addPlayer: {
       reducer: (state, action: PayloadAction<Player>) => {
         state.players.push(action.payload);

@@ -3,6 +3,8 @@ import { Platform } from "react-native";
 import { Group, Player, Session, Settings } from "@/src/types";
 import { Alert } from "@/src/utils/alert";
 
+const APPLICATION_BACKUP_VERSION = "1.0.0";
+
 const STORAGE_KEYS = {
   PLAYERS: "@pickleball_players",
   GROUPS: "@pickleball_groups",
@@ -93,7 +95,6 @@ async restoreAllData(data: StoredData): Promise<void> {
     if (!data.players || !data.groups || !data.sessions || !data.appSettings) {
       throw new Error("Invalid data structure");
     }
-
     // Save all data to storage
     await Promise.all([
       this.savePlayers(data.players),
@@ -145,6 +146,7 @@ async restoreAllData(data: StoredData): Promise<void> {
         theme: "light",
         defaultUseScoring: false,
         defaultUseRatings: false,
+        defaultCourtLayout: "horizontal",
         defaultEnforceFixedPartnerships: true,
       }
     );
@@ -157,14 +159,13 @@ async restoreAllData(data: StoredData): Promise<void> {
       this.loadSessions(),
       this.loadAppSettings(),
     ]);
-
     return {
       players,
       groups,
       sessions,
       appSettings,
       lastBackup: new Date().toISOString(),
-      version: "1.0.0",
+      version: APPLICATION_BACKUP_VERSION,
     };
   }
 

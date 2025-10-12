@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Group } from '@/src/types';
-import { removePlayer } from '@/src/store/slices/playersSlice';
 
 interface GroupsState {
   groups: Group[];
@@ -40,20 +39,6 @@ const groupsSlice = createSlice({
     removeGroup: (state, action: PayloadAction<string>) => {
       state.groups = state.groups.filter(g => g.id !== action.payload);
     },
-    addPlayerToGroup: (state, action: PayloadAction<{ groupId: string; playerId: string }>) => {
-      const group = state.groups.find(g => g.id === action.payload.groupId);
-      if (group && !group.playerIds.includes(action.payload.playerId)) {
-        group.playerIds.push(action.payload.playerId);
-        group.updatedAt = new Date().toISOString();
-      }
-    },
-    removePlayerFromGroup: (state, action: PayloadAction<{ groupId: string; playerId: string }>) => {
-      const group = state.groups.find(g => g.id === action.payload.groupId);
-      if (group) {
-        group.playerIds = group.playerIds.filter(id => id !== action.payload.playerId);
-        group.updatedAt = new Date().toISOString();
-      }
-    },
     setGroups: (state, action: PayloadAction<Group[]>) => {
       state.groups = action.payload;
       state.loading = false;
@@ -77,8 +62,6 @@ export const {
   addGroup,
   updateGroup,
   removeGroup,
-  addPlayerToGroup,
-  removePlayerFromGroup,
   setGroups,
   setLoading,
   setError,
