@@ -7,15 +7,17 @@ interface AppSettingsState {
   error: string | null;
 }
 
+export const INITIAL_APP_SETTINGS: Settings = {
+  color: "default",
+  theme: "light",
+  defaultUseScoring: false,
+  defaultUseRatings: false,
+  defaultCourtLayout: "horizontal",
+  defaultEnforceFixedPartnerships: true,
+};
+
 const initialState: AppSettingsState = {
-  appSettings: {
-    color: "default",
-    theme: "light",
-    defaultUseScoring: false,
-    defaultUseRatings: false,
-    defaultCourtLayout: "horizontal",
-    defaultEnforceFixedPartnerships: true,
-  },
+  appSettings: INITIAL_APP_SETTINGS,
   loading: false,
   error: null,
 };

@@ -579,7 +579,7 @@ export default function SettingsTab() {
         <Dialog
           visible={backupDialogVisible}
           onDismiss={() => setBackupDialogVisible(false)}
-          style={{ maxHeight: "80%" }}
+          // style={{ maxHeight: "60%" }}
         >
           <Dialog.Title>Backup Data</Dialog.Title>
           <Dialog.Content>
@@ -591,13 +591,15 @@ export default function SettingsTab() {
             <TextInput
               mode="outlined"
               multiline
+              //numberOfLines={Platform.OS === "android" ?  40 : undefined}
               value={backupJsonData}
               editable={false}
               style={{
-                flex: 1,
-                minHeight: 340,
-                maxHeight: "60%",
-                fontSize: 12,
+                //flex: 1,
+                height: 200,
+                // minHeight: 340,
+                // maxHeight: "60%",
+                fontSize: 11,
                 fontFamily: "monospace",
               }}
               contentStyle={{
@@ -642,11 +644,11 @@ export default function SettingsTab() {
         <Dialog
           visible={restoreDialogVisible}
           onDismiss={() => setRestoreDialogVisible(false)}
-          style={{ height: "80%" }}
+          // style={{ height: "60%" }}
         >
           <Dialog.Title>Restore Data</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+            <Text variant="bodyMedium" style={{ marginBottom: 12 }}>
               Select a file or paste JSON data to restore:
             </Text>
 
@@ -654,22 +656,24 @@ export default function SettingsTab() {
               mode="outlined"
               onPress={handleSelectFile}
               icon="file-upload"
-              style={{ flex: 1, marginBottom: 12 }}
+              style={{ /*flex: 1,*/ marginBottom: 12 }}
             >
               Select File
             </Button>
 
             <TextInput
-              mode="flat"
-              multiline
+              mode="outlined"
               value={restoreJsonData}
               onChangeText={setRestoreJsonData}
+              multiline
+              //numberOfLines={Platform.OS === "android" ?  40 : undefined}
               placeholder="Import file or paste JSON data here..."
               style={{
-                flex: 1,
-                minHeight: 340,
-                maxHeight: "60%",
-                fontSize: 12,
+                //flex: 1,
+                height: 200,
+                // minHeight: 340,
+                // maxHeight: "60%",
+                fontSize: 11,
                 fontFamily: "monospace",
               }}
               contentStyle={{

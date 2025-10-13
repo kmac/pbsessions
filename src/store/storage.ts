@@ -2,6 +2,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { Group, Player, Session, Settings } from "@/src/types";
 import { Alert } from "@/src/utils/alert";
+import { INITIAL_APP_SETTINGS } from "./slices/appSettingsSlice";
+import { router } from "expo-router";
+import { reloadAppAsync } from "expo";
 
 const APPLICATION_BACKUP_VERSION = "1.0.0";
 
@@ -89,24 +92,29 @@ export class StorageManager {
     }
   }
 
-async restoreAllData(data: StoredData): Promise<void> {
-  try {
-    // Validate that data has the expected structure
-    if (!data.players || !data.groups || !data.sessions || !data.appSettings) {
-      throw new Error("Invalid data structure");
+  async restoreAllData(data: StoredData): Promise<void> {
+    try {
+      // Validate that data has the expected structure
+      if (
+        !data.players ||
+        !data.groups ||
+        !data.sessions ||
+        !data.appSettings
+      ) {
+        throw new Error("Invalid data structure");
+      }
+      // Save all data to storage
+      await Promise.all([
+        this.savePlayers(data.players),
+        this.saveGroups(data.groups),
+        this.saveSessions(data.sessions),
+        this.saveAppSettings(data.appSettings),
+      ]);
+    } catch (error) {
+      console.error("Error importing data:", error);
+      throw new Error("Failed to import data");
     }
-    // Save all data to storage
-    await Promise.all([
-      this.savePlayers(data.players),
-      this.saveGroups(data.groups),
-      this.saveSessions(data.sessions),
-      this.saveAppSettings(data.appSettings),
-    ]);
-  } catch (error) {
-    console.error("Error importing data:", error);
-    throw new Error("Failed to import data");
   }
-}
   async savePlayers(players: Player[]): Promise<void> {
     await this.saveData(STORAGE_KEYS.PLAYERS, players);
   }
@@ -140,16 +148,7 @@ async restoreAllData(data: StoredData): Promise<void> {
 
   async loadAppSettings(): Promise<Settings> {
     const setting = await this.loadData<Settings>(STORAGE_KEYS.APP_SETTINGS);
-    return (
-      setting || {
-        color: "default",
-        theme: "light",
-        defaultUseScoring: false,
-        defaultUseRatings: false,
-        defaultCourtLayout: "horizontal",
-        defaultEnforceFixedPartnerships: true,
-      }
-    );
+    return setting || INITIAL_APP_SETTINGS;
   }
 
   async backupAllData(): Promise<StoredData> {
@@ -187,5 +186,14 @@ async restoreAllData(data: StoredData): Promise<void> {
     } else {
       await Promise.all(keys.map((key) => AsyncStorage.removeItem(key)));
     }
+    this.restoreAllData({
+      players: [],
+      groups: [],
+      sessions: [],
+      appSettings: INITIAL_APP_SETTINGS,
+      lastBackup: undefined,
+      version: APPLICATION_BACKUP_VERSION,
+    });
+    reloadAppAsync()
   }
 }
