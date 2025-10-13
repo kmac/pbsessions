@@ -12,8 +12,10 @@
     "test:coverage": "jest --coverage",
     "prebuild": "expo prebuild --clean",
     "export": "expo export --platform web --clear",
-    "build": "npm run test && npm run prebuild && npm run export",
-    "deploy-hosting": "npm run prebuild && npm run export && wrangler pages deploy --project-name pbsessions dist"
+    "dist": "npm run test && npm run prebuild && npm run export",
+    "deploy-hosting": "npm run prebuild && npm run export && wrangler pages deploy --project-name pbsessions dist",
+    "android-preview": "eas build --platform android --profile preview --local",
+    "android-production": "eas build --platform android --profile production --local"
   },
   "dependencies": {
     "@expo-google-fonts/jetbrains-mono": "^0.4.1",

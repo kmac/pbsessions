@@ -18,6 +18,7 @@ import { File, Directory, Paths } from "expo-file-system";
 import Sharing from "expo-sharing";
 import { useAppSelector } from "@/src/store";
 import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
+import { PlayerMatchupModal } from "@/src/components/PlayerMatchupModal";
 import { RoundComponent } from "@/src/components/RoundComponent";
 import { ViewSessionTable } from "@/src/components/ViewSessionTable";
 import { Session, SessionState, Game, Round } from "@/src/types";
@@ -40,10 +41,12 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
   const theme = useTheme();
 
   const [statsModalVisible, setStatsModalVisible] = useState(false);
+  const [matchupModalVisible, setMatchupModalVisible] = useState(false);
   const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set());
   const [allExpanded, setAllExpanded] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("rounds");
   const { players } = useAppSelector((state) => state.players);
+  const isNarrow = isNarrowScreen();
 
   if (!session) {
     return null;
@@ -86,6 +89,9 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
 
   const rounds = session.liveData?.rounds || [];
   const playerStats = session.liveData?.playerStats || [];
+
+  // Check if matchup data is available (session has live data with games)
+  const hasMatchupData = rounds.some((round) => round.games.length > 0);
 
   // Toggle individual round expansion
   const toggleRound = (roundIndex: number) => {
@@ -169,45 +175,65 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
             <Appbar.Content
               title={
                 <>
-                <Text
-                  variant="titleLarge"
-                  style={{
-                    alignItems: "center",
-                    fontWeight: "600",
-                  }}
-                >
-                  Session Details
-                </Text>
-              <Text
-                    variant="titleSmall"
-                  style={{
-                    alignItems: "center",
-                    fontWeight: "400",
-                  }}
+                  <Text
+                    variant="titleLarge"
+                    style={{
+                      alignItems: "center",
+                      fontWeight: "600",
+                    }}
                   >
-                {session.name}
-              </Text>
+                    Session Details
+                  </Text>
+                  <Text
+                    variant="titleSmall"
+                    style={{
+                      alignItems: "center",
+                      fontWeight: "400",
+                    }}
+                  >
+                    {session.name}
+                  </Text>
                 </>
               }
             />
           </Appbar.Header>
 
           <Surface style={styles.headerContainer}>
-
             {/* Combined Controls Row */}
             <View style={styles.controlsRow}>
-              {/* Left side: Player Stats button and expand/collapse buttons */}
+              {/* Left side: Player Stats, Matchups buttons and expand/collapse buttons */}
               <View style={styles.leftControls}>
-                {playerStats.length > 0 && (
-                  <Button
-                    icon="chart-box"
-                    mode="outlined"
-                    onPress={() => setStatsModalVisible(true)}
-                    compact
-                  >
-                    Player Stats
-                  </Button>
-                )}
+                <View
+                  style={[
+                    styles.statsButtons,
+                    isNarrow && styles.statsButtonsNarrow,
+                  ]}
+                >
+                  {playerStats.length > 0 && (
+                    <Button
+                      icon="chart-box"
+                      mode="outlined"
+                      onPress={() => setStatsModalVisible(true)}
+                      compact
+                      style={isNarrow && styles.narrowButton}
+                      labelStyle={isNarrow && styles.narrowButtonLabel}
+                    >
+                      {isNarrow ? "Stats" : "Player Stats"}
+                    </Button>
+                  )}
+                  {hasMatchupData && (
+                    <Button
+                      icon="account-network"
+                      mode="outlined"
+                      onPress={() => setMatchupModalVisible(true)}
+                      compact
+                      style={isNarrow && styles.narrowButton}
+                      labelStyle={isNarrow && styles.narrowButtonLabel}
+                    >
+                      {isNarrow ? "Matchups" : "Matchups"}
+                    </Button>
+                  )}
+                </View>
                 {viewMode === "rounds" && rounds.length > 0 && (
                   <View style={styles.expandCollapseButtons}>
                     <IconButton
@@ -357,6 +383,12 @@ export const ViewSessionModal: React.FC<ViewSessionModalProps> = ({
         stats={playerStats}
         onClose={() => setStatsModalVisible(false)}
       />
+
+      <PlayerMatchupModal
+        visible={matchupModalVisible}
+        session={session}
+        onClose={() => setMatchupModalVisible(false)}
+      />
     </>
   );
 };
@@ -397,6 +429,19 @@ const styles = StyleSheet.create({
   },
   rightControls: {
     flexShrink: 1,
+  },
+  statsButtons: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  statsButtonsNarrow: {
+    gap: 4,
+  },
+  narrowButton: {
+    minWidth: 80,
+  },
+  narrowButtonLabel: {
+    fontSize: 12,
   },
   expandCollapseButtons: {
     flexDirection: "row",
