@@ -1,17 +1,16 @@
 import React, { useState, useMemo } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
 import {
   Text,
   Surface,
   DataTable,
   Searchbar,
-  Chip,
   Card,
   useTheme,
-  IconButton,
   Divider,
   SegmentedButtons,
 } from "react-native-paper";
+import { Picker } from "@react-native-picker/picker";
 import { Session, Player } from "@/src/types";
 import {
   generateSessionMatchupData,
@@ -39,7 +38,37 @@ interface MatchupTableRow {
   winPercentage: number;
 }
 
-type ViewMode = "summary" | "detailed" | "heatmap";
+interface GamePartnerInfo {
+  gameIndex: number;
+  partnerId: string;
+  partnerName: string;
+  courtName: string;
+  roundIndex: number;
+}
+
+interface GameOpponentInfo {
+  gameIndex: number;
+  opponent1Id: string;
+  opponent1Name: string;
+  opponent2Id: string;
+  opponent2Name: string;
+  courtName: string;
+  roundIndex: number;
+}
+
+interface RoundParticipation {
+  roundNumber: number;
+  participated: boolean;
+  partnerId?: string;
+  partnerName?: string;
+  opponent1Id?: string;
+  opponent1Name?: string;
+  opponent2Id?: string;
+  opponent2Name?: string;
+  courtName?: string;
+}
+
+type ViewMode = "summary" | "detailed";
 
 export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
   session,
@@ -49,13 +78,243 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("summary");
-  const isNarrow = isNarrowScreen();
 
   const sessionPlayers = getSessionPlayers(session, players);
   const matchupData = useMemo(
     () => generateSessionMatchupData(session),
     [session],
   );
+
+  // Create dropdown options from session players
+  const playerOptions = useMemo(() => {
+    return sessionPlayers.map((player) => ({
+      value: player.id,
+      label: player.name,
+    }));
+  }, [sessionPlayers]);
+
+  // Get comprehensive round-by-round participation for selected player
+  const selectedPlayerRoundParticipation = useMemo(() => {
+    if (!selectedPlayerId || !session.liveData) return [];
+
+    const roundParticipation: RoundParticipation[] = [];
+
+    session.liveData.rounds.forEach((round, roundIndex) => {
+      let participated = false;
+      let partnerId: string | undefined;
+      let opponent1Id: string | undefined;
+      let opponent2Id: string | undefined;
+      let courtName: string | undefined;
+
+      // Check all games in this round for the selected player
+      for (const game of round.games) {
+        const isServePlayer1 = game.serveTeam.player1Id === selectedPlayerId;
+        const isServePlayer2 = game.serveTeam.player2Id === selectedPlayerId;
+        const isReceivePlayer1 =
+          game.receiveTeam.player1Id === selectedPlayerId;
+        const isReceivePlayer2 =
+          game.receiveTeam.player2Id === selectedPlayerId;
+
+        const playerInGame =
+          isServePlayer1 ||
+          isServePlayer2 ||
+          isReceivePlayer1 ||
+          isReceivePlayer2;
+
+        if (playerInGame) {
+          participated = true;
+          const court = session.courts.find((c) => c.id === game.courtId);
+          courtName = court?.name || "Unknown Court";
+
+          // Get partner
+          if (isServePlayer1) {
+            partnerId = game.serveTeam.player2Id;
+          } else if (isServePlayer2) {
+            partnerId = game.serveTeam.player1Id;
+          } else if (isReceivePlayer1) {
+            partnerId = game.receiveTeam.player2Id;
+          } else if (isReceivePlayer2) {
+            partnerId = game.receiveTeam.player1Id;
+          }
+
+          // Get opponents
+          if (isServePlayer1 || isServePlayer2) {
+            // Player is on serve team, opponents are on receive team
+            opponent1Id = game.receiveTeam.player1Id;
+            opponent2Id = game.receiveTeam.player2Id;
+          } else {
+            // Player is on receive team, opponents are on serve team
+            opponent1Id = game.serveTeam.player1Id;
+            opponent2Id = game.serveTeam.player2Id;
+          }
+          break; // Player found in this round, no need to check other games
+        }
+      }
+
+      roundParticipation.push({
+        roundNumber: roundIndex + 1,
+        participated,
+        partnerId,
+        partnerName: partnerId ? getPlayerName(players, partnerId) : undefined,
+        opponent1Id,
+        opponent1Name: opponent1Id
+          ? getPlayerName(players, opponent1Id)
+          : undefined,
+        opponent2Id,
+        opponent2Name: opponent2Id
+          ? getPlayerName(players, opponent2Id)
+          : undefined,
+        courtName,
+      });
+    });
+
+    return roundParticipation;
+  }, [selectedPlayerId, session, players]);
+
+  // Get count of rounds played and sat out
+  const playerStats = useMemo(() => {
+    const played = selectedPlayerRoundParticipation.filter(
+      (r) => r.participated,
+    ).length;
+    const satOut = selectedPlayerRoundParticipation.filter(
+      (r) => !r.participated,
+    ).length;
+    const total = selectedPlayerRoundParticipation.length;
+
+    return { played, satOut, total };
+  }, [selectedPlayerRoundParticipation]);
+
+  // Get game-by-game partner information for selected player
+  const selectedPlayerGamePartners = useMemo(() => {
+    if (!selectedPlayerId || !session.liveData) return [];
+
+    const gamePartners: GamePartnerInfo[] = [];
+
+    session.liveData.rounds.forEach((round, roundIndex) => {
+      round.games.forEach((game) => {
+        // Check if the selected player is in this game
+        const isServePlayer1 = game.serveTeam.player1Id === selectedPlayerId;
+        const isServePlayer2 = game.serveTeam.player2Id === selectedPlayerId;
+        const isReceivePlayer1 =
+          game.receiveTeam.player1Id === selectedPlayerId;
+        const isReceivePlayer2 =
+          game.receiveTeam.player2Id === selectedPlayerId;
+
+        const playerInGame =
+          isServePlayer1 ||
+          isServePlayer2 ||
+          isReceivePlayer1 ||
+          isReceivePlayer2;
+
+        if (!playerInGame) {
+          return; // Skip this game, player not participating
+        }
+
+        let partnerId: string | null = null;
+
+        if (isServePlayer1) {
+          partnerId = game.serveTeam.player2Id;
+        } else if (isServePlayer2) {
+          partnerId = game.serveTeam.player1Id;
+        } else if (isReceivePlayer1) {
+          partnerId = game.receiveTeam.player2Id;
+        } else if (isReceivePlayer2) {
+          partnerId = game.receiveTeam.player1Id;
+        }
+
+        const court = session.courts.find((c) => c.id === game.courtId);
+        gamePartners.push({
+          gameIndex: roundIndex + 1, // Now represents round number
+          partnerId: partnerId || "unknown",
+          partnerName: partnerId
+            ? getPlayerName(players, partnerId)
+            : "Unknown Partner",
+          courtName: court?.name || "Unknown Court",
+          roundIndex: roundIndex + 1,
+        });
+      });
+    });
+
+    return gamePartners;
+  }, [selectedPlayerId, session, players]);
+
+  // Get game-by-game opponent information for selected player
+  const selectedPlayerGameOpponents = useMemo(() => {
+    if (!selectedPlayerId || !session.liveData) return [];
+
+    const gameOpponents: GameOpponentInfo[] = [];
+
+    session.liveData.rounds.forEach((round, roundIndex) => {
+      round.games.forEach((game) => {
+        // Check if the selected player is in this game
+        const isServePlayer =
+          game.serveTeam.player1Id === selectedPlayerId ||
+          game.serveTeam.player2Id === selectedPlayerId;
+        const isReceivePlayer =
+          game.receiveTeam.player1Id === selectedPlayerId ||
+          game.receiveTeam.player2Id === selectedPlayerId;
+
+        const playerInGame = isServePlayer || isReceivePlayer;
+
+        if (!playerInGame) {
+          return; // Skip this game, player not participating
+        }
+
+        let opponent1Id: string | null = null;
+        let opponent2Id: string | null = null;
+
+        if (isServePlayer) {
+          // Player is on serve team, opponents are on receive team
+          opponent1Id = game.receiveTeam.player1Id;
+          opponent2Id = game.receiveTeam.player2Id;
+        } else if (isReceivePlayer) {
+          // Player is on receive team, opponents are on serve team
+          opponent1Id = game.serveTeam.player1Id;
+          opponent2Id = game.serveTeam.player2Id;
+        }
+
+        const court = session.courts.find((c) => c.id === game.courtId);
+        gameOpponents.push({
+          gameIndex: roundIndex + 1, // Now represents round number
+          opponent1Id: opponent1Id || "unknown",
+          opponent1Name: opponent1Id
+            ? getPlayerName(players, opponent1Id)
+            : "Unknown Player",
+          opponent2Id: opponent2Id || "unknown",
+          opponent2Name: opponent2Id
+            ? getPlayerName(players, opponent2Id)
+            : "Unknown Player",
+          courtName: court?.name || "Unknown Court",
+          roundIndex: roundIndex + 1,
+        });
+      });
+    });
+
+    return gameOpponents;
+  }, [selectedPlayerId, session, players]);
+
+  // Get count of unique rounds the player participated in
+  const playerRoundCount = useMemo(() => {
+    if (!selectedPlayerId || !session.liveData) return 0;
+
+    const roundsParticipated = new Set<number>();
+
+    session.liveData.rounds.forEach((round, roundIndex) => {
+      round.games.forEach((game) => {
+        const playerInGame =
+          game.serveTeam.player1Id === selectedPlayerId ||
+          game.serveTeam.player2Id === selectedPlayerId ||
+          game.receiveTeam.player1Id === selectedPlayerId ||
+          game.receiveTeam.player2Id === selectedPlayerId;
+
+        if (playerInGame) {
+          roundsParticipated.add(roundIndex);
+        }
+      });
+    });
+
+    return roundsParticipated.size;
+  }, [selectedPlayerId, session]);
 
   // Get selected player's matchups
   const selectedPlayerMatchups = useMemo(() => {
@@ -128,42 +387,64 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
 
   const renderPlayerSelector = () => (
     <View style={styles.playerSelector}>
-      <Text variant="titleMedium" style={styles.sectionTitle}>
+      <Text
+        variant="titleSmall"
+        style={[styles.selectorTitle, { color: theme.colors.onSurface }]}
+      >
         Select Player to View Matchups
       </Text>
-      {/*<ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.playerChipsContainer}
-      >*/}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {sessionPlayers.map((player) => (
-          <Chip
-            key={player.id}
-            selected={selectedPlayerId === player.id}
-            onPress={() => setSelectedPlayerId(player.id)}
-            style={styles.playerChip}
-          >
-            {player.name}
-          </Chip>
-        ))}
+      <View
+        style={[
+          styles.pickerContainer,
+          {
+            borderColor: theme.colors.outline,
+            // backgroundColor: theme.colors.surface,
+          },
+        ]}
+      >
+        <Picker
+          selectedValue={selectedPlayerId}
+          onValueChange={(value: string | null) => setSelectedPlayerId(value)}
+          style={styles.picker}
+          // style={
+          //   [styles.picker, { color: theme.colors.onSurface }]
+          // }
+          dropdownIconColor={theme.colors.onSurface}
+        >
+          <Picker.Item
+            label="All Players (Heatmap View)"
+            value="null"  // using {null} does not set it to null
+            //color={theme.colors.onSurfaceVariant}
+          />
+          {sessionPlayers.map((player) => (
+            <Picker.Item
+              key={player.id}
+              label={player.name}
+              value={player.id}
+              // color={theme.colors.onSurface}
+            />
+          ))}
+        </Picker>
       </View>
-      {/*</ScrollView>*/}
     </View>
   );
 
-  const renderViewModeSelector = () => (
-    <SegmentedButtons
-      value={viewMode}
-      onValueChange={(value) => setViewMode(value as ViewMode)}
-      buttons={[
-        { value: "summary", label: "Summary" },
-        { value: "detailed", label: "Details" },
-        { value: "heatmap", label: "Heatmap" },
-      ]}
-      style={styles.viewModeSelector}
-    />
-  );
+  const renderViewModeSelector = () => {
+    // Only show view mode selector when a player is selected
+    if (!selectedPlayerId || selectedPlayerId === "null") return null;
+
+    return (
+      <SegmentedButtons
+        value={viewMode}
+        onValueChange={(value) => setViewMode(value as ViewMode)}
+        buttons={[
+          { value: "summary", label: "Summary" },
+          { value: "detailed", label: "Details" },
+        ]}
+        style={styles.viewModeSelector}
+      />
+    );
+  };
 
   const renderSummaryView = () => {
     if (!summaryStats || !selectedPlayerId) return null;
@@ -182,10 +463,28 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
           <View style={styles.summaryGrid}>
             <View style={styles.statItem}>
               <Text variant="headlineMedium" style={styles.statNumber}>
-                {summaryStats.totalGames}
+                {playerStats.total}
               </Text>
               <Text variant="bodySmall" style={styles.statLabel}>
-                Total Games
+                Total Rounds
+              </Text>
+            </View>
+
+            <View style={styles.statItem}>
+              <Text variant="headlineMedium" style={styles.statNumber}>
+                {playerStats.played}
+              </Text>
+              <Text variant="bodySmall" style={styles.statLabel}>
+                Rounds Played
+              </Text>
+            </View>
+
+            <View style={styles.statItem}>
+              <Text variant="headlineMedium" style={styles.statNumber}>
+                {playerStats.satOut}
+              </Text>
+              <Text variant="bodySmall" style={styles.statLabel}>
+                Rounds Sat Out
               </Text>
             </View>
 
@@ -197,45 +496,42 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
                 Win Rate
               </Text>
             </View>
-
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
-                {summaryStats.uniquePartners}
-              </Text>
-              <Text variant="bodySmall" style={styles.statLabel}>
-                Partners
-              </Text>
-            </View>
-
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
-                {summaryStats.uniqueOpponents}
-              </Text>
-              <Text variant="bodySmall" style={styles.statLabel}>
-                Opponents
-              </Text>
-            </View>
           </View>
 
           <Divider style={styles.divider} />
 
           <View style={styles.detailGrid}>
             <View style={styles.detailItem}>
-              <Text variant="titleSmall">Partnerships</Text>
-              <Text variant="bodyMedium">
-                {summaryStats.totalPartnerships} games (
-                {summaryStats.totalWins > 0
-                  ? `${((summaryStats.totalWins / summaryStats.totalGames) * 100).toFixed(0)}% win rate`
-                  : "No wins tracked"}
-                )
-              </Text>
-            </View>
-
-            <View style={styles.detailItem}>
-              <Text variant="titleSmall">Oppositions</Text>
-              <Text variant="bodyMedium">
-                {summaryStats.totalOppositions} games
-              </Text>
+              <Text variant="titleSmall">Round-by-Round Summary</Text>
+              <View style={styles.gameList}>
+                {selectedPlayerRoundParticipation.map((round, index) => (
+                  <Text
+                    key={index}
+                    variant="bodySmall"
+                    style={[
+                      styles.gameListItem,
+                      !round.participated && styles.satOutItem,
+                    ]}
+                  >
+                    Round {round.roundNumber}:{" "}
+                    {round.participated ? (
+                      <>
+                        with {round.partnerName || "Unknown"} vs{" "}
+                        {round.opponent1Name || "Unknown"} &{" "}
+                        {round.opponent2Name || "Unknown"} (
+                        {round.courtName})
+                      </>
+                    ) : (
+                      "Sat out"
+                    )}
+                  </Text>
+                ))}
+                {selectedPlayerRoundParticipation.length === 0 && (
+                  <Text variant="bodySmall" style={styles.emptyListText}>
+                    No rounds in session
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
         </Card.Content>
@@ -447,19 +743,16 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
   return (
     <Surface style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/*<Text>{`selectedPlayerId: ${selectedPlayerId}`}</Text>*/}
         {renderPlayerSelector()}
+        {renderViewModeSelector()}
 
-        {selectedPlayerId && (
-          <>
-            {renderViewModeSelector()}
+        {/* Show player-specific views when a player is selected */}
+        {selectedPlayerId !== "null" && viewMode === "summary" && renderSummaryView()}
+        {selectedPlayerId !== "null" && viewMode === "detailed" && renderDetailedView()}
 
-            {viewMode === "summary" && renderSummaryView()}
-            {viewMode === "detailed" && renderDetailedView()}
-            {viewMode === "heatmap" && renderHeatmapView()}
-          </>
-        )}
-
-        {!selectedPlayerId && viewMode === "heatmap" && renderHeatmapView()}
+        {/* Show heatmap when no player is selected */}
+        {selectedPlayerId === "null" && renderHeatmapView()}
       </ScrollView>
     </Surface>
   );
@@ -477,12 +770,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontWeight: "600",
   },
-  playerChipsContainer: {
-    paddingHorizontal: 0,
-    gap: 8,
+  selectorTitle: {
+    marginBottom: 8,
+    fontWeight: "600",
   },
-  playerChip: {
-    marginRight: 8,
+  pickerContainer: {
+    borderWidth: 1,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  picker: {
+    height: 50,
   },
   viewModeSelector: {
     marginBottom: 16,
@@ -520,6 +818,22 @@ const styles = StyleSheet.create({
   },
   detailItem: {
     gap: 4,
+  },
+  gameList: {
+    marginTop: 8,
+    paddingLeft: 8,
+  },
+  gameListItem: {
+    marginBottom: 4,
+    opacity: 0.8,
+  },
+  satOutItem: {
+    opacity: 0.5,
+    fontStyle: "italic",
+  },
+  emptyListText: {
+    fontStyle: "italic",
+    opacity: 0.6,
   },
   detailedView: {
     flex: 1,
