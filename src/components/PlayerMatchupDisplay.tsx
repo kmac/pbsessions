@@ -11,7 +11,7 @@ import {
   SegmentedButtons,
 } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
-import { Session, Player } from "@/src/types";
+import { Score, Session, Player } from "@/src/types";
 import {
   generateSessionMatchupData,
   PlayerMatchupStats,
@@ -65,6 +65,7 @@ interface RoundParticipation {
   opponent1Name?: string;
   opponent2Id?: string;
   opponent2Name?: string;
+  score?: string; // from perspective of player
   courtName?: string;
 }
 
@@ -104,6 +105,7 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
       let partnerId: string | undefined;
       let opponent1Id: string | undefined;
       let opponent2Id: string | undefined;
+      let score: string | undefined;
       let courtName: string | undefined;
 
       // Check all games in this round for the selected player
@@ -142,10 +144,18 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
             // Player is on serve team, opponents are on receive team
             opponent1Id = game.receiveTeam.player1Id;
             opponent2Id = game.receiveTeam.player2Id;
+            if (game.score) {
+              let result = game.score.serveScore > game.score.receiveScore ? "W" : "L";
+              score = `${result}: ${game.score.serveScore} - ${game.score.receiveScore}`;
+            }
           } else {
             // Player is on receive team, opponents are on serve team
             opponent1Id = game.serveTeam.player1Id;
             opponent2Id = game.serveTeam.player2Id;
+            if (game.score) {
+              let result = game.score.serveScore < game.score.receiveScore ? "W" : "L";
+              score = `${result}: ${game.score.receiveScore} - ${game.score.serveScore}`;
+            }
           }
           break; // Player found in this round, no need to check other games
         }
@@ -164,6 +174,7 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
         opponent2Name: opponent2Id
           ? getPlayerName(players, opponent2Id)
           : undefined,
+        score: score,
         courtName,
       });
     });
@@ -413,7 +424,7 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
         >
           <Picker.Item
             label="All Players (Heatmap View)"
-            value="null"  // using {null} does not set it to null
+            value="null" // using {null} does not set it to null
             //color={theme.colors.onSurfaceVariant}
           />
           {sessionPlayers.map((player) => (
@@ -502,35 +513,72 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
 
           <View style={styles.detailGrid}>
             <View style={styles.detailItem}>
-              <Text variant="titleSmall">Round-by-Round Summary</Text>
-              <View style={styles.gameList}>
-                {selectedPlayerRoundParticipation.map((round, index) => (
+              <Text variant="titleMedium">Round-by-Round Summary</Text>
+
+              <View style={styles.gameTable}>
+                {/* Table Header */}
+                <View style={styles.tableHeader}>
+                  <Text style={[styles.tableHeaderText, styles.roundColumn]}>
+                    Round
+                  </Text>
+                  <Text style={[styles.tableHeaderText, styles.partnerColumn]}>
+                    Partner
+                  </Text>
                   <Text
+                    style={[styles.tableHeaderText, styles.opponentsColumn]}
+                  >
+                    Opponents
+                  </Text>
+                  <Text style={[styles.tableHeaderText, styles.courtColumn]}>
+                    {session.scoring ? "Result" : "Court"}
+                  </Text>
+                </View>
+
+                {/* Table Rows */}
+                {selectedPlayerRoundParticipation.map((round, index) => (
+                  <View
                     key={index}
-                    variant="bodySmall"
                     style={[
-                      styles.gameListItem,
-                      !round.participated && styles.satOutItem,
+                      styles.tableRow,
+                      !round.participated && styles.satOutRow,
+                      index % 2 === 0 && styles.evenRow,
                     ]}
                   >
-                    Round {round.roundNumber}:{" "}
-                    {round.participated ? (
-                      <>
-                        with {round.partnerName || "Unknown"} vs{" "}
-                        {round.opponent1Name || "Unknown"} &{" "}
-                        {round.opponent2Name || "Unknown"} (
-                        {round.courtName})
-                      </>
-                    ) : (
-                      "Sat out"
-                    )}
-                  </Text>
+                    <Text style={[styles.tableCellText, styles.roundColumn]}>
+                      {round.roundNumber}
+                    </Text>
+                    <Text style={[styles.tableCellText, styles.partnerColumn]}>
+                      {round.participated
+                        ? round.partnerName || "Unknown"
+                        : "Sat Out"}
+                    </Text>
+                    <Text
+                      style={[styles.tableCellText, styles.opponentsColumn]}
+                    >
+                      {round.participated
+                        ? `${round.opponent1Name || "Unknown"}, ${round.opponent2Name || "Unknown"}`
+                        : "-"}
+                    </Text>
+                    <View style={styles.courtColumn}>
+                      {round.participated ? (
+                        <>
+                          {round.score && (
+                            <Text
+                              style={[styles.tableCellText, styles.scoreText]}
+                            >
+                              {round.score}
+                            </Text>
+                          )}
+                          <Text style={styles.tableCellText}>
+                            {round.courtName || "-"}
+                          </Text>
+                        </>
+                      ) : (
+                        <Text style={styles.tableCellText}>-</Text>
+                      )}
+                    </View>
+                  </View>
                 ))}
-                {selectedPlayerRoundParticipation.length === 0 && (
-                  <Text variant="bodySmall" style={styles.emptyListText}>
-                    No rounds in session
-                  </Text>
-                )}
               </View>
             </View>
           </View>
@@ -748,8 +796,12 @@ export const PlayerMatchupDisplay: React.FC<PlayerMatchupDisplayProps> = ({
         {renderViewModeSelector()}
 
         {/* Show player-specific views when a player is selected */}
-        {selectedPlayerId !== "null" && viewMode === "summary" && renderSummaryView()}
-        {selectedPlayerId !== "null" && viewMode === "detailed" && renderDetailedView()}
+        {selectedPlayerId !== "null" &&
+          viewMode === "summary" &&
+          renderSummaryView()}
+        {selectedPlayerId !== "null" &&
+          viewMode === "detailed" &&
+          renderDetailedView()}
 
         {/* Show heatmap when no player is selected */}
         {selectedPlayerId === "null" && renderHeatmapView()}
@@ -831,6 +883,83 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     fontStyle: "italic",
   },
+  gameTable: {
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#f5f5f5",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  tableHeaderText: {
+    fontWeight: "bold",
+    fontSize: 14,
+    color: "#333",
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  evenRow: {
+    backgroundColor: "#fafafa",
+  },
+  satOutRow: {
+    backgroundColor: "#fff3e0",
+  },
+  tableCellText: {
+    fontSize: 13,
+    color: "#666",
+  },
+  roundColumn: {
+    flex: 1,
+    textAlign: "center",
+  },
+  partnerColumn: {
+    flex: 2,
+  },
+  opponentsColumn: {
+    flex: 3,
+  },
+  courtColumn: {
+    flex: 1.5,
+    justifyContent: "center",
+  },
+  scoreText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#2196F3",
+    marginBottom: 2,
+  },
+  emptyCard: {
+    marginTop: 32,
+  },
+  emptyContent: {
+    alignItems: "center",
+    paddingVertical: 32,
+  },
+  emptyTitle: {
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyText: {
+    textAlign: "center",
+    opacity: 0.7,
+  },
+  statusColumn: {
+    flex: 1.5,
+  },
+  detailsColumn: {
+    flex: 4,
+  },
   emptyListText: {
     fontStyle: "italic",
     opacity: 0.6,
@@ -875,20 +1004,5 @@ const styles = StyleSheet.create({
   heatmapHeaderText: {
     fontWeight: "600",
     textAlign: "center",
-  },
-  emptyCard: {
-    marginTop: 32,
-  },
-  emptyContent: {
-    alignItems: "center",
-    paddingVertical: 32,
-  },
-  emptyTitle: {
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  emptyText: {
-    textAlign: "center",
-    opacity: 0.7,
   },
 });
