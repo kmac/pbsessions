@@ -7,7 +7,6 @@ import {
   Button,
   Card,
   Divider,
-  FAB,
   IconButton,
   List,
   Surface,
@@ -47,16 +46,8 @@ export default function BetweenRoundsScreen() {
   const sessionId = params.sessionId;
   const canEditSession = params.canEditSession === "true";
 
-  const [selectedPlayers, setSelectedPlayers] = useState(
-    new Map<string, Player>(),
-  );
   const scrollViewRef = useRef<ScrollView>(null);
   const [statsModalVisible, setStatsModalVisible] = useState(false);
-
-  const [canSwapPlayers, setCanSwapPlayers] = useState(false);
-  const [swapPlayersHandler, setSwapPlayersHandler] = useState<
-    (() => void) | null
-  >(null);
 
   const { players } = useAppSelector((state) => state.players);
   const { sessions } = useAppSelector((state) => state.sessions);
@@ -79,14 +70,6 @@ export default function BetweenRoundsScreen() {
       scrollViewRef.current.scrollTo({ y: 0, animated: true });
     }
   };
-
-  const handleSwapPlayersChange = useCallback(
-    (canSwap: boolean, handler: () => void) => {
-      setCanSwapPlayers(canSwap);
-      setSwapPlayersHandler(() => handler);
-    },
-    [],
-  );
 
   // Use useCallback to ensure we always get fresh session data
   const handleReshufflePlayers = useCallback(() => {
@@ -123,7 +106,6 @@ export default function BetweenRoundsScreen() {
         assignment: roundAssignment,
       }),
     );
-    setSelectedPlayers(new Map());
   }, [sessionId, sessions, players, dispatch]);
 
   // Register court update callback when component mounts
@@ -381,21 +363,6 @@ export default function BetweenRoundsScreen() {
           </Surface>
         </ScrollView>
 
-        {false && canSwapPlayers && (
-          <FAB
-            icon="swap-horizontal-bold"
-            label="Swap Players"
-            size="large"
-            variant="tertiary"
-            style={{
-              position: "absolute",
-              margin: 16,
-              right: 16,
-              bottom: 100,
-            }}
-            onPress={() => swapPlayersHandler && swapPlayersHandler()}
-          />
-        )}
       </SafeAreaView>
 
       <PlayerStatsModal

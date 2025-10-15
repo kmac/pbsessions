@@ -170,15 +170,18 @@ export class DefaultPlayerAssignmentStrategy extends PlayerAssignmentStrategy {
 
     // Filter partnership units to only include those where both players are playing
     const playingPlayerIds = new Set(playingPlayers.map((p) => p.id));
-    const playingPartnershipUnits = constraints.partnershipUnits.filter(
-      (unit) => unit.players.every((player) => playingPlayerIds.has(player.id)),
-    );
+    const playingPartnershipUnits: PartnershipUnit[] =
+      constraints.partnershipUnits.filter((unit) =>
+        unit.players.every((player) => playingPlayerIds.has(player.id)),
+      );
 
-    const flexiblePlayingPlayers = constraints.flexiblePlayers.filter(
+    const flexiblePlayingPlayers: Player[] = constraints.flexiblePlayers.filter(
       (player) => playingPlayerIds.has(player.id),
     );
 
-    let remainingFlexiblePlayers = this.shuffleArray(flexiblePlayingPlayers);
+    let remainingFlexiblePlayers: Player[] = this.shuffleArray(
+      flexiblePlayingPlayers,
+    );
 
     // Sort courts by minimum rating (highest first) to assign partnerships appropriately
     const sortedCourts = [...this.activeCourts]
@@ -195,7 +198,7 @@ export class DefaultPlayerAssignmentStrategy extends PlayerAssignmentStrategy {
       if (courtAssignments[courtIndex].length >= 4) continue;
 
       // Find partnerships that can play on this court
-      const eligibleUnits = remainingUnits.filter((unit) => {
+      let eligibleUnits: PartnershipUnit[] = remainingUnits.filter((unit) => {
         if (!court.minimumRating) return true;
         return unit.maxRating >= court.minimumRating;
       });

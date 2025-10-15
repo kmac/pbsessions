@@ -431,10 +431,10 @@ export default function LiveSessionScreen() {
 
   const handleGenerateMultipleRounds = () => {
     const numRounds = parseInt(generateNumberOfRounds);
-    if (isNaN(numRounds) || numRounds < 1 || numRounds > 20) {
+    if (isNaN(numRounds) || numRounds < 1 || numRounds > 100) {
       Alert.alert(
         "Invalid Number",
-        "Please enter a valid number of rounds (1-20).",
+        "Please enter a valid number of rounds (1-100).",
         [{ text: "OK" }],
       );
       return;
