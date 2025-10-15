@@ -174,6 +174,13 @@ const RootLayoutNav = () => {
       <PaperProvider theme={theme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="between-rounds"
+            options={{
+              presentation: "pageSheet",
+              headerShown: false,
+            }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </PaperProvider>

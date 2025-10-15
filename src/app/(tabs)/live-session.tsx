@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { View, ScrollView, BackHandler } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   Appbar,
@@ -23,7 +23,6 @@ import { SessionCoordinator } from "@/src/services/sessionCoordinator";
 import { RoundComponent } from "@/src/components/RoundComponent";
 import { RoundScoreEntryModal } from "@/src/components/RoundScoreEntryModal";
 import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
-import { BetweenRoundsModal } from "@/src/components/BetweenRoundsModal";
 import { EditSessionModal } from "@/src/components/EditSessionModal";
 import { getRoundNumber } from "@/src/services/sessionService";
 import {
@@ -50,6 +49,8 @@ export default function LiveSessionScreen() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
 
+  const params = useLocalSearchParams<{ action?: string }>();
+
   // useAppSelector, useAppDispatch is redux
   const { sessions } = useAppSelector((state) => state.sessions);
   const { players: allPlayers } = useAppSelector((state) => state.players);
@@ -57,7 +58,6 @@ export default function LiveSessionScreen() {
   // useState is react
   const [scoreModalVisible, setScoreModalVisible] = useState(false);
   const [statsModalVisible, setStatsModalVisible] = useState(false);
-  const [betweenRoundsVisible, setBetweenRoundsVisible] = useState(false);
   const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [pulldownMenuVisible, setPulldownMenuVisible] = useState(false);
   const [generateRoundsMenuVisible, setGenerateRoundsMenuVisible] =
@@ -71,33 +71,22 @@ export default function LiveSessionScreen() {
   // TODO we should have a way to look this up - probably need to use redux since it will be global
   const liveSession = sessions.find((s) => s.state === SessionState.Live);
 
+  // Handle action parameters from modal routes
+  useEffect(() => {
+    if (params.action === "startRound" && liveSession) {
+      dispatch(startRoundThunk({ sessionId: liveSession.id }));
+      // Clear the action parameter
+      router.setParams({ action: undefined });
+    } else if (params.action === "editSession" && liveSession) {
+      setEditSessionModalVisible(true);
+      // Clear the action parameter
+      router.setParams({ action: undefined });
+    }
+  }, [params.action, liveSession, dispatch]);
+
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        // // Check if any modals are open
-        // if (
-        //   scoreModalVisible ||
-        //   statsModalVisible ||
-        //   betweenRoundsVisible ||
-        //   editSessionModalVisible ||
-        //   generateRoundsModalVisible
-        // ) {
-        //   // Close the topmost modal
-        //   if (generateRoundsModalVisible) {
-        //     setGenerateRoundsModalVisible(false);
-        //   } else if (editSessionModalVisible) {
-        //     setEditSessionModalVisible(false);
-        //   } else if (betweenRoundsVisible) {
-        //     setBetweenRoundsVisible(false);
-        //   } else if (scoreModalVisible) {
-        //     setScoreModalVisible(false);
-        //   } else if (statsModalVisible) {
-        //     setStatsModalVisible(false);
-        //   }
-        //   // Prevent default back action
-        //   return true;
-        // }
-
         // If no modals open, handle session navigation
         if (liveSession) {
           const isRoundInProgress = liveSession.liveData?.rounds.some((round) =>
@@ -267,12 +256,17 @@ export default function LiveSessionScreen() {
         assignment: roundAssignment,
       }),
     );
-    setBetweenRoundsVisible(true);
+    router.push({
+      pathname: "/between-rounds",
+      params: {
+        sessionId: liveSession.id,
+        canEditSession: "true",
+      },
+    });
   };
 
   const handleStartRound = () => {
     dispatch(startRoundThunk({ sessionId: liveSession.id }));
-    setBetweenRoundsVisible(false);
   };
 
   const handleCompleteRound = () => {
@@ -425,7 +419,13 @@ export default function LiveSessionScreen() {
           icon="pencil"
           mode="outlined"
           onPress={() => {
-            setBetweenRoundsVisible(true);
+            router.push({
+              pathname: "/between-rounds",
+              params: {
+                sessionId: liveSession.id,
+                canEditSession: "true",
+              },
+            });
           }}
           contentStyle={{ paddingVertical: 2 }}
         >
@@ -1072,14 +1072,6 @@ export default function LiveSessionScreen() {
         courts={liveSession.courts}
         onSave={handleRoundScoresSubmitted}
         onClose={() => setScoreModalVisible(false)}
-      />
-
-      <BetweenRoundsModal
-        visible={betweenRoundsVisible}
-        sessionId={liveSession.id}
-        onStartRound={handleStartRound}
-        onClose={() => setBetweenRoundsVisible(false)}
-        onEditSession={openEditSessionModal}
       />
 
       <EditSessionModal
