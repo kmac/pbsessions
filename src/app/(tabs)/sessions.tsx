@@ -25,7 +25,6 @@ import {
   removeSession,
 } from "@/src/store/slices/sessionsSlice";
 import { Court, Session, SessionState } from "@/src/types";
-import { ArchivedSessions } from "@/src/components/ArchivedSessions";
 import { TabHeader } from "@/src/components/TabHeader";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
@@ -50,7 +49,6 @@ export default function SessionsTab() {
   const [sessionMenuVisible, setSessionMenuVisible] = useState<{
     [key: string]: boolean;
   }>({});
-  const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
   const [exportDialogVisible, setExportDialogVisible] = useState(false);
   const [exportCsvContent, setExportCsvContent] = useState("");
   const [exportingSession, setExportingSession] = useState<Session | null>(
@@ -351,7 +349,7 @@ export default function SessionsTab() {
                 leadingIcon="archive"
                 onPress={() => {
                   setMenuVisible(false);
-                  setArchiveModalVisible(true);
+                  router.navigate("/archived-sessions");
                 }}
                 title="Archives"
               />
@@ -370,7 +368,7 @@ export default function SessionsTab() {
             <Button
               icon="archive"
               mode="elevated"
-              onPress={() => setArchiveModalVisible(true)}
+              onPress={() => router.navigate("/archived-sessions")}
             >
               Archives
             </Button>
@@ -845,13 +843,6 @@ export default function SessionsTab() {
         //   <TopDescription visible={true} description="Ready to play" />
         // }
         ListEmptyComponent={<EmptyState />}
-      />
-
-      <ArchivedSessions
-        visible={modalArchiveVisible}
-        onCancel={() => {
-          setArchiveModalVisible(false);
-        }}
       />
 
       <Portal>

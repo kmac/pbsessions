@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, FlatList, Modal, Platform } from "react-native";
+import { View, FlatList, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Appbar,
@@ -11,7 +11,6 @@ import {
   Surface,
   Text,
   useTheme,
-  Portal,
   Dialog,
   TextInput,
 } from "react-native-paper";
@@ -26,15 +25,7 @@ import { Alert } from "@/src/utils/alert";
 import { exportSessionResultsToCsv } from "@/src/utils/csv";
 import { saveToFile, copyToClipboard } from "@/src/utils/fileClipboardUtil";
 
-interface ArchivedSessionsProps {
-  visible: boolean;
-  onCancel: () => void;
-}
-
-export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
-  visible,
-  onCancel,
-}) => {
+export default function ArchivedSessionsScreen() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { sessions, loading } = useAppSelector((state) => state.sessions);
@@ -257,31 +248,27 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onCancel}
-    >
-      <Appbar.Header>
-        <Appbar.BackAction onPress={onCancel} />
-        <Appbar.Content
-          title={
-            <Text
-              variant="titleLarge"
-              style={{
-                alignItems: "center",
-                fontWeight: "600",
-              }}
-            >
-              Archives
-            </Text>
-          }
-        />
-      </Appbar.Header>
+    <>
       <SafeAreaView
         style={{ flex: 1, backgroundColor: theme.colors.background }}
       >
+        <Appbar.Header>
+          <Appbar.BackAction onPress={() => router.back()} />
+          <Appbar.Content
+            title={
+              <Text
+                variant="titleLarge"
+                style={{
+                  alignItems: "center",
+                  fontWeight: "600",
+                }}
+              >
+                Archives
+              </Text>
+            }
+          />
+        </Appbar.Header>
+
         <Surface
           style={{
             flexDirection: "row",
@@ -382,6 +369,6 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
           </Dialog.Actions>
         </Dialog>
       </SafeAreaView>
-    </Modal>
+    </>
   );
-};
+}

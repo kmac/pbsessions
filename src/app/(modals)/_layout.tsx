@@ -30,6 +30,13 @@ export default function ModalLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="archived-sessions"
+        options={{
+          presentation: "pageSheet",
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
