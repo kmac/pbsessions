@@ -466,12 +466,11 @@ export default function LiveSessionScreen() {
       if (successfulRounds >= numRounds) {
         // Update our session with all the new rounds.
         dispatch(updateSession(currentSession));
-        Alert.alert(
-          "Rounds Generated",
-          `Successfully generated ${successfulRounds} round${successfulRounds > 1 ? "s" : ""}. You can view them using the session history.`,
-          [{ text: "OK" }],
-        );
-        closeGenerateRoundsModal();
+        router.navigate({
+          pathname: "/view-session",
+          params: { sessionId: currentSession.id },
+        });
+        closeGenerateRoundsModal(); // happens on next render
         return;
       }
 

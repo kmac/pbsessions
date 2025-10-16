@@ -15,12 +15,12 @@ import {
   Dialog,
   TextInput,
 } from "react-native-paper";
+import { router } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
   removeSession,
   restoreSession,
 } from "@/src/store/slices/sessionsSlice";
-import { ViewSessionModal } from "@/src/components/ViewSessionModal";
 import { Session, SessionState } from "@/src/types";
 import { Alert } from "@/src/utils/alert";
 import { exportSessionResultsToCsv } from "@/src/utils/csv";
@@ -40,8 +40,6 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { players } = useAppSelector((state) => state.players);
 
-  const [viewSessionModalVisible, setViewSessionModalVisible] = useState(false);
-  const [viewingSession, setViewingSession] = useState<Session | null>(null);
   const [exportDialogVisible, setExportDialogVisible] = useState(false);
   const [exportCsvContent, setExportCsvContent] = useState("");
   const [exportingSession, setExportingSession] = useState<Session | null>(
@@ -106,18 +104,11 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
   }
 
   const handleViewSession = (session: Session) => {
-    openViewSessionModal(session);
+    router.navigate({
+      pathname: "/view-session",
+      params: { sessionId: session.id },
+    });
   };
-
-  function openViewSessionModal(session: Session) {
-    setViewingSession(session);
-    setViewSessionModalVisible(true);
-  }
-
-  function closeViewSessionModal() {
-    setViewingSession(null);
-    setViewSessionModalVisible(false);
-  }
 
   const handleExportSession = async (session: Session) => {
     try {
@@ -319,12 +310,6 @@ export const ArchivedSessions: React.FC<ArchivedSessionsProps> = ({
           contentContainerStyle={{ padding: 16 }}
           showsVerticalScrollIndicator={false}
           // ListEmptyComponent={<EmptyState />}
-        />
-
-        <ViewSessionModal
-          visible={viewSessionModalVisible}
-          session={viewingSession}
-          onCancel={closeViewSessionModal}
         />
 
         {/* Export CSV Dialog */}

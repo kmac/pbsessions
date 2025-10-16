@@ -26,7 +26,6 @@ import {
 } from "@/src/store/slices/sessionsSlice";
 import { Court, Session, SessionState } from "@/src/types";
 import { ArchivedSessions } from "@/src/components/ArchivedSessions";
-import { ViewSessionModal } from "@/src/components/ViewSessionModal";
 import { TabHeader } from "@/src/components/TabHeader";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
@@ -52,8 +51,6 @@ export default function SessionsTab() {
     [key: string]: boolean;
   }>({});
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
-  const [viewSessionModalVisible, setViewSessionModalVisible] = useState(false);
-  const [viewingSession, setViewingSession] = useState<Session | null>(null);
   const [exportDialogVisible, setExportDialogVisible] = useState(false);
   const [exportCsvContent, setExportCsvContent] = useState("");
   const [exportingSession, setExportingSession] = useState<Session | null>(
@@ -134,18 +131,11 @@ export default function SessionsTab() {
   };
 
   const handleViewSession = (session: Session) => {
-    openViewSessionModal(session);
+    router.navigate({
+      pathname: "/view-session",
+      params: { sessionId: session.id },
+    });
   };
-
-  function openViewSessionModal(session: Session) {
-    setViewingSession(session);
-    setViewSessionModalVisible(true);
-  }
-
-  function closeViewSessionModal() {
-    setViewingSession(null);
-    setViewSessionModalVisible(false);
-  }
 
   const handleEditSession = (session: Session) => {
     // if (isSessionLive(session.id)) {
@@ -862,12 +852,6 @@ export default function SessionsTab() {
         onCancel={() => {
           setArchiveModalVisible(false);
         }}
-      />
-
-      <ViewSessionModal
-        visible={viewSessionModalVisible}
-        session={viewingSession}
-        onCancel={closeViewSessionModal}
       />
 
       <Portal>

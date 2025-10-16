@@ -23,6 +23,13 @@ export default function ModalLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="view-session"
+        options={{
+          presentation: "pageSheet",
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
