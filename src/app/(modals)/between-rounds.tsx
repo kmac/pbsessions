@@ -143,7 +143,7 @@ export default function BetweenRoundsScreen() {
   const handleStartRound = () => {
     // Return to live-session with indication to start the round
     router.navigate({
-      pathname: "/(tabs)/live-session",
+      pathname: "/live-session",
       params: { action: "startRound" },
     });
   };
@@ -151,7 +151,7 @@ export default function BetweenRoundsScreen() {
   const handleEditSession = () => {
     // Return to live-session with indication to open edit session modal
     router.navigate({
-      pathname: "/(tabs)/live-session",
+      pathname: "/live-session",
       params: { action: "editSession" },
     });
   };
@@ -328,7 +328,7 @@ export default function BetweenRoundsScreen() {
                 session={currentSession}
                 editing={true}
                 ratingSwitch={true}
-                onSwapPlayersChange={handleSwapPlayersChange}
+                // onSwapPlayersChange={handleSwapPlayersChange}
               />
 
               <View // Action buttons
@@ -381,7 +381,7 @@ export default function BetweenRoundsScreen() {
           </Surface>
         </ScrollView>
 
-        {canSwapPlayers && (
+        {false && canSwapPlayers && (
           <FAB
             icon="swap-horizontal-bold"
             label="Swap Players"

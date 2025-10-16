@@ -12,9 +12,7 @@ import {
   Surface,
   Text,
   useTheme,
-  FAB,
   Menu,
-  Divider,
   IconButton,
   Portal,
   Dialog,
@@ -22,15 +20,12 @@ import {
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
-  addSession,
   archiveSession,
   cloneSession,
-  updateSession,
   removeSession,
 } from "@/src/store/slices/sessionsSlice";
 import { Court, Session, SessionState } from "@/src/types";
 import { ArchivedSessions } from "@/src/components/ArchivedSessions";
-import { EditSessionModal } from "@/src/components/EditSessionModal";
 import { ViewSessionModal } from "@/src/components/ViewSessionModal";
 import { TabHeader } from "@/src/components/TabHeader";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
@@ -56,9 +51,7 @@ export default function SessionsTab() {
   const [sessionMenuVisible, setSessionMenuVisible] = useState<{
     [key: string]: boolean;
   }>({});
-  const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [modalArchiveVisible, setArchiveModalVisible] = useState(false);
-  const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [viewSessionModalVisible, setViewSessionModalVisible] = useState(false);
   const [viewingSession, setViewingSession] = useState<Session | null>(null);
   const [exportDialogVisible, setExportDialogVisible] = useState(false);
@@ -66,11 +59,6 @@ export default function SessionsTab() {
   const [exportingSession, setExportingSession] = useState<Session | null>(
     null,
   );
-
-  const allLiveSessions = sessions.filter(
-    (session) => session.state === SessionState.Live,
-  );
-  const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
 
   const getSession = (sessionId: string) => {
     return sessions.find((session) => session.id === sessionId);
@@ -159,16 +147,6 @@ export default function SessionsTab() {
     setViewSessionModalVisible(false);
   }
 
-  function openEditSessionModal(session: Session) {
-    setEditingSession(session);
-    setEditSessionModalVisible(true);
-  }
-
-  function closeEditSessionModal() {
-    setEditingSession(null);
-    setEditSessionModalVisible(false);
-  }
-
   const handleEditSession = (session: Session) => {
     // if (isSessionLive(session.id)) {
     //   Alert.alert(
@@ -178,15 +156,23 @@ export default function SessionsTab() {
     //   );
     //   return;
     // }
-    if (editingSession) {
-      Alert.alert(
-        "Cannot Edit",
-        "Cannot edit a live session. End the session first.",
-        [{ text: "OK" }],
-      );
-      return;
-    }
-    openEditSessionModal(session);
+
+    // if (editingSession) {
+    //   Alert.alert(
+    //     "Cannot Edit",
+    //     "Cannot edit a live session. End the session first.",
+    //     [{ text: "OK" }],
+    //   );
+    //   return;
+    // }
+
+    router.navigate({
+      pathname: "/edit-session",
+      params: {
+        sessionId: session?.id,
+        returnTo: "/sessions", // or "/live-session"
+      },
+    });
   };
 
   const handleCloneSession = (session: Session) => {
@@ -233,10 +219,6 @@ export default function SessionsTab() {
         sessionId: session.id,
       }),
     );
-
-    setTimeout(() => {
-      setLiveSessionId(session.id);
-    }, 100);
 
     router.navigate("/live-session");
   };
@@ -312,31 +294,6 @@ export default function SessionsTab() {
     });
   };
 
-  function handleSaveSession(
-    sessionData:
-      | Session
-      | Omit<Session, "id" | "state" | "createdAt" | "updatedAt">,
-  ) {
-    if (editingSession) {
-      const data = sessionData as Session;
-      dispatch(updateSession(data));
-      // if (data.state === SessionState.Live) {
-      //   updateCourtInSessionThunk({sessionId: data.id, court: data.courts});
-      //   dispatch(updateCourts(data.courts));
-      // }
-    } else {
-      dispatch(
-        addSession(
-          sessionData as Omit<
-            Session,
-            "id" | "state" | "createdAt" | "updatedAt"
-          >,
-        ),
-      );
-    }
-    closeEditSessionModal();
-  }
-
   const toggleSessionMenu = (sessionId: string, visible: boolean) => {
     // console.log(
     //   `toggleSessionMenu: sessionId: ${sessionId} visible=${visible}`,
@@ -385,7 +342,7 @@ export default function SessionsTab() {
             <Button
               icon="plus"
               mode="contained"
-              onPress={() => setEditSessionModalVisible(true)}
+              onPress={() => router.navigate("/edit-session")}
               compact
             >
               New
@@ -416,7 +373,7 @@ export default function SessionsTab() {
             <Button
               icon="plus"
               mode="contained"
-              onPress={() => setEditSessionModalVisible(true)}
+              onPress={() => router.navigate("/edit-session")}
             >
               New
             </Button>
@@ -432,26 +389,6 @@ export default function SessionsTab() {
       </View>
     </Surface>
   );
-
-  // Mobile FAB for primary action
-  const PrimaryFAB = () => {
-    if (!narrowScreen || players.length === 0) return null;
-
-    return (
-      <FAB
-        icon="plus"
-        onPress={() => setEditSessionModalVisible(true)}
-        color={theme.colors.onSecondary}
-        style={{
-          position: "absolute",
-          margin: 16,
-          right: 0,
-          bottom: 0,
-          backgroundColor: theme.colors.secondary,
-        }}
-      />
-    );
-  };
 
   const renderSession = ({ item: session }: { item: Session }) => {
     const sessionPlayers = getSessionPlayers(session);
@@ -853,7 +790,7 @@ export default function SessionsTab() {
           <Button
             icon="plus"
             mode="contained"
-            onPress={() => setEditSessionModalVisible(true)}
+            onPress={() => router.navigate("/edit-session")}
           >
             Create Session
           </Button>
@@ -920,20 +857,11 @@ export default function SessionsTab() {
         ListEmptyComponent={<EmptyState />}
       />
 
-      {false && <PrimaryFAB />}
-
       <ArchivedSessions
         visible={modalArchiveVisible}
         onCancel={() => {
           setArchiveModalVisible(false);
         }}
-      />
-
-      <EditSessionModal
-        visible={editSessionModalVisible}
-        session={editingSession}
-        onSave={handleSaveSession}
-        onCancel={closeEditSessionModal}
       />
 
       <ViewSessionModal

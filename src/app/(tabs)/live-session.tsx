@@ -23,7 +23,6 @@ import { SessionCoordinator } from "@/src/services/sessionCoordinator";
 import { RoundComponent } from "@/src/components/RoundComponent";
 import { RoundScoreEntryModal } from "@/src/components/RoundScoreEntryModal";
 import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
-import { EditSessionModal } from "@/src/components/EditSessionModal";
 import { getRoundNumber } from "@/src/services/sessionService";
 import {
   getSessionPlayers,
@@ -58,7 +57,6 @@ export default function LiveSessionScreen() {
   // useState is react
   const [scoreModalVisible, setScoreModalVisible] = useState(false);
   const [statsModalVisible, setStatsModalVisible] = useState(false);
-  const [editSessionModalVisible, setEditSessionModalVisible] = useState(false);
   const [pulldownMenuVisible, setPulldownMenuVisible] = useState(false);
   const [generateRoundsMenuVisible, setGenerateRoundsMenuVisible] =
     useState(false);
@@ -78,7 +76,13 @@ export default function LiveSessionScreen() {
       // Clear the action parameter
       router.setParams({ action: undefined });
     } else if (params.action === "editSession" && liveSession) {
-      setEditSessionModalVisible(true);
+      router.navigate({
+        pathname: "/edit-session",
+        params: { 
+          sessionId: liveSession.id,
+          returnTo: "/live-session" 
+        }
+      });
       // Clear the action parameter
       router.setParams({ action: undefined });
     }
@@ -215,25 +219,6 @@ export default function LiveSessionScreen() {
 
   const showRatings = liveSession.showRatings;
   const scoring = liveSession.scoring;
-
-  // Session editing functions
-  const openEditSessionModal = () => {
-    setEditSessionModalVisible(true);
-  };
-
-  const closeEditSessionModal = () => {
-    setEditSessionModalVisible(false);
-  };
-
-  const handleSaveSession = (
-    sessionData:
-      | Session
-      | Omit<Session, "id" | "state" | "createdAt" | "updatedAt">,
-  ) => {
-    const data = sessionData as Session;
-    dispatch(updateSession(data));
-    closeEditSessionModal();
-  };
 
   const handleGenerateNewRound = () => {
     const sessionCoordinator = new SessionCoordinator(
@@ -739,7 +724,13 @@ export default function LiveSessionScreen() {
           <Menu.Item
             onPress={() => {
               setPulldownMenuVisible(false);
-              openEditSessionModal();
+              router.navigate({
+                pathname: "/edit-session",
+                params: { 
+                  sessionId: liveSession.id,
+                  returnTo: "/live-session" 
+                }
+              });
             }}
             title="Edit Session"
             leadingIcon="account-edit"
@@ -1072,13 +1063,6 @@ export default function LiveSessionScreen() {
         courts={liveSession.courts}
         onSave={handleRoundScoresSubmitted}
         onClose={() => setScoreModalVisible(false)}
-      />
-
-      <EditSessionModal
-        visible={editSessionModalVisible}
-        session={liveSession}
-        onSave={handleSaveSession}
-        onCancel={closeEditSessionModal}
       />
 
       <PlayerStatsModal

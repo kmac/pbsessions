@@ -174,13 +174,7 @@ const RootLayoutNav = () => {
       <PaperProvider theme={theme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="between-rounds"
-            options={{
-              presentation: "pageSheet",
-              headerShown: false,
-            }}
-          />
+          <Stack.Screen name="(modals)" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </PaperProvider>
@@ -214,3 +208,4 @@ export default function RootLayout() {
     </StoreProvider>
   );
 }
+
