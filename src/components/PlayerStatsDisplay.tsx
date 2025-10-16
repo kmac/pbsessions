@@ -11,6 +11,7 @@ interface PlayerStatsDisplayProps {
   compact?: boolean; // For smaller displays like dialogs
   showPlayingPercentage?: boolean;
   showMostFrequentPartner?: boolean;
+  showMostFrequentOpponent?: boolean;
 }
 
 export const PlayerStatsDisplay: React.FC<PlayerStatsDisplayProps> = ({
@@ -20,6 +21,7 @@ export const PlayerStatsDisplay: React.FC<PlayerStatsDisplayProps> = ({
   compact = false,
   showPlayingPercentage = true,
   showMostFrequentPartner = true,
+  showMostFrequentOpponent = true,
 }) => {
   const theme = useTheme();
 
@@ -35,8 +37,13 @@ export const PlayerStatsDisplay: React.FC<PlayerStatsDisplayProps> = ({
     ([, a], [, b]) => b - a,
   )[0];
 
-  const getPartnerName = (partnerId: string): string => {
-    return allPlayers.find((p) => p.id === partnerId)?.name || "Unknown";
+  const opponentCount = Object.keys(stats.opponents).length;
+  const mostFrequentOpponent = Object.entries(stats.opponents).sort(
+    ([, a], [, b]) => b - a,
+  )[0];
+
+  const getPlayerName = (playerId: string): string => {
+    return allPlayers.find((p) => p.id === playerId)?.name || "Unknown";
   };
 
   const iconSize = compact ? 16 : 20;
@@ -144,6 +151,22 @@ export const PlayerStatsDisplay: React.FC<PlayerStatsDisplayProps> = ({
         </View>
 
         <View style={{ alignItems: "center", gap: 4 }}>
+          <Users size={iconSize} color={theme.colors.primary} />
+          <Text variant={titleVariant} style={{ fontWeight: "bold" }}>
+            {opponentCount}
+          </Text>
+          <Text
+            variant="labelSmall"
+            style={{
+              color: theme.colors.onSurfaceVariant,
+              textAlign: "center",
+            }}
+          >
+            Opponents
+          </Text>
+        </View>
+
+        <View style={{ alignItems: "center", gap: 4 }}>
           <BarChart3 size={iconSize} color={theme.colors.primary} />
           <Text variant={titleVariant} style={{ fontWeight: "bold" }}>
             {averageScore.toFixed(1)}
@@ -201,9 +224,37 @@ export const PlayerStatsDisplay: React.FC<PlayerStatsDisplayProps> = ({
             <Text
               style={{ fontWeight: "500", color: theme.colors.onSurface }}
             >
-              {getPartnerName(mostFrequentPartner[0])}
+              {getPlayerName(mostFrequentPartner[0])}
             </Text>{" "}
             ({mostFrequentPartner[1]} games)
+          </Text>
+        </View>
+      )}
+
+      {/* Most frequent opponent */}
+      {showMostFrequentOpponent && mostFrequentOpponent && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingTop: 12,
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.outline,
+          }}
+        >
+          <UserCheck size={14} color={theme.colors.onSurfaceVariant} />
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            Most played against{" "}
+            <Text
+              style={{ fontWeight: "500", color: theme.colors.onSurface }}
+            >
+              {getPlayerName(mostFrequentOpponent[0])}
+            </Text>{" "}
+            ({mostFrequentOpponent[1]} games)
           </Text>
         </View>
       )}

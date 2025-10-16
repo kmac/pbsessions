@@ -126,6 +126,15 @@ export const playerStatsToString = (stats: PlayerStats[]): string => {
     } else {
       lines.push(`  Partners: None`);
     }
+    const opponentEntries = Object.entries(pstat.opponents);
+    if (opponentEntries.length > 0) {
+      lines.push(`  Opponents:`);
+      opponentEntries.forEach(([opponentId, gameCount]) => {
+        lines.push(`    ${opponentId}: ${gameCount} games`);
+      });
+    } else {
+      lines.push(`  Opponents: None`);
+    }
   });
   return lines.join("\n");
 };

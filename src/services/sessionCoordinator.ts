@@ -16,12 +16,11 @@ import { APP_CONFIG } from "../constants";
 import { Alert } from "@/src/utils/alert";
 import {
   DefaultPlayerAssignmentStrategy,
-  LotteryPlayerAssignmentStrategy,
-  FairWeightedPlayerAssignmentStrategy,
-  PartnershipConstraints,
-  PartnershipUnit,
+  PartnershipContext,
   PlayerAssignmentStrategy,
 } from "./strategy/PlayerAssignmentStrategy";
+import { FairWeightedPlayerAssignmentStrategy } from "./strategy/FairWeightedPlayerAssignmentStrategy";
+import { LotteryPlayerAssignmentStrategy } from "./strategy/LotteryPlayerAssignmentStrategy";
 import { getCurrentRoundIndex } from "./sessionService";
 
 type Strategy = "default" | "lottery" | "fairweight";
@@ -58,8 +57,11 @@ export class SessionCoordinator {
       pausedPlayers.map((player) => player.id),
     );
     this.partnershipConstraint = session.partnershipConstraint;
-  this.currentRoundIndex = getCurrentRoundIndex(session); // Use helper function
-  this.currentRound = session.liveData.rounds[this.currentRoundIndex] || { games: [], sittingOutIds: [] };
+    this.currentRoundIndex = getCurrentRoundIndex(session); // Use helper function
+    this.currentRound = session.liveData.rounds[this.currentRoundIndex] || {
+      games: [],
+      sittingOutIds: [],
+    };
 
     // Initialize or load existing stats
     players.forEach((player) => {
@@ -74,6 +76,7 @@ export class SessionCoordinator {
           gamesSatOut: 0,
           consecutiveGames: 0,
           partners: {},
+          opponents: {},
           fixedPartnershipGames: 0,
           totalScore: 0,
           totalScoreAgainst: 0,
@@ -133,6 +136,7 @@ export class SessionCoordinator {
   // - For courts with one partnership: pairs it against two flexible players
   // - For courts with no partnerships: uses either balanced rating teams or diverse partnership combinations
   // - Prioritizes new partner pairings to maximize player variety
+  //   - Also want to prioritize new opponents
   //
   // **Step 5: Finalize Results**
   // - Updates sitting out list to include any players who couldn't be assigned due to constraints
@@ -148,19 +152,17 @@ export class SessionCoordinator {
     const playersPerRound =
       this.activeCourts.length * APP_CONFIG.MIN_PLAYERS_PER_GAME;
 
-    // Step 1: Extract partnership constraints
-    const partnershipConstraints =
-      this.extractPartnershipConstraints(availablePlayers);
+    // Step 1: Extract partnership context
+    const partnershipContext: PartnershipContext =
+      this.buildPartnershipContext(availablePlayers);
 
     // Step 2: Determine who sits out (considering partnerships)
     if (!sittingOut) {
-      sittingOut =
-        this.assignmentStrategy.selectSittingOutPlayersWithPartnerships(
-          partnershipConstraints,
-          playersPerRound,
-        );
+      sittingOut = this.assignmentStrategy.selectSittingOutPlayers(
+        partnershipContext,
+        playersPerRound,
+      );
     }
-
     const sittingOutIds = new Set(sittingOut.map((player) => player.id));
     const playingPlayers = availablePlayers.filter(
       (p) => !sittingOutIds.has(p.id),
@@ -168,20 +170,21 @@ export class SessionCoordinator {
 
     // Step 3: Assign players to courts based on rating requirements and partnerships
     const courtAssignments: Player[][] =
-      this.assignmentStrategy.assignPlayersToCourtsWithPartnerships(
+      this.assignmentStrategy.assignPlayersToCourts(
         playingPlayers,
-        partnershipConstraints,
+        partnershipContext,
       );
 
-    // ...existing code...
-    // Step 4: Create team assignments for each court (honoring partnerships)
+    // Step 4: We now have players assigned to courts.  We need to create teams.
+    // Create team assignments for each court (honoring partnerships)
     courtAssignments.forEach((courtPlayers, courtIndex) => {
       if (courtPlayers.length === 4 && courtIndex < this.activeCourts.length) {
         const court = this.activeCourts[courtIndex];
-        const teams = this.assignTeamsForCourtWithPartnerships(
-          courtPlayers,
+
+        const teams = this.assignTeamsOnCourt(
           court,
-          partnershipConstraints,
+          courtPlayers,
+          partnershipContext,
         );
 
         gameAssignments.push({
@@ -210,7 +213,7 @@ export class SessionCoordinator {
             playingPlayers,
             sittingOut,
             actualSittingOut,
-            partnershipConstraints,
+            partnershipContext,
             courtAssignments,
             gameAssignments,
             assignedPlayerIds,
@@ -226,7 +229,7 @@ export class SessionCoordinator {
         playingPlayers,
         sittingOut,
         actualSittingOut,
-        partnershipConstraints,
+        partnershipContext,
         courtAssignments,
         gameAssignments,
         assignedPlayerIds,
@@ -238,11 +241,9 @@ export class SessionCoordinator {
     };
   }
 
-  private extractPartnershipConstraints(
-    players: Player[],
-  ): PartnershipConstraints {
-    const fixedPairs = new Map<string, string>(); // maps each partner to the other
-    const partnershipUnits: PartnershipUnit[] = [];
+  private buildPartnershipContext(players: Player[]): PartnershipContext {
+    const partnerMap = new Map<string, string>(); // maps each partner to the other
+    const pairs: Array<{ players: [Player, Player]; maxRating: number }> = [];
     const playerSet = new Set(players.map((p) => p.id));
 
     if (
@@ -266,18 +267,17 @@ export class SessionCoordinator {
             )!;
 
             if (player1 && player2) {
-              // map each partner to the other
-              fixedPairs.set(partnership.player1Id, partnership.player2Id);
-              fixedPairs.set(partnership.player2Id, partnership.player1Id);
+              // Build bidirectional map
+              partnerMap.set(partnership.player1Id, partnership.player2Id);
+              partnerMap.set(partnership.player2Id, partnership.player1Id);
 
               const maxRating = Math.max(
                 player1.rating || 0,
                 player2.rating || 0,
               );
 
-              partnershipUnits.push({
+              pairs.push({
                 players: [player1, player2],
-                partnership,
                 maxRating,
               });
             } else {
@@ -292,27 +292,27 @@ export class SessionCoordinator {
         });
     }
 
-    const flexiblePlayers = players.filter((p) => !fixedPairs.has(p.id));
+    const unpairedPlayers = players.filter((p) => !partnerMap.has(p.id));
 
     return {
-      fixedPairs,
-      flexiblePlayers,
-      partnershipUnits,
+      partnerMap,
+      unpairedPlayers,
+      pairs,
     };
   }
 
-  private assignTeamsForCourtWithPartnerships(
-    players: Player[],
+  private assignTeamsOnCourt(
     court: Court,
-    constraints: PartnershipConstraints,
+    players: Player[],
+    context: PartnershipContext,
   ): {
     serveTeam: Team;
     receiveTeam: Team;
   } {
     // Check for fixed partnerships in this court
     const playerIds = new Set(players.map((p) => p.id));
-    const courtPartnerships = constraints.partnershipUnits.filter((unit) =>
-      unit.players.every((player) => playerIds.has(player.id)),
+    const courtPartnerships = context.pairs.filter((pair) =>
+      pair.players.every((player) => playerIds.has(player.id)),
     );
 
     if (courtPartnerships.length === 2) {
@@ -373,6 +373,7 @@ export class SessionCoordinator {
         gamesSatOut: s.gamesSatOut,
         consecutiveGames: s.consecutiveGames,
         partnerships: Object.keys(s.partners).length,
+        opponents: Object.keys(s.opponents).length,
         fixedPartnershipGames: s.fixedPartnershipGames,
       })),
     );
@@ -399,6 +400,7 @@ export class SessionCoordinator {
       const mutableStats = {
         ...stats,
         partners: { ...stats.partners },
+        opponents: { ...stats.opponents },
       };
       mutableStats.gamesPlayed++;
       mutableStats.consecutiveGames++;
@@ -473,8 +475,8 @@ export class SessionCoordinator {
 
       // Calculate partner diversity score (higher is better)
       const diversityScore =
-        this.getPartnershipScore(team1[0], team1[1]) +
-        this.getPartnershipScore(team2[0], team2[1]);
+        this.getPlayedWithScore(team1[0], team1[1]) +
+        this.getPlayedWithScore(team2[0], team2[1]);
 
       // Prefer rating balance, but use diversity as tiebreaker
       const isBetter =
@@ -503,6 +505,7 @@ export class SessionCoordinator {
     };
   }
 
+  // This is post court assignment. We're just dividing up the players into two teams.
   private createDiversePartnerTeams(players: Player[]): {
     serveTeam: Team;
     receiveTeam: Team;
@@ -513,8 +516,8 @@ export class SessionCoordinator {
 
     combinations.forEach(({ team1, team2 }) => {
       // Calculate diversity score (negative partnership counts, so higher is better)
-      const team1Score = this.getPartnershipScore(team1[0], team1[1]);
-      const team2Score = this.getPartnershipScore(team2[0], team2[1]);
+      const team1Score = this.getPlayedWithScore(team1[0], team1[1]);
+      const team2Score = this.getPlayedWithScore(team2[0], team2[1]);
       const totalScore = team1Score + team2Score;
 
       if (totalScore > bestDiversity.score) {
@@ -559,11 +562,18 @@ export class SessionCoordinator {
     return combinations;
   }
 
-  private getPartnershipScore(player1: Player, player2: Player): number {
+  private getPlayedWithScore(player1: Player, player2: Player): number {
     const stats1 = this.playerStats.get(player1.id)!;
     const timesPartnered = stats1.partners[player2.id] || 0;
     // Return negative score so that fewer partnerships = higher score for diversity
     return -timesPartnered;
+  }
+
+  private getPlayedAgainstScore(player1: Player, player2: Player): number {
+    const stats1 = this.playerStats.get(player1.id)!;
+    const timesOpposed = stats1.opponents[player2.id] || 0;
+    // Return negative score so that fewer times opposed = higher score for diversity
+    return -timesOpposed;
   }
 
   private getTeammateId(game: Game, playerId: string): string | null {

@@ -112,6 +112,7 @@ export interface PlayerStats {
   gamesSatOut: number;
   consecutiveGames: number;
   partners: { [playerId: string]: number }; // count of games played with each partner
+  opponents: { [playerId: string]: number }; // count of games played against each player
   fixedPartnershipGames: number; // games played with fixed partner
   totalScore: number;
   totalScoreAgainst: number;

@@ -48,6 +48,7 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
         gamesSatOut: 0,
         consecutiveGames: 0,
         partners: {},
+        opponents: {},
         fixedPartnershipGames: 0,
         totalScore: 0,
         totalScoreAgainst: 0,
