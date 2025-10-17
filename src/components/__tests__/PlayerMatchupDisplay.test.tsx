@@ -8,7 +8,7 @@ import { Session, SessionState, Player, Game, Round } from "@/src/types";
 import { v4 as uuidv4 } from "uuid";
 
 // Mock the matchup service
-jest.mock("@/src/services/matchupService", () => ({
+jest.mock("@/src/utils/playerMatchups", () => ({
   generateSessionMatchupData: jest.fn(),
 }));
 
@@ -23,7 +23,7 @@ jest.mock("@/src/utils/util", () => ({
   getPlayerName: jest.fn(),
 }));
 
-import { generateSessionMatchupData } from "@/src/services/matchupService";
+import { generateSessionMatchupData } from "@/src/utils/playerMatchups";
 import { getSessionPlayers } from "@/src/utils/util";
 
 const mockGenerateSessionMatchupData =

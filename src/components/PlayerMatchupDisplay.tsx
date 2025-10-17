@@ -17,7 +17,7 @@ import {
   generateSessionMatchupData,
   PlayerMatchupStats,
   SessionMatchupData,
-} from "@/src/services/matchupService";
+} from "@/src/utils/playerMatchups";
 import { getSessionPlayers, getPlayerName } from "@/src/utils/util";
 import { useAppSelector } from "@/src/store";
 import { isNarrowScreen } from "@/src/utils/screenUtil";

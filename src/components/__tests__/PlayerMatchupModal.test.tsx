@@ -8,7 +8,7 @@ import { Session, SessionState, Player } from "@/src/types";
 import { v4 as uuidv4 } from "uuid";
 
 // Mock the matchup service and display component
-jest.mock("@/src/services/matchupService", () => ({
+jest.mock("@/src/utils/playerMatchups", () => ({
   generateSessionMatchupData: jest.fn(() => ({})),
 }));
 

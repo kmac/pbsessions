@@ -21,13 +21,13 @@
 // - ✅ `getPlayerPairSummary` with valid and invalid inputs
 // - ✅ `getPlayerMatchups` with valid and invalid inputs
 //
-// Run these tests with: `npm test -- src/services/__tests__/matchupService.test.ts`
+// Run these tests with: `npm test -- src/utils/__tests__/playerMatchups.test.ts`
 import {
   generateSessionMatchupData,
   getPlayerPairSummary,
   getPlayerMatchups,
   PlayerMatchupStats,
-} from "../matchupService";
+} from "../playerMatchups";
 import {
   Session,
   SessionState,
@@ -91,7 +91,7 @@ const createTestSession = (
   liveData,
 });
 
-describe("matchupService", () => {
+describe("playerMatchups", () => {
   let player1Id: string;
   let player2Id: string;
   let player3Id: string;
