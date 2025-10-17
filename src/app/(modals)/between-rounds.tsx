@@ -199,8 +199,10 @@ export default function BetweenRoundsScreen() {
               {isNarrowScreen() ? "Session" : "Session"}
             </Button>
           )}
-          <Appbar.Action
-            icon="help-circle"
+          <IconButton
+            icon="tooltip-question"
+            size={30}
+            mode="contained"
             onPress={() => {
               toggleBanner();
             }}

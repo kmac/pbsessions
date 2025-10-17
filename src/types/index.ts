@@ -54,8 +54,6 @@ export interface FixedPartnership {
   id: string;
   player1Id: string;
   player2Id: string;
-  // Optional descriptive name
-  name?: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -63,7 +61,7 @@ export interface FixedPartnership {
 export interface PartnershipConstraint {
   partnerships: FixedPartnership[];
   // If true, both players in a partnership must play or both sit out
-  // There is global Settings defaultEnforceFixedPartnerships
+  // There is a global setting: defaultEnforceFixedPartnerships
   enforceAllPairings: boolean;
 }
 

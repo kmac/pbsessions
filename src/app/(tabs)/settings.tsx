@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Linking, View, ScrollView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Constants from "expo-constants";
 import {
   Button,
   Card,
@@ -521,7 +520,11 @@ export default function SettingsTab() {
 
   const AboutCard = () => (
     <Card>
-      <Card.Title title="About" />
+      <Card.Title
+        title="About"
+        // titleVariant="titleLarge"
+        // titleStyle={{ fontWeight: "600" }}
+      />
       <Card.Content>
         <Text
           variant="titleMedium"
@@ -532,23 +535,82 @@ export default function SettingsTab() {
         >
           Pickleball Sessions
         </Text>
-        <Text>{versionInfo}</Text>
-        <Text
-          variant="bodyMedium"
+        <View style={{ flexDirection: "column" }}>
+          <Text
+            variant="bodyMedium"
+            style={{
+              marginBottom: 20,
+              //lineHeight: 20,
+              color: theme.colors.onSurfaceVariant,
+            }}
+          >
+            Organize and manage pickleball sessions with fair player rotation
+            and team balancing.
+          </Text>
+          <Text style={{ marginBottom: 2 }}>Version: {versionInfo}</Text>
+        </View>
+        <View
           style={{
-            lineHeight: 20,
-            color: theme.colors.onSurfaceVariant,
+            flexDirection: "column",
+            marginTop: 10,
           }}
         >
-          Organize and manage pickleball sessions with fair player rotation and
-          team balancing.
-        </Text>
-        <Button
-          icon="github"
-          onPress={() => Linking.openURL("https://github.com/kmac/pbsessions")}
-        >
-          https://github.com/kmac/pbsessions
-        </Button>
+          {/* Row 1 */}
+          <View style={{ flexDirection: "row" }}>
+            <View
+              style={{
+                //flex: 1,
+                flexBasis: "15%",
+                justifyContent: "center",
+              }}
+            >
+              <Text variant="bodyMedium">PWA (fully offline):</Text>
+            </View>
+            <View
+              style={{
+                // padding: 12,
+                // justifyContent: "flex-start",
+                alignContent: "flex-start",
+              }}
+            >
+              <Button
+                icon="open-in-app"
+                compact
+                onPress={() => Linking.openURL("https://pbsessions.app/")}
+              >
+                https://pbsessions.app/
+              </Button>
+            </View>
+          </View>
+          {/* Row 2 */}
+          <View style={{ flexDirection: "row" }}>
+            <View
+              style={{
+                // flex: 1,
+                flexBasis: "15%",
+                justifyContent: "center",
+              }}
+            >
+              <Text variant="bodyMedium">Source:</Text>
+            </View>
+            <View
+              style={{
+                // flex: 4,
+                alignContent: "flex-start",
+              }}
+            >
+              <Button
+                icon="github"
+                compact
+                onPress={() =>
+                  Linking.openURL("https://github.com/kmac/pbsessions")
+                }
+              >
+                https://github.com/kmac/pbsessions
+              </Button>
+            </View>
+          </View>
+        </View>
       </Card.Content>
     </Card>
   );

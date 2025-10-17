@@ -1,14 +1,16 @@
-import React, { useState } from "react";
-import { View, StyleSheet, FlatList, Modal } from "react-native";
+import React, { useRef, useState } from "react";
+import { View, ScrollView, FlatList, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
-  Avatar,
+  Banner,
   Button,
   Card,
+  Divider,
   Chip,
   Icon,
   IconButton,
+  List,
   Surface,
   Text,
   useTheme,
@@ -38,6 +40,16 @@ export default function GroupsTab() {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const isAppInitialized = useAppSelector((state) => state.app.isInitialized);
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const toggleBanner = () => {
+    let visible = bannerVisible;
+    setBannerVisible(!visible);
+    if (!visible && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: 0, animated: true });
+    }
+  };
 
   const handleDeleteGroup = (group: Group) => {
     Alert.alert(
@@ -293,13 +305,6 @@ export default function GroupsTab() {
       >
         <TabHeader title="Groups" />
 
-        <View
-          style={{
-            flexDirection: "row",
-            gap: 8,
-            marginLeft: 12,
-          }}
-        >
           <Button
             icon="plus"
             mode="contained"
@@ -307,7 +312,14 @@ export default function GroupsTab() {
           >
             Add Group
           </Button>
-        </View>
+          <IconButton
+            icon="tooltip-question"
+            mode="contained"
+            size={30}
+            onPress={() => {
+              toggleBanner();
+            }}
+          />
       </Surface>
 
       <FlatList
@@ -319,10 +331,70 @@ export default function GroupsTab() {
         }}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <TopDescription
-            visible={true}
-            description="Organize players in groups for easier session management."
-          />
+          <ScrollView
+            ref={scrollViewRef}
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1 }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <IconButton
+                icon={bannerVisible ? "chevron-up" : "chevron-down"}
+                onPress={() => {
+                  toggleBanner();
+                }}
+              />
+            </View>
+            <Banner
+              visible={bannerVisible}
+              contentStyle={{
+                width: "90%",
+              }}
+              actions={[
+                {
+                  label: "Dismiss",
+                  onPress: () => {
+                    setBannerVisible(false);
+                  },
+                },
+              ]}
+            >
+              <View
+                style={{
+                  alignItems: "stretch",
+                  marginTop: 20,
+                }}
+              >
+                <TopDescription
+                  visible={true}
+                  description={
+                    "Organize players in groups for easier session management. " +
+                    "Create a new group and add players to it. " +
+                    "You can then use this group when creating a new session."
+                  }
+                />
+                <Card>
+                  <List.Item
+                    descriptionNumberOfLines={5}
+                    title="Add Group"
+                    description="The top button lets you add a new group of players."
+                  />
+                  <Divider />
+                  <List.Item
+                    descriptionNumberOfLines={5}
+                    title="Manage Players"
+                    description="Once a group has been created you can add/remove players from the players list."
+                  />
+                </Card>
+              </View>
+            </Banner>
+          </ScrollView>
         }
         ListEmptyComponent={<EmptyState />}
       />

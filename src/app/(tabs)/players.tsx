@@ -1,12 +1,5 @@
 import React, { useRef, useState } from "react";
-import {
-  Image,
-  View,
-  FlatList,
-  Modal,
-  Platform,
-  ScrollView,
-} from "react-native";
+import { View, FlatList, Modal, Platform, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
@@ -666,6 +659,13 @@ export default function PlayersTab() {
           >
             Add
           </Button>
+          <IconButton
+            icon="tooltip-question"
+            mode="contained"
+            onPress={() => {
+              toggleBanner();
+            }}
+          />
           <Menu
             visible={menuVisible}
             onDismiss={() => setMenuVisible(false)}
@@ -830,6 +830,15 @@ export default function PlayersTab() {
                     descriptionNumberOfLines={5}
                     title="Multiple selecton"
                     description="Select multiple players to quickly add to an existing group or bulk delete."
+                  />
+                  <Divider />
+                  <List.Item
+                    descriptionNumberOfLines={5}
+                    title="Menu Items (top right)"
+                    description={
+                      "Import: import players from a comma-separated variable (CSV) list. " + ("\n") +
+                      "Export: export players to a CSV list"
+                    }
                   />
                 </Card>
               </View>

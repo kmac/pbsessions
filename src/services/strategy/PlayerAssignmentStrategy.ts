@@ -1,16 +1,16 @@
-import { Player, Court, PlayerStats, PartnershipConstraint } from "@/src/types";
+import { Player, Court, FixedPartnership, PlayerStats, PartnershipConstraint } from "@/src/types";
 import { APP_CONFIG } from "../../constants";
+
+export interface PartnershipUnit {
+  players: [Player, Player];
+  partnership: FixedPartnership;
+  maxRating: number; // Higher of the two player ratings
+}
 
 export interface PartnershipConstraints {
   fixedPairs: Map<string, string>; // playerId -> partnerId
   flexiblePlayers: Player[];
   partnershipUnits: PartnershipUnit[];
-}
-
-export interface PartnershipUnit {
-  players: [Player, Player];
-  partnership: any; // FixedPartnership type
-  maxRating: number; // Higher of the two player ratings
 }
 
 export abstract class PlayerAssignmentStrategy {

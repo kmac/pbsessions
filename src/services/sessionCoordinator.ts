@@ -282,9 +282,7 @@ export class SessionCoordinator {
               });
             } else {
               // very unexpected
-              const partnershipInfo = partnership.name
-                ? partnership.name
-                : `${partnership.player1Id} / ${partnership.player2Id}`;
+              const partnershipInfo = `${partnership.player1Id} / ${partnership.player2Id}`;
               Alert.alert(
                 "Error",
                 `Partnership has invalid data: ${partnershipInfo}`,
