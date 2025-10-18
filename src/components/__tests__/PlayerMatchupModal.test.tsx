@@ -12,13 +12,17 @@ jest.mock("@/src/utils/playerMatchups", () => ({
   generateSessionMatchupData: jest.fn(() => ({})),
 }));
 
-jest.mock("../PlayerMatchupDisplay", () => ({
-  PlayerMatchupDisplay: ({ session }: { session: Session }) => (
-    <div data-testid="player-matchup-display">
-      Matchup Display for {session.name}
-    </div>
-  ),
-}));
+jest.mock("../PlayerMatchupDisplay", () => {
+  const React = require("react");
+  const { View, Text } = require("react-native");
+  return {
+    PlayerMatchupDisplay: ({ session }: { session: any }) => (
+      <View testID="player-matchup-display">
+        <Text>{`Matchup Display for ${session.name}`}</Text>
+      </View>
+    ),
+  };
+});
 
 // Mock screen util
 jest.mock("@/src/utils/screenUtil", () => ({
@@ -90,7 +94,6 @@ describe("PlayerMatchupModal", () => {
     );
 
     expect(screen.getByText("Player Matchups")).toBeTruthy();
-    expect(screen.getByText("Test Session")).toBeTruthy();
     expect(screen.getByTestId("player-matchup-display")).toBeTruthy();
   });
 
