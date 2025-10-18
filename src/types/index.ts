@@ -65,6 +65,20 @@ export interface PartnershipConstraint {
   enforceAllPairings: boolean;
 }
 
+export interface PartnershipContext {
+  // Map for quick lookups: playerId -> partnerId
+  partnerMap: Map<string, string>;
+
+  // Players without fixed partners
+  unpairedPlayers: Player[];
+
+  // Fixed pairs with their max rating (for court assignment)
+  pairs: Array<{
+    players: [Player, Player];
+    maxRating: number;
+  }>;
+}
+
 export interface Session {
   id: string;
   name: string;
@@ -80,7 +94,7 @@ export interface Session {
   updatedAt: string;
   liveData?: {
     rounds: Round[];
-    playerStats: PlayerStats[];
+    playerStats: PlayerStats[];  // SHOULD THIS BE A MAP?
   };
 }
 
@@ -113,6 +127,7 @@ export interface PlayerStats {
   consecutiveGames: number;
   partners: { [playerId: string]: number }; // count of games played with each partner
   opponents: { [playerId: string]: number }; // count of games played against each player
+  gamesOnCourt: { [courtId: string]: number }; // count of games played on court
   fixedPartnershipGames: number; // games played with fixed partner
   totalScore: number;
   totalScoreAgainst: number;

@@ -19,7 +19,7 @@ import {
 } from "react-native-paper";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import { updateSession } from "@/src/store/slices/sessionsSlice";
-import { SessionCoordinator } from "@/src/services/sessionCoordinator";
+import { RoundAssigner } from "@/src/services/roundAssigner";
 import { RoundComponent } from "@/src/components/RoundComponent";
 import { RoundScoreEntryModal } from "@/src/components/RoundScoreEntryModal";
 import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
@@ -221,12 +221,12 @@ export default function LiveSessionScreen() {
   const scoring = liveSession.scoring;
 
   const handleGenerateNewRound = () => {
-    const sessionCoordinator = new SessionCoordinator(
+    const roundAssigner = new RoundAssigner(
       liveSession,
       liveSessionPlayers,
       liveSessionPausedPlayers,
     );
-    const roundAssignment = sessionCoordinator.generateRoundAssignment();
+    const roundAssignment = roundAssigner.generateRoundAssignment();
     if (roundAssignment.gameAssignments.length === 0) {
       Alert.alert(
         "Cannot Generate Round",
@@ -271,12 +271,12 @@ export default function LiveSessionScreen() {
   };
 
   const handleRoundScoresSubmitted = (results: Results) => {
-    const sessionCoordinator = new SessionCoordinator(
+    const roundAssigner = new RoundAssigner(
       liveSession,
       liveSessionPlayers,
       liveSessionPausedPlayers,
     );
-    const updatedPlayerStats = sessionCoordinator.updateStatsForRound(
+    const updatedPlayerStats = roundAssigner.updateStatsForRound(
       currentRound.games,
       results,
     );
@@ -462,6 +462,7 @@ export default function LiveSessionScreen() {
     };
 
     const generateNextRound = () => {
+      let roundAssigner: RoundAssigner;
       // Check if finished
       if (successfulRounds >= numRounds) {
         // Update our session with all the new rounds.
@@ -475,12 +476,12 @@ export default function LiveSessionScreen() {
       }
 
       try {
-        let sc = new SessionCoordinator(
+        roundAssigner = new RoundAssigner(
           currentSession,
           liveSessionPlayers,
           liveSessionPausedPlayers,
         );
-        const roundAssignment = sc.generateRoundAssignment();
+        const roundAssignment = roundAssigner.generateRoundAssignment();
 
         if (roundAssignment.gameAssignments.length === 0) {
           Alert.alert(
@@ -504,13 +505,6 @@ export default function LiveSessionScreen() {
           );
           closeGenerateRoundsModal();
         }
-        // refresh our coordinator for updated session
-        sc = new SessionCoordinator(
-          currentSession,
-          liveSessionPlayers,
-          liveSessionPausedPlayers,
-        );
-
         // Update player stats and complete the round
         const currentRoundGames = getCurrentRound(currentSession, true).games;
         const results: Results = { scores: {} };
@@ -520,7 +514,12 @@ export default function LiveSessionScreen() {
             : null;
         });
 
-        const updatedPlayerStats = sc.updateStatsForRound(
+        roundAssigner = new RoundAssigner(
+          currentSession,
+          liveSessionPlayers,
+          liveSessionPausedPlayers,
+        );
+        const updatedPlayerStats = roundAssigner.updateStatsForRound(
           currentRoundGames,
           results,
         );
@@ -545,133 +544,6 @@ export default function LiveSessionScreen() {
         Alert.alert(
           "Round Generation Error",
           `Error generating round ${successfulRounds + 1}: ${error}`,
-          [{ text: "OK" }],
-        );
-        closeGenerateRoundsModal();
-      }
-    };
-
-    // Start generating rounds
-    generateNextRound();
-  };
-
-  const handleGenerateMultipleRoundsViaThunks = () => {
-    const numRounds = parseInt(generateNumberOfRounds);
-    if (isNaN(numRounds) || numRounds < 1 || numRounds > 20) {
-      Alert.alert(
-        "Invalid Number",
-        "Please enter a valid number of rounds (1-20).",
-        [{ text: "OK" }],
-      );
-      return;
-    }
-
-    let successfulRounds = 0;
-    let currentSession = { ...liveSession };
-
-    const simulateScore = (): Score => {
-      const randomOutcome = Math.floor(Math.random() * 10);
-      let score: Score = {
-        serveScore: 0,
-        receiveScore: 0,
-      };
-      if (randomOutcome <= 4) {
-        // serve-side wins
-        score.serveScore = 11;
-        score.receiveScore = Math.floor(Math.random() * 10);
-      } else {
-        // receive-side wins
-        score.receiveScore = 11;
-        score.serveScore = Math.floor(Math.random() * 10);
-      }
-      return score;
-    };
-
-    const generateNextRound = () => {
-      if (successfulRounds >= numRounds) {
-        // Update our session with all the new rounds.
-        dispatch(updateSession(currentSession));
-
-        Alert.alert(
-          "Rounds Generated",
-          `Successfully generated ${successfulRounds} round${successfulRounds > 1 ? "s" : ""}. You can view them using the session history.`,
-          [{ text: "OK" }],
-        );
-        closeGenerateRoundsModal();
-        return;
-      }
-
-      try {
-        let sc = new SessionCoordinator(
-          currentSession,
-          liveSessionPlayers,
-          liveSessionPausedPlayers,
-        );
-        const roundAssignment = sc.generateRoundAssignment();
-
-        if (roundAssignment.gameAssignments.length === 0) {
-          Alert.alert(
-            "Round Generation Stopped",
-            `Generated ${successfulRounds} rounds. Cannot generate more rounds - unable to create valid game assignments.`,
-            [{ text: "OK" }],
-          );
-          closeGenerateRoundsModal();
-          return;
-        }
-
-        currentSession = SessionService.applyNextRound(
-          currentSession,
-          roundAssignment,
-        );
-        if (!currentSession) {
-          Alert.alert(
-            "Round Generation Error",
-            `Generated ${successfulRounds} rounds. Error generating round ${successfulRounds + 1}.`,
-            [{ text: "OK" }],
-          );
-          closeGenerateRoundsModal();
-        }
-        // refresh our coordinator for updated session
-        sc = new SessionCoordinator(
-          currentSession,
-          liveSessionPlayers,
-          liveSessionPausedPlayers,
-        );
-
-        // Update player stats and complete the round
-        const currentRoundGames = getCurrentRound(currentSession, true).games;
-        const results: Results = { scores: {} };
-        currentRoundGames.forEach((game) => {
-          results.scores[game.id] = generateSimulateScoring
-            ? simulateScore()
-            : null;
-        });
-
-        const updatedPlayerStats = sc.updateStatsForRound(
-          currentRoundGames,
-          results,
-        );
-
-        currentSession = SessionService.completeRound(
-          currentSession,
-          results,
-          updatedPlayerStats,
-        );
-        if (!currentSession) {
-          Alert.alert(
-            "Round Generation Error",
-            `Generated ${successfulRounds} rounds. Error completing round ${successfulRounds + 1}.`,
-            [{ text: "OK" }],
-          );
-          closeGenerateRoundsModal();
-        }
-
-        successfulRounds++;
-        generateNextRound();
-      } catch (error) {
-        Alert.alert(
-          "Round Generation Error",
-          `Successfully generated ${successfulRounds} rounds. Error generating round ${successfulRounds + 1}: ${error}`,
           [{ text: "OK" }],
         );
         closeGenerateRoundsModal();

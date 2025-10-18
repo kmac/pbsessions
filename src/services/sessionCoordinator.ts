@@ -3,6 +3,7 @@ import {
   Game,
   GameAssignment,
   PartnershipConstraint,
+  PartnershipContext,
   Player,
   PlayerStats,
   Results,
@@ -16,7 +17,6 @@ import { APP_CONFIG } from "../constants";
 import { Alert } from "@/src/utils/alert";
 import {
   DefaultPlayerAssignmentStrategy,
-  PartnershipContext,
   PlayerAssignmentStrategy,
 } from "./strategy/PlayerAssignmentStrategy";
 import { FairWeightedPlayerAssignmentStrategy } from "./strategy/FairWeightedPlayerAssignmentStrategy";
@@ -77,6 +77,7 @@ export class SessionCoordinator {
           consecutiveGames: 0,
           partners: {},
           opponents: {},
+          gamesOnCourt: {},
           fixedPartnershipGames: 0,
           totalScore: 0,
           totalScoreAgainst: 0,
@@ -374,6 +375,8 @@ export class SessionCoordinator {
         consecutiveGames: s.consecutiveGames,
         partnerships: Object.keys(s.partners).length,
         opponents: Object.keys(s.opponents).length,
+        // TODO print out this array:
+        //gamesOnCourt:  Object.keys(s.gamesOnCourt).length,
         fixedPartnershipGames: s.fixedPartnershipGames,
       })),
     );
@@ -401,6 +404,7 @@ export class SessionCoordinator {
         ...stats,
         partners: { ...stats.partners },
         opponents: { ...stats.opponents },
+        gamesOnCourt: { ...stats.gamesOnCourt },
       };
       mutableStats.gamesPlayed++;
       mutableStats.consecutiveGames++;
@@ -416,6 +420,17 @@ export class SessionCoordinator {
           mutableStats.fixedPartnershipGames++;
         }
       }
+
+      // Update opponent counts - with players on the opposing team
+      const opponentIds = this.getOpponentIds(game, playerId);
+      opponentIds.forEach((opponentId) => {
+        mutableStats.opponents[opponentId] =
+          (mutableStats.opponents[opponentId] || 0) + 1;
+      });
+
+      // Update games on court
+      mutableStats.gamesOnCourt[game.courtId] =
+        (mutableStats.gamesOnCourt[game.courtId] || 0) + 1;
 
       // Update score if provided
       if (score) {
@@ -588,6 +603,18 @@ export class SessionCoordinator {
       return game.receiveTeam.player1Id;
     }
     return null;
+  }
+
+  private getOpponentIds(game: Game, playerId: string): string[] {
+    // Determine which team the player is on and return the opposing team's player IDs
+    if (
+      game.serveTeam.player1Id === playerId ||
+      game.serveTeam.player2Id === playerId
+    ) {
+      return [game.receiveTeam.player1Id, game.receiveTeam.player2Id];
+    } else {
+      return [game.serveTeam.player1Id, game.serveTeam.player2Id];
+    }
   }
 
   private getPlayerScore(

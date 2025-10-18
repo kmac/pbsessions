@@ -1,8 +1,5 @@
-import { Player } from "@/src/types";
-import {
-  PartnershipContext,
-  PlayerAssignmentStrategy,
-} from "./PlayerAssignmentStrategy";
+import { PartnershipContext, Player } from "@/src/types";
+import { PlayerAssignmentStrategy } from "./PlayerAssignmentStrategy";
 
 export class FairWeightedPlayerAssignmentStrategy extends PlayerAssignmentStrategy {
   public selectSittingOutPlayers(

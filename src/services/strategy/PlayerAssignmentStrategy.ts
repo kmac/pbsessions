@@ -1,19 +1,5 @@
-import { Player, Court, PlayerStats, PartnershipConstraint } from "@/src/types";
+import { Player, Court, PlayerStats, PartnershipConstraint, PartnershipContext } from "@/src/types";
 import { APP_CONFIG } from "../../constants";
-
-export interface PartnershipContext {
-  // Map for quick lookups: playerId -> partnerId
-  partnerMap: Map<string, string>;
-
-  // Players without fixed partners
-  unpairedPlayers: Player[];
-
-  // Fixed pairs with their max rating (for court assignment)
-  pairs: Array<{
-    players: [Player, Player];
-    maxRating: number;
-  }>;
-}
 
 export abstract class PlayerAssignmentStrategy {
   protected activeCourts: Court[];

@@ -19,7 +19,7 @@ import { SessionState, Player } from "@/src/types";
 import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
 import { RoundComponent } from "@/src/components/RoundComponent";
 import { TopDescription } from "@/src/components/TopDescription";
-import { SessionCoordinator } from "@/src/services/sessionCoordinator";
+import { RoundAssigner } from "@/src/services/roundAssigner";
 import {
   getCurrentRoundInfo,
   getCurrentRoundNumber,
@@ -84,12 +84,12 @@ export default function BetweenRoundsScreen() {
 
     const sessionPlayers: Player[] = getSessionPlayers(currentSession, players);
 
-    const sessionCoordinator = new SessionCoordinator(
+    const roundAssigner = new RoundAssigner(
       currentSession,
       sessionPlayers,
       getSessionPausedPlayers(currentSession, players),
     );
-    const roundAssignment = sessionCoordinator.generateRoundAssignment();
+    const roundAssignment = roundAssigner.generateRoundAssignment();
 
     if (roundAssignment.gameAssignments.length === 0) {
       Alert.alert(

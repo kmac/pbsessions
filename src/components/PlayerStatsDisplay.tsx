@@ -238,9 +238,7 @@ export const PlayerStatsDisplay: React.FC<PlayerStatsDisplayProps> = ({
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
-            paddingTop: 12,
-            borderTopWidth: 1,
-            borderTopColor: theme.colors.outline,
+            paddingTop: 4,
           }}
         >
           <UserCheck size={14} color={theme.colors.onSurfaceVariant} />

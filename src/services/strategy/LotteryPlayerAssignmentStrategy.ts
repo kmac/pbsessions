@@ -1,6 +1,6 @@
-import { Player } from "@/src/types";
+import { PartnershipContext, Player } from "@/src/types";
 import { APP_CONFIG } from "../../constants";
-import { PartnershipContext, PlayerAssignmentStrategy } from "./PlayerAssignmentStrategy";
+import { PlayerAssignmentStrategy } from "./PlayerAssignmentStrategy";
 
 export class LotteryPlayerAssignmentStrategy extends PlayerAssignmentStrategy {
   public selectSittingOutPlayers(
