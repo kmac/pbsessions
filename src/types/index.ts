@@ -132,6 +132,8 @@ export interface PlayerStats {
   totalScore: number;
   totalScoreAgainst: number;
   averageRating?: number;
+  lastPartnerId?: string; // partner from the most recent game played
+  lastOpponentIds?: string[]; // two opponents from the most recent game played
 }
 
 export interface Results {

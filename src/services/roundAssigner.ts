@@ -54,8 +54,10 @@ Update list of eligible players for court (remove player1)
 Choose serve player2 - select by:
     - player1 has fixed partner? -> becomes player2 (done)
     - calculate partner scores:
-        - for all remaining players -> create list: number of times partnered
-          tiebreak:
+        - for all remaining players -> create list: number of times partnered with player1
+          tiebreak 1 (avoid consecutive partnering):
+              - filter out player1's last partner (soft constraint: keep all if no alternatives)
+          tiebreak 2 (court fairness):
               - create list: least games on this court (if rated)
               - list > 1? random select from list
 
@@ -65,8 +67,11 @@ Choose receive player3 - select by:
     - calculate "opponent score":
          - for each eligible player, generate a list weighted towards unseen players:
              - for each of player1 and player2:
-                 - score = 2 * number of times partnered  with + 2 * number of times opponent (using factor of 2 here to weigh player1/player2)
-    - select player3 by lowest opponent score
+                 - base score = 2 * number of times partnered with + 2 * number of times opponent (using factor of 2 here to weigh player1/player2)
+             - add recency penalty (soft constraint):
+                 - if player is in player1's lastOpponentIds: add 10
+                 - if player is in player2's lastOpponentIds: add 10
+    - select player3 by lowest opponent score (base + recency penalty)
 
 Update list of eligible players for court (remove player3)
 
@@ -74,9 +79,11 @@ Choose receive player4 - select by:
     - player3 has partner? -> becomes player4 (done)
     - calculate partner scores:
         - for all remaining players -> create list: number of times partnered with player3
-          tiebreak 1:
+          tiebreak 1 (avoid consecutive partnering):
+              - filter out player3's last partner (soft constraint: keep all if no alternatives)
+          tiebreak 2 (court fairness):
               - least games on this court (if court is rated)
-          tiebreak 2 (minimax):
+          tiebreak 3 (minimax):
               - for each candidate, calculate total interactions (partners + opponents) with all 3 players (player1, player2, player3)
               - for each candidate, find their maximum interaction count among the 3 players
               - select candidate(s) with the lowest maximum interaction count
@@ -138,6 +145,8 @@ export class RoundAssigner {
           fixedPartnershipGames: 0,
           totalScore: 0,
           totalScoreAgainst: 0,
+          lastPartnerId: undefined,
+          lastOpponentIds: undefined,
         },
       );
     });
@@ -250,14 +259,22 @@ export class RoundAssigner {
     eligiblePlayers: Player[],
   ): Player | undefined {
     // Choose player 1: least games on this court
+
+    let lowestScorePlayers: Player[];
+
     // Prioritize players with partnerships to ensure partnerships can be kept together
-    const lowestGamesOnCourt =
-      this.playerStats.get(eligiblePlayers[0].id)?.gamesOnCourt[court.id] || 0;
-    let lowestScorePlayers: Player[] = eligiblePlayers.filter(
-      (player) =>
-        (this.playerStats.get(player.id)?.gamesOnCourt[court.id] || 0) ===
-        lowestGamesOnCourt,
-    );
+    if (court.minimumRating) {
+      const lowestGamesOnCourt =
+        this.playerStats.get(eligiblePlayers[0].id)?.gamesOnCourt[court.id] ||
+        0;
+      lowestScorePlayers = eligiblePlayers.filter(
+        (player) =>
+          (this.playerStats.get(player.id)?.gamesOnCourt[court.id] || 0) ===
+          lowestGamesOnCourt,
+      );
+    } else {
+      lowestScorePlayers = eligiblePlayers;
+    }
 
     // If there are partnerships, try to select a partnered player first
     const partneredPlayers = lowestScorePlayers.filter((p) =>
@@ -301,7 +318,7 @@ export class RoundAssigner {
     const partnerCounts: { [playerId: string]: number } = {};
     for (const player of eligiblePlayers) {
       partnerCounts[player.id] =
-        this.playerStats.get(player.id)!.partners[player1.id] || 0;
+        this.playerStats.get(player.id)?.partners[player1.id] || 0;
     }
 
     // Find minimum partner count
@@ -312,7 +329,19 @@ export class RoundAssigner {
       (player) => partnerCounts[player.id] === minPartnerCount,
     );
 
-    // Tiebreak: if court is rated, filter by least games on this court
+    // Tiebreak 1: Avoid consecutive partnering (soft constraint)
+    if (candidates.length > 1) {
+      const player1Stats = this.playerStats.get(player1.id)!;
+      const nonRecentPartners = candidates.filter(
+        (p) => p.id !== player1Stats.lastPartnerId,
+      );
+      if (nonRecentPartners.length > 0) {
+        candidates = nonRecentPartners;
+      }
+      // Otherwise keep all candidates (necessary when limited options)
+    }
+
+    // Tiebreak 2: if court is rated, filter by least games on this court
     if (court.minimumRating && candidates.length > 1) {
       const courtGames = candidates.map((player) => ({
         player,
@@ -336,6 +365,10 @@ export class RoundAssigner {
     // Calculate opponent score for each eligible player
     // Score = 2 * (times partnered with p1 + times opposed to p1) +
     //         2 * (times partnered with p2 + times opposed to p2)
+    // Plus recency penalty for being a recent opponent of player1 or 2
+    const player1Stats = this.playerStats.get(player1.id)!;
+    const player2Stats = this.playerStats.get(player2.id)!;
+
     const opponentScores: { player: Player; score: number }[] =
       eligiblePlayers.map((player) => {
         const stats = this.playerStats.get(player.id)!;
@@ -345,7 +378,18 @@ export class RoundAssigner {
         const p2Partners = stats.partners[player2.id] || 0;
         const p2Opponents = stats.opponents[player2.id] || 0;
 
-        const score = 2 * (p1Partners + p1Opponents + p2Partners + p2Opponents);
+        const baseScore =
+          2 * (p1Partners + p1Opponents + p2Partners + p2Opponents);
+
+        // Add large penalty for being a recent opponent (soft constraint)
+        let recencyPenalty = 0;
+        if (player1Stats.lastOpponentIds?.includes(player.id)) {
+          recencyPenalty += 10;
+        }
+        if (player2Stats.lastOpponentIds?.includes(player.id)) {
+          recencyPenalty += 10;
+        }
+        const score = baseScore + recencyPenalty;
 
         return { player, score };
       });
@@ -395,7 +439,19 @@ export class RoundAssigner {
       (player) => partnerCounts[player.id] === minPartnerCount,
     );
 
-    // Tiebreak 1: if court is rated, filter by least games on this court
+    // Tiebreak 1: Avoid consecutive partnering (soft constraint)
+    if (candidates.length > 1) {
+      const player3Stats = this.playerStats.get(player3.id)!;
+      const nonRecentPartners = candidates.filter(
+        (p) => p.id !== player3Stats.lastPartnerId,
+      );
+      if (nonRecentPartners.length > 0) {
+        candidates = nonRecentPartners;
+      }
+      // Otherwise keep all candidates (necessary when limited options)
+    }
+
+    // Tiebreak 2: if court is rated, filter by least games on this court
     if (court.minimumRating && candidates.length > 1) {
       const courtGames = candidates.map((player) => ({
         player,
@@ -407,7 +463,7 @@ export class RoundAssigner {
         .map((cg) => cg.player);
     }
 
-    // Tiebreak 2: Minimax - choose player with lowest maximum interaction count
+    // Tiebreak 3: Minimax - choose player with lowest maximum interaction count
     // among all three players (player1, player2, player3)
     if (candidates.length > 1) {
       const interactionAnalysis = candidates.map((candidate) => {
@@ -585,6 +641,9 @@ export class RoundAssigner {
         if (this.isFixedPartnership(playerId, teammateId)) {
           mutableStats.fixedPartnershipGames++;
         }
+
+        // Track last partner
+        mutableStats.lastPartnerId = teammateId;
       }
 
       // Update opponent counts - with players on the opposing team
@@ -593,6 +652,9 @@ export class RoundAssigner {
         mutableStats.opponents[opponentId] =
           (mutableStats.opponents[opponentId] || 0) + 1;
       });
+
+      // Track last opponents
+      mutableStats.lastOpponentIds = opponentIds;
 
       // Update games on court
       mutableStats.gamesOnCourt[game.courtId] =
@@ -624,12 +686,8 @@ export class RoundAssigner {
     sittingOutIds.forEach((playerId) => {
       const stats = this.playerStats.get(playerId);
       if (stats) {
-        const mutableStats = {
-          ...stats,
-          partners: { ...stats.partners },
-          opponents: { ...stats.opponents },
-          gamesOnCourt: { ...stats.gamesOnCourt },
-        };
+        // Only updating primitive fields, so shallow copy is sufficient
+        const mutableStats = { ...stats };
         mutableStats.gamesSatOut++;
         mutableStats.consecutiveGames = 0;
         this.playerStats.set(playerId, mutableStats);

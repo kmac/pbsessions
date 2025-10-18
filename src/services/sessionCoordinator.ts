@@ -81,6 +81,8 @@ export class SessionCoordinator {
           fixedPartnershipGames: 0,
           totalScore: 0,
           totalScoreAgainst: 0,
+          lastPartnerId: undefined,
+          lastOpponentIds: undefined,
         },
       );
     });
@@ -419,6 +421,9 @@ export class SessionCoordinator {
         if (this.isFixedPartnership(playerId, teammateId)) {
           mutableStats.fixedPartnershipGames++;
         }
+
+        // Track last partner
+        mutableStats.lastPartnerId = teammateId;
       }
 
       // Update opponent counts - with players on the opposing team
@@ -427,6 +432,9 @@ export class SessionCoordinator {
         mutableStats.opponents[opponentId] =
           (mutableStats.opponents[opponentId] || 0) + 1;
       });
+
+      // Track last opponents
+      mutableStats.lastOpponentIds = opponentIds;
 
       // Update games on court
       mutableStats.gamesOnCourt[game.courtId] =
