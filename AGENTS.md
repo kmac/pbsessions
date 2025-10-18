@@ -22,17 +22,15 @@ This is an Expo react native TypeScript project using redux for storage, and tes
 - **Imports**: Use `@/` for root imports, `src/` for src-relative imports
 - **Components**: Export default functions, use PascalCase naming
     - Use functional components with hooks
-- **Props**: Define interfaces with `Props` suffix (e.g., `PlayerButtonProps`)
 - **State**: Use Redux Toolkit with createSlice, follow existing slice patterns
 - **Formatting**: Use double quotes, prefer function declarations over arrows for components
-- **File structure**: Keep components in `/src/components/`, services in `/src/services/`
 
 ### Error Handling
 - Use try-catch for async operations
 - Proper TypeScript error types
 - Redux error state management in slices
 
-### Architecture
+### File Structure
 - Expo top-level app structure in `src/app`
 - Components in `src/components/`
 - Utilities in `src/utils/`
@@ -56,7 +54,8 @@ This is an Expo react native TypeScript project using redux for storage, and tes
 ## Application Overview
 
 This project is a new cross-platform (web/android/ios) application using the react-native expo framework.
-The app is called "PB Sessions" and its intent is to manage a group of people playing pickleball for a series of games (rounds) in a session.
+The app is called "PB Sessions" and its intent is to manage a group of people playing pickleball for a series of games
+(rounds) in a session. Each round has a series of games played on separate pickleball courts.
 Given a group of players for a session, the goal is to fairly select players for new games within each round.
 We also have optional scoring and optional player ratings.
 
@@ -66,10 +65,12 @@ Organizing competitive pickleball games by mixing players for games within each 
 Goals:
 
 - Ensure all players get equal playing time
-- Players play with a mix of partners, prioritizing new partners over repeated partnerships
+- Players play with a mix of partners, prioritizing new partners over repeated partnerships. We also want to prioritize
+  a new mix of opponents. That is, we want to distribute play across all members of the group. People like to mix with as
+  many different players as possible during a session.
 - Sit-out time is distributed fairly across players for the session
-- The app is interactive.
-- I want to be able to save a group of people used for a session. I want to be able to manage these groups, by adding or removing people. The group of people should have a name.
+- The app is interactive. Players will join and leave during a session, and we need to be able to manage this.
+- We want to be able to save a named group of people used for a session. We need to manage these groups, by adding or removing people.
 
 Sections:
 
@@ -94,8 +95,9 @@ The app consists of the following main areas.
     - For the live session, we begin the process of shuffling players for each set of games across the available courts.
     - Each set of games utitlizes all available courts, mixing the players into a doubles pickleball game for each court.
     - Players are assigned to a side on a court based on:
-        - Rating, if applicable (only used if courts are assigned a minimum rating, and all players have an assigned rating)
+        - Rating, if applicable (only used if courts are assigned a minimum rating; only players who have an assigned rating are considered).
         - Partner, prioritizing based on lowest number of times played with each new partner
+        - Opponents, prioritizing based on lowest number of times played against each opponent
     - For a game on each court, assign two players to the side labelled "Serve", and two to the "Receive" side.
     - Starting path: `src/app/(tabs)/live-session.tsx`
 - Configuration
