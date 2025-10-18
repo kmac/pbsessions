@@ -32,15 +32,25 @@ export const PlayerStatsDisplay: React.FC<PlayerStatsDisplayProps> = ({
   const averageScore =
     stats.gamesPlayed > 0 ? stats.totalScore / stats.gamesPlayed : 0;
 
-  const partnerCount = Object.keys(stats.partners).length;
-  const mostFrequentPartner = Object.entries(stats.partners).sort(
-    ([, a], [, b]) => b - a,
-  )[0];
+  const partnerCount = stats.partners
+    ? Object.keys(stats.partners)?.length || 0
+    : 0;
+  let mostFrequentPartner = undefined;
+  if (partnerCount > 0) {
+    mostFrequentPartner = Object.entries(stats.partners).sort(
+      ([, a], [, b]) => b - a,
+    )[0];
+  }
 
-  const opponentCount = Object.keys(stats.opponents).length;
-  const mostFrequentOpponent = Object.entries(stats.opponents).sort(
-    ([, a], [, b]) => b - a,
-  )[0];
+  const opponentCount = stats.opponents
+    ? Object.keys(stats.opponents)?.length || 0
+    : 0;
+  let mostFrequentOpponent = undefined;
+  if (opponentCount > 0) {
+    mostFrequentOpponent = Object.entries(stats.opponents).sort(
+      ([, a], [, b]) => b - a,
+    )[0];
+  }
 
   const getPlayerName = (playerId: string): string => {
     return allPlayers.find((p) => p.id === playerId)?.name || "Unknown";
@@ -221,9 +231,7 @@ export const PlayerStatsDisplay: React.FC<PlayerStatsDisplayProps> = ({
             style={{ color: theme.colors.onSurfaceVariant }}
           >
             Most partnered with{" "}
-            <Text
-              style={{ fontWeight: "500", color: theme.colors.onSurface }}
-            >
+            <Text style={{ fontWeight: "500", color: theme.colors.onSurface }}>
               {getPlayerName(mostFrequentPartner[0])}
             </Text>{" "}
             ({mostFrequentPartner[1]} games)
@@ -247,9 +255,7 @@ export const PlayerStatsDisplay: React.FC<PlayerStatsDisplayProps> = ({
             style={{ color: theme.colors.onSurfaceVariant }}
           >
             Most played against{" "}
-            <Text
-              style={{ fontWeight: "500", color: theme.colors.onSurface }}
-            >
+            <Text style={{ fontWeight: "500", color: theme.colors.onSurface }}>
               {getPlayerName(mostFrequentOpponent[0])}
             </Text>{" "}
             ({mostFrequentOpponent[1]} games)
@@ -259,4 +265,3 @@ export const PlayerStatsDisplay: React.FC<PlayerStatsDisplayProps> = ({
     </View>
   );
 };
-
