@@ -220,7 +220,7 @@ export default function LiveSessionScreen() {
   const showRatings = liveSession.showRatings;
   const scoring = liveSession.scoring;
 
-  const handleGenerateNewRound = () => {
+  const handleGenerateNextRound = () => {
     const roundAssigner = new RoundAssigner(
       liveSession,
       liveSessionPlayers,
@@ -329,7 +329,7 @@ export default function LiveSessionScreen() {
         <Button
           icon="play"
           mode="contained"
-          onPress={handleGenerateNewRound}
+          onPress={handleGenerateNextRound}
           contentStyle={{ paddingVertical: 2 }}
           // style={{ marginBottom: 12 }}
         >
@@ -360,7 +360,7 @@ export default function LiveSessionScreen() {
           <Button
             icon="play"
             mode="contained"
-            onPress={handleGenerateNewRound}
+            onPress={handleGenerateNextRound}
             contentStyle={{ paddingVertical: 2 }}
           >
             Generate Next Round
@@ -460,6 +460,47 @@ export default function LiveSessionScreen() {
       }
       return score;
     };
+
+    // Check for incomplete round and complete it first
+    const hasIncompleteRound =
+      currentSession.liveData &&
+      currentSession.liveData.rounds.length > 0 &&
+      currentSession.liveData.rounds[currentSession.liveData.rounds.length - 1]
+        .games.length > 0 &&
+      !currentSession.liveData.rounds[
+        currentSession.liveData.rounds.length - 1
+      ].games.every((g) => g.isCompleted);
+
+    if (hasIncompleteRound) {
+      // Complete the incomplete round with simulated/null scores
+      const lastRound =
+        currentSession.liveData!.rounds[
+          currentSession.liveData!.rounds.length - 1
+        ];
+      const results: Results = { scores: {} };
+
+      lastRound.games.forEach((game) => {
+        results.scores[game.id] = generateSimulateScoring
+          ? simulateScore()
+          : null;
+      });
+
+      const roundAssigner = new RoundAssigner(
+        currentSession,
+        liveSessionPlayers,
+        liveSessionPausedPlayers,
+      );
+      const updatedPlayerStats = roundAssigner.updateStatsForRound(
+        lastRound.games,
+        results,
+      );
+
+      currentSession = SessionService.completeRound(
+        currentSession,
+        results,
+        updatedPlayerStats,
+      );
+    }
 
     const generateNextRound = () => {
       if (successfulRounds >= numRounds) {
@@ -619,7 +660,7 @@ export default function LiveSessionScreen() {
               openGenerateRoundsModal();
             }}
             title="Generate Rounds"
-            leadingIcon="stop"
+            leadingIcon="sync"
           />
         </Menu>
       </Appbar.Header>

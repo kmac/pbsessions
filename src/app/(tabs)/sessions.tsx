@@ -703,6 +703,10 @@ export default function SessionsTab() {
                   >
                     Archive
                   </Button>
+                </>
+              )}
+              {!isLive(session) && (
+                <>
                   <Button
                     icon="delete"
                     mode="text"
@@ -710,16 +714,14 @@ export default function SessionsTab() {
                   >
                     Delete
                   </Button>
+                  <Button
+                    icon="content-duplicate"
+                    mode="text"
+                    onPress={() => handleCloneSession(session)}
+                  >
+                    Clone
+                  </Button>
                 </>
-              )}
-              {!isLive(session) && (
-                <Button
-                  icon="content-duplicate"
-                  mode="text"
-                  onPress={() => handleCloneSession(session)}
-                >
-                  Clone
-                </Button>
               )}
               {true && __DEV__ && (
                 <Button

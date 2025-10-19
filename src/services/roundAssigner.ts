@@ -69,8 +69,8 @@ Choose receive player3 - select by:
              - for each of player1 and player2:
                  - base score = 2 * number of times partnered with + 2 * number of times opponent (using factor of 2 here to weigh player1/player2)
              - add recency penalty (soft constraint):
-                 - if player is in player1's lastOpponentIds: add 10
-                 - if player is in player2's lastOpponentIds: add 10
+                 - if player is in player1's lastOpponentIds: add recency penalty
+                 - if player is in player2's lastOpponentIds: add recency penalty
     - select player3 by lowest opponent score (base + recency penalty)
 
 Update list of eligible players for court (remove player3)
@@ -384,10 +384,10 @@ export class RoundAssigner {
         // Add large penalty for being a recent opponent (soft constraint)
         let recencyPenalty = 0;
         if (player1Stats.lastOpponentIds?.includes(player.id)) {
-          recencyPenalty += 10;
+          recencyPenalty += 15;
         }
         if (player2Stats.lastOpponentIds?.includes(player.id)) {
-          recencyPenalty += 10;
+          recencyPenalty += 15;
         }
         const score = baseScore + recencyPenalty;
 
