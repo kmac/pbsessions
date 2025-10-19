@@ -136,9 +136,9 @@ const RootLayoutNav = () => {
     color: "default",
   };
 
-  const getEffectiveColorScheme = () => {
+  const getEffectiveColorScheme = (): "light" | "dark" => {
     if (effectiveSettings.theme === "auto") {
-      return systemColorScheme ?? "light";
+      return systemColorScheme === "dark" ? "dark" : "light";
     }
     return effectiveSettings.theme;
   };
