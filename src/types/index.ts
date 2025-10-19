@@ -1,4 +1,4 @@
-import 'react-native-get-random-values';
+import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import Colors from "@/src/ui/styles/colors";
 
@@ -94,7 +94,7 @@ export interface Session {
   updatedAt: string;
   liveData?: {
     rounds: Round[];
-    playerStats: PlayerStats[];  // SHOULD THIS BE A MAP?
+    playerStats: PlayerStats[]; // SHOULD THIS BE A MAP?
   };
 }
 
@@ -135,6 +135,24 @@ export interface PlayerStats {
   lastPartnerId?: string; // partner from the most recent game played
   lastOpponentIds?: string[]; // two opponents from the most recent game played
 }
+
+export const emptyPlayerStats = (playerId: string) => {
+  return {
+    playerId: playerId,
+    gamesPlayed: 0,
+    gamesSatOut: 0,
+    consecutiveGames: 0,
+    partners: {},
+    opponents: {},
+    gamesOnCourt: {},
+    fixedPartnershipGames: 0,
+    totalScore: 0,
+    totalScoreAgainst: 0,
+    averageRating: 0,
+    lastPartnerId: undefined,
+    lastOpponentIds: [],
+  };
+};
 
 export interface Results {
   scores: { [gameId: string]: Score | null };
