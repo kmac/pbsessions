@@ -471,7 +471,6 @@ export const SessionPlayerManager: React.FC<SessionPlayerManagerProps> = ({
       id: uuidv4(),
       player1Id: player1.id,
       player2Id: player2.id,
-      name: `${player1.name} & ${player2.name}`,
       isActive: true,
       createdAt: new Date().toISOString(),
     };
