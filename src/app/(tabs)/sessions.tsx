@@ -32,6 +32,7 @@ import {
   endSessionThunk,
   startLiveSessionThunk,
 } from "@/src/store/actions/sessionActions";
+import { getCurrentRoundNumber } from "@/src/services/sessionService";
 import { exportSessionResultsToCsv } from "@/src/utils/csv";
 import { saveToFile, copyToClipboard } from "@/src/utils/fileClipboardUtil";
 
@@ -472,6 +473,12 @@ export default function SessionsTab() {
             </Chip>
             <Chip icon="map-marker-outline" compact={true}>
               {activeCourts.length} courts
+            </Chip>
+            <Chip compact={true}>
+              {(() => {
+                const n = getCurrentRoundNumber(session);
+                return isLive(session) ? `Round: ${n}` : `Rounds: ${n}`;
+              })()}
             </Chip>
           </View>
           <View style={{ flexDirection: "row", marginBottom: 12, gap: 8 }}>

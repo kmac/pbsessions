@@ -462,10 +462,8 @@ export default function LiveSessionScreen() {
     };
 
     const generateNextRound = () => {
-      let roundAssigner: RoundAssigner;
-      // Check if finished
       if (successfulRounds >= numRounds) {
-        // Update our session with all the new rounds.
+        // Finished: update our session with all the new rounds.
         dispatch(updateSession(currentSession));
         router.navigate({
           pathname: "/view-session",
@@ -475,6 +473,7 @@ export default function LiveSessionScreen() {
         return;
       }
 
+      let roundAssigner: RoundAssigner;
       try {
         roundAssigner = new RoundAssigner(
           currentSession,
