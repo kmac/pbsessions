@@ -50,6 +50,11 @@ export default function BetweenRoundsScreen() {
   const sessionId = params.sessionId;
   const canEditSession = params.canEditSession === "true";
 
+  // Log when component mounts and params change
+  useEffect(() => {
+    console.log("between-rounds: component rendered with params:", params);
+  }, [params]);
+
   const scrollViewRef = useRef<ScrollView>(null);
   const [statsModalVisible, setStatsModalVisible] = useState(false);
 
@@ -130,18 +135,25 @@ export default function BetweenRoundsScreen() {
   }, [sessionId, handleReshufflePlayers]);
 
   const handleStartRound = () => {
-    // Return to live-session with indication to start the round
-    router.navigate({
+    console.log(
+      "between-rounds: navigating to live-session with startRound action",
+    );
+    router.push({
       pathname: "/live-session",
       params: { action: "startRound" },
     });
   };
 
   const handleEditSession = () => {
-    // Return to live-session with indication to open edit session modal
-    router.navigate({
-      pathname: "/live-session",
-      params: { action: "editSession" },
+    console.log("between-rounds: navigating directly to edit-session");
+    // Navigate directly to edit-session instead of going through live-session
+    // This prevents creating a navigation stack with stale params
+    router.push({
+      pathname: "/edit-session",
+      params: {
+        sessionId: sessionId,
+        returnTo: "/between-rounds",
+      },
     });
   };
 
@@ -331,7 +343,9 @@ export default function BetweenRoundsScreen() {
                 <Button
                   icon="play"
                   mode="contained"
-                  onPress={handleStartRound}
+                  onPress={() => {
+                    handleStartRound();
+                  }}
                   contentStyle={{ padding: 2 }}
                   style={isSmallScreen ? { flex: 1 } : undefined}
                 >

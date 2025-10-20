@@ -179,9 +179,14 @@ export default function EditSessionScreen() {
   };
 
   const handleCancel = () => {
+    console.log("edit-session: handleCancel, returnTo:", params.returnTo);
     if (params.returnTo) {
-      router.navigate(params.returnTo as any);
+      // Use router.back() to return to the previous screen without merging params
+      // router.navigate() might carry over stale params
+      console.log("edit-session: navigating back via returnTo");
+      router.back();
     } else {
+      console.log("edit-session: navigating back normally");
       router.back();
     }
   };

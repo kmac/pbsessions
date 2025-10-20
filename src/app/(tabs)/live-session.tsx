@@ -70,22 +70,40 @@ export default function LiveSessionScreen() {
   // TODO we should have a way to look this up - probably need to use redux since it will be global
   const liveSession = sessions.find((s) => s.state === SessionState.Live);
 
+  // Use a ref to track the last processed action to prevent duplicate handling
+  const lastProcessedActionRef = React.useRef<string | undefined>(undefined);
+
   // Handle action parameters from modal routes
   useEffect(() => {
-    if (params.action === "startRound" && liveSession) {
-      dispatch(startRoundThunk({ sessionId: liveSession.id }));
-      // Clear the action parameter
-      router.setParams({ action: undefined });
-    } else if (params.action === "editSession" && liveSession) {
-      router.navigate({
-        pathname: "/edit-session",
-        params: {
-          sessionId: liveSession.id,
-          returnTo: "/live-session",
-        },
-      });
-      // Clear the action parameter
-      router.setParams({ action: undefined });
+    if (liveSession && params.action) {
+      // Skip if we've already processed this action
+      if (lastProcessedActionRef.current === params.action) {
+        console.log(
+          `live-session: skipping duplicate action ${params.action}`,
+        );
+        return;
+      }
+
+      if (params.action === "startRound") {
+        console.log("live-session: handling startRound action");
+        lastProcessedActionRef.current = params.action;
+        router.setParams({ action: undefined });
+        dispatch(startRoundThunk({ sessionId: liveSession.id }));
+      } else if (params.action === "editSession") {
+        console.log("live-session: handling editSession action");
+        lastProcessedActionRef.current = params.action;
+        router.setParams({ action: undefined });
+        router.push({
+          pathname: "/edit-session",
+          params: {
+            sessionId: liveSession.id,
+            returnTo: "/live-session",
+          },
+        });
+      }
+    } else if (!params.action) {
+      // Reset the ref when there's no action
+      lastProcessedActionRef.current = undefined;
     }
   }, [params.action, liveSession, dispatch]);
 
