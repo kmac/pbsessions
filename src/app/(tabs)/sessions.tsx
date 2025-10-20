@@ -467,7 +467,14 @@ export default function SessionsTab() {
             </View>
           </View>
 
-          <View style={{ flexDirection: "row", marginBottom: 12, gap: 8 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              marginBottom: 12,
+              gap: 8,
+            }}
+          >
             <Chip icon="account-group" compact={true}>
               {sessionPlayers.length} players
             </Chip>
@@ -480,8 +487,6 @@ export default function SessionsTab() {
                 return isLive(session) ? `Round: ${n}` : `Rounds: ${n}`;
               })()}
             </Chip>
-          </View>
-          <View style={{ flexDirection: "row", marginBottom: 12, gap: 8 }}>
             {session.scoring && (
               <Chip icon="scoreboard-outline" compact={true}>
                 Scoring
@@ -507,7 +512,6 @@ export default function SessionsTab() {
               </Text>
               <Text
                 variant="bodyMedium"
-                numberOfLines={2}
                 style={{ color: theme.colors.onSurfaceVariant }}
               >
                 {sessionPlayers
@@ -517,6 +521,39 @@ export default function SessionsTab() {
               </Text>
             </View>
           )}
+          {session.partnershipConstraint?.partnerships &&
+            session.partnershipConstraint.partnerships.length > 0 && (
+            <View style={{ marginBottom: 12 }}>
+              <Text
+                variant="labelMedium"
+                style={{
+                  color: theme.colors.onSurfaceVariant,
+                  marginBottom: 4,
+                }}
+              >
+                  Fixed Partners (
+                  {session.partnershipConstraint!.partnerships.length}):
+                </Text>
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {session
+                      .partnershipConstraint!.partnerships.map(
+                        (partnership) => {
+                          const player1 = players.find(
+                            (p) => p.id === partnership.player1Id,
+                          );
+                          const player2 = players.find(
+                            (p) => p.id === partnership.player2Id,
+                          );
+                          return `${player1?.name} & ${player2?.name}`;
+                        },
+                      )
+                      .join(", ")}
+                  </Text>
+              </View>
+            )}
         </Card.Content>
 
         <Card.Actions style={{ justifyContent: "space-between" }}>
