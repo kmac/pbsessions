@@ -111,8 +111,6 @@ const filterEligible = (player: Player, eligiblePlayers: Player[]) => {
 //
 export class RoundAssigner {
   private activeCourts: Court[];
-  private players: Player[];
-  private pausedPlayerIds: Set<string>;
   private availablePlayers: Player[];
   private playerStats: Map<string /* playerId */, PlayerStats> = new Map();
   private session: Session;
@@ -120,7 +118,7 @@ export class RoundAssigner {
   private partnershipContext: PartnershipContext;
   private assignmentStrategy: PlayerAssignmentStrategy;
 
-  constructor(session: Session, players: Player[], pausedPlayers: Player[]) {
+  constructor(session: Session, availablePlayers: Player[]) {
     if (!session.liveData) {
       throw new Error(
         `Invalid session: missing required live data. session: ${session}`,
@@ -129,19 +127,11 @@ export class RoundAssigner {
     this.session = session;
     this.liveData = session.liveData;
     this.activeCourts = session.courts.filter((c) => c.isActive);
-    this.players = players;
-    this.pausedPlayerIds = new Set<string>(
-      pausedPlayers.map((player) => player.id),
-    );
-    this.availablePlayers = [...this.players].filter((player) => {
-      return !this.pausedPlayerIds.has(player.id);
-    });
-    this.partnershipContext = this.buildPartnershipContext(
-      this.availablePlayers,
-    );
+    this.availablePlayers = availablePlayers;
+    this.partnershipContext = this.buildPartnershipContext(availablePlayers);
 
     // Initialize or load existing stats
-    players.forEach((player) => {
+    availablePlayers.forEach((player) => {
       const existingStats = this.liveData.playerStats.find(
         (s) => s.playerId === player.id,
       );
@@ -356,6 +346,10 @@ export class RoundAssigner {
       });
       if (partnersWithEligiblePartner.length > 0) {
         lowestScorePlayers = partnersWithEligiblePartner;
+        console.log(
+          "Choosing player1 from partnered players with eligible partners:",
+          lowestScorePlayers.map((p) => `${p.name} (${p.id})`).join(", "),
+        );
       }
     }
 
@@ -380,9 +374,24 @@ export class RoundAssigner {
       // Fall through to regular selection logic
     }
 
-    // Calculate partner scores for all eligible players
+    // When enforceAllPairings is true, filter out players who have a fixed partner
+    // that is also available (to avoid breaking up partnerships)
+    let availableCandidates = eligiblePlayers;
+    if (this.session.partnershipConstraint?.enforceAllPairings) {
+      availableCandidates = eligiblePlayers.filter((player) => {
+        const playerPartnerId = this.partnershipContext.partnerMap.get(player.id);
+        if (!playerPartnerId) {
+          // Player has no fixed partner, so they're available
+          return true;
+        }
+        // Player has a fixed partner - only include them if their partner is NOT in eligible players
+        return !eligiblePlayers.some((p) => p.id === playerPartnerId);
+      });
+    }
+
+    // Calculate partner scores for all available candidates
     const partnerCounts: { [playerId: string]: number } = {};
-    for (const player of eligiblePlayers) {
+    for (const player of availableCandidates) {
       partnerCounts[player.id] =
         this.playerStats.get(player.id)!.partners[player1.id] || 0;
     }
@@ -391,7 +400,7 @@ export class RoundAssigner {
     const minPartnerCount = Math.min(...Object.values(partnerCounts));
 
     // Select all players with minimum partner count
-    let candidates = eligiblePlayers.filter(
+    let candidates = availableCandidates.filter(
       (player) => partnerCounts[player.id] === minPartnerCount,
     );
 
@@ -495,9 +504,24 @@ export class RoundAssigner {
       // Fall through to regular selection logic
     }
 
-    // Calculate partner counts for all eligible players with player3
+    // When enforceAllPairings is true, filter out players who have a fixed partner
+    // that is also available (to avoid breaking up partnerships)
+    let availableCandidates = eligiblePlayers;
+    if (this.session.partnershipConstraint?.enforceAllPairings) {
+      availableCandidates = eligiblePlayers.filter((player) => {
+        const playerPartnerId = this.partnershipContext.partnerMap.get(player.id);
+        if (!playerPartnerId) {
+          // Player has no fixed partner, so they're available
+          return true;
+        }
+        // Player has a fixed partner - only include them if their partner is NOT in eligible players
+        return !eligiblePlayers.some((p) => p.id === playerPartnerId);
+      });
+    }
+
+    // Calculate partner counts for all available candidates with player3
     const partnerCounts: { [playerId: string]: number } = {};
-    for (const player of eligiblePlayers) {
+    for (const player of availableCandidates) {
       partnerCounts[player.id] =
         this.playerStats.get(player.id)!.partners[player3.id] || 0;
     }
@@ -506,7 +530,7 @@ export class RoundAssigner {
     const minPartnerCount = Math.min(...Object.values(partnerCounts));
 
     // Filter to players with minimum partner count
-    let candidates = eligiblePlayers.filter(
+    let candidates = availableCandidates.filter(
       (player) => partnerCounts[player.id] === minPartnerCount,
     );
 

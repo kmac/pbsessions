@@ -25,6 +25,7 @@ import { RoundScoreEntryModal } from "@/src/components/RoundScoreEntryModal";
 import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
 import { getRoundNumber } from "@/src/services/sessionService";
 import {
+  filterPausedPlayers,
   getSessionPlayers,
   getSessionPausedPlayers,
   logSession,
@@ -78,10 +79,10 @@ export default function LiveSessionScreen() {
     } else if (params.action === "editSession" && liveSession) {
       router.navigate({
         pathname: "/edit-session",
-        params: { 
+        params: {
           sessionId: liveSession.id,
-          returnTo: "/live-session" 
-        }
+          returnTo: "/live-session",
+        },
       });
       // Clear the action parameter
       router.setParams({ action: undefined });
@@ -197,8 +198,8 @@ export default function LiveSessionScreen() {
     currentRound.games.every((g) => g.isCompleted);
 
   const numCompletedRounds = isRoundCompleted
-    ? currentRoundIndex
-    : currentRoundIndex - 1;
+    ? currentRoundIndex + 1
+    : currentRoundIndex;
 
   const activeCourts = liveSession.courts
     ? liveSession.courts.filter((c) => c.isActive)
@@ -223,8 +224,7 @@ export default function LiveSessionScreen() {
   const handleGenerateNextRound = () => {
     const roundAssigner = new RoundAssigner(
       liveSession,
-      liveSessionPlayers,
-      liveSessionPausedPlayers,
+      filterPausedPlayers(liveSessionPlayers, liveSessionPausedPlayers),
     );
     const roundAssignment = roundAssigner.generateRoundAssignment();
     if (roundAssignment.gameAssignments.length === 0) {
@@ -273,8 +273,7 @@ export default function LiveSessionScreen() {
   const handleRoundScoresSubmitted = (results: Results) => {
     const roundAssigner = new RoundAssigner(
       liveSession,
-      liveSessionPlayers,
-      liveSessionPausedPlayers,
+      filterPausedPlayers(liveSessionPlayers, liveSessionPausedPlayers),
     );
     const updatedPlayerStats = roundAssigner.updateStatsForRound(
       currentRound.games,
@@ -487,8 +486,7 @@ export default function LiveSessionScreen() {
 
       const roundAssigner = new RoundAssigner(
         currentSession,
-        liveSessionPlayers,
-        liveSessionPausedPlayers,
+        filterPausedPlayers(liveSessionPlayers, liveSessionPausedPlayers),
       );
       const updatedPlayerStats = roundAssigner.updateStatsForRound(
         lastRound.games,
@@ -518,8 +516,7 @@ export default function LiveSessionScreen() {
       try {
         roundAssigner = new RoundAssigner(
           currentSession,
-          liveSessionPlayers,
-          liveSessionPausedPlayers,
+          filterPausedPlayers(liveSessionPlayers, liveSessionPausedPlayers),
         );
         const roundAssignment = roundAssigner.generateRoundAssignment();
 
@@ -556,8 +553,7 @@ export default function LiveSessionScreen() {
 
         roundAssigner = new RoundAssigner(
           currentSession,
-          liveSessionPlayers,
-          liveSessionPausedPlayers,
+          filterPausedPlayers(liveSessionPlayers, liveSessionPausedPlayers),
         );
         const updatedPlayerStats = roundAssigner.updateStatsForRound(
           currentRoundGames,
@@ -637,10 +633,10 @@ export default function LiveSessionScreen() {
               setPulldownMenuVisible(false);
               router.navigate({
                 pathname: "/edit-session",
-                params: { 
+                params: {
                   sessionId: liveSession.id,
-                  returnTo: "/live-session" 
-                }
+                  returnTo: "/live-session",
+                },
               });
             }}
             title="Edit Session"

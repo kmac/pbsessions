@@ -24,7 +24,11 @@ import {
   getCurrentRoundInfo,
   getCurrentRoundNumber,
 } from "@/src/services/sessionService";
-import { getSessionPlayers, getSessionPausedPlayers } from "@/src/utils/util";
+import {
+  filterPausedPlayers,
+  getSessionPlayers,
+  getSessionPausedPlayers,
+} from "@/src/utils/util";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
 import { Alert } from "@/src/utils/alert";
 import { updateCurrentRoundThunk } from "@/src/store/actions/sessionActions";
@@ -83,11 +87,14 @@ export default function BetweenRoundsScreen() {
     }
 
     const sessionPlayers: Player[] = getSessionPlayers(currentSession, players);
+    const pausedPlayers: Player[] = getSessionPausedPlayers(
+      currentSession,
+      players,
+    );
 
     const roundAssigner = new RoundAssigner(
       currentSession,
-      sessionPlayers,
-      getSessionPausedPlayers(currentSession, players),
+      filterPausedPlayers(sessionPlayers, pausedPlayers),
     );
     const roundAssignment = roundAssigner.generateRoundAssignment();
 
@@ -364,7 +371,6 @@ export default function BetweenRoundsScreen() {
             </View>
           </Surface>
         </ScrollView>
-
       </SafeAreaView>
 
       <PlayerStatsModal
@@ -378,4 +384,3 @@ export default function BetweenRoundsScreen() {
     </>
   );
 }
-

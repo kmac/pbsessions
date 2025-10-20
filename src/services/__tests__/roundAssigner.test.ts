@@ -7,6 +7,7 @@ import {
   FixedPartnership,
   PlayerStats,
 } from "../../types";
+import { filterPausedPlayers } from "@/src/utils/util";
 
 // Mock the Alert utility
 jest.mock("@/src/utils/alert", () => ({
@@ -113,8 +114,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
     roundAssigner = new RoundAssigner(
       mockSession,
-      mockPlayers,
-      mockPausedPlayers,
+      filterPausedPlayers(mockPlayers, mockPausedPlayers),
     );
   });
 
@@ -195,8 +195,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         mockSession,
-        mockPlayers,
-        pausedPlayers,
+        filterPausedPlayers(mockPlayers, pausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 
@@ -220,8 +219,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         mockSession,
-        mockPlayers,
-        pausedPlayers,
+        filterPausedPlayers(mockPlayers, pausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 
@@ -244,12 +242,17 @@ describe("RoundAssigner - generateRoundAssignment", () => {
       const sittingOut = result.sittingOutIds.length;
       // With rating constraints, some active players might not be eligible for any court
       // so we check that assigned + sitting <= active players
-      expect(playersInGames + sittingOut).toBeLessThanOrEqual(activePlayerCount);
+      expect(playersInGames + sittingOut).toBeLessThanOrEqual(
+        activePlayerCount,
+      );
       expect(playersInGames + sittingOut).toBeGreaterThan(0);
     });
 
     test("should handle all players paused", () => {
-      const assigner = new RoundAssigner(mockSession, mockPlayers, mockPlayers);
+      const assigner = new RoundAssigner(
+        mockSession,
+        filterPausedPlayers(mockPlayers, mockPlayers),
+      );
       const result = assigner.generateRoundAssignment();
 
       expect(result.gameAssignments).toHaveLength(0);
@@ -266,7 +269,12 @@ describe("RoundAssigner - generateRoundAssignment", () => {
       );
 
       // Use only 4 players to ensure partnership is on same court
-      const fourPlayers = [mockPlayers[0], mockPlayers[1], mockPlayers[5], mockPlayers[6]];
+      const fourPlayers = [
+        mockPlayers[0],
+        mockPlayers[1],
+        mockPlayers[5],
+        mockPlayers[6],
+      ];
       const oneCourt = [mockCourts[1]]; // Court with no rating requirement
 
       const sessionWithPartnerships = {
@@ -296,8 +304,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithPartnerships,
-        fourPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(fourPlayers, mockPausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 
@@ -342,8 +349,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithPartnerships,
-        mockPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(mockPlayers, mockPausedPlayers),
       );
 
       expect(() => {
@@ -368,8 +374,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithInactivePartnership,
-        mockPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(mockPlayers, mockPausedPlayers),
       );
 
       expect(() => {
@@ -378,6 +383,221 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const result = assigner.generateRoundAssignment();
       expect(result.gameAssignments.length).toBeGreaterThan(0);
+    });
+
+    test("should not break up partnerships when choosing player2 with enforceAllPairings", () => {
+      // Test scenario: Test specifically for choosePlayer2
+      // 5 players, 1 court: Alice, Bob (no partners), Charlie+Diana (partnership), Eve (no partner)
+      // Expected: When player1 is Alice or Bob, player2 should be Eve (not Charlie or Diana)
+      // Charlie and Diana should sit out together or play together
+      const partnership = createFixedPartnership(
+        "partnership1",
+        "player3-3.5",
+        "player4-4.2",
+      );
+
+      const fivePlayers = [
+        mockPlayers[0], // Alice 4.5 (no partner)
+        mockPlayers[1], // Bob 4.0 (no partner)
+        mockPlayers[2], // Charlie 3.5 (player3-3.5) - partnered with Diana
+        mockPlayers[3], // Diana 4.2 (player4-4.2) - partnered with Charlie
+        mockPlayers[4], // Eve 3.8 (player5-3.8) (no partner)
+      ];
+
+      const oneCourt = [mockCourts[1]]; // Court with no rating requirement
+
+      const sessionWithPartnership = {
+        ...mockSession,
+        playerIds: fivePlayers.map((p) => p.id),
+        courts: oneCourt,
+        partnershipConstraint: {
+          partnerships: [partnership],
+          enforceAllPairings: true,
+        },
+        liveData: {
+          rounds: [],
+          playerStats: fivePlayers.map((player) => ({
+            playerId: player.id,
+            gamesPlayed: 0,
+            gamesSatOut: 0,
+            consecutiveGames: 0,
+            partners: {},
+            opponents: {},
+            gamesOnCourt: {},
+            fixedPartnershipGames: 0,
+            totalScore: 0,
+            totalScoreAgainst: 0,
+          })),
+        },
+      };
+
+      const assigner = new RoundAssigner(
+        sessionWithPartnership,
+        filterPausedPlayers(fivePlayers, mockPausedPlayers),
+      );
+
+      // Run multiple iterations to ensure consistency
+      for (let i = 0; i < 10; i++) {
+        const result = assigner.generateRoundAssignment();
+
+        // Should have exactly 1 game with 4 players, 1 sitting out
+        expect(result.gameAssignments).toHaveLength(1);
+        expect(result.sittingOutIds).toHaveLength(1);
+
+        const assignment = result.gameAssignments[0];
+        const allPlayerIds = [
+          assignment.serveTeam.player1Id,
+          assignment.serveTeam.player2Id,
+          assignment.receiveTeam.player1Id,
+          assignment.receiveTeam.player2Id,
+        ];
+
+        // Check if partnership is in the game
+        const hasCharlie = allPlayerIds.includes("player3-3.5");
+        const hasDiana = allPlayerIds.includes("player4-4.2");
+
+        // Partnership must be together: both playing on same team OR both sitting out
+        if (hasCharlie || hasDiana) {
+          // Both must be playing
+          expect(hasCharlie).toBe(true);
+          expect(hasDiana).toBe(true);
+
+          // And they must be on the same team
+          const onServeTeam =
+            [
+              assignment.serveTeam.player1Id,
+              assignment.serveTeam.player2Id,
+            ].includes("player3-3.5") &&
+            [
+              assignment.serveTeam.player1Id,
+              assignment.serveTeam.player2Id,
+            ].includes("player4-4.2");
+
+          const onReceiveTeam =
+            [
+              assignment.receiveTeam.player1Id,
+              assignment.receiveTeam.player2Id,
+            ].includes("player3-3.5") &&
+            [
+              assignment.receiveTeam.player1Id,
+              assignment.receiveTeam.player2Id,
+            ].includes("player4-4.2");
+
+          expect(onServeTeam || onReceiveTeam).toBe(true);
+        } else {
+          // Both must be sitting out (impossible with 5 players, 1 sitting out)
+          // So in this scenario, the partnership should always be playing together
+        }
+      }
+    });
+
+    test("should not break up partnerships when choosing player4 with enforceAllPairings", () => {
+      // Test scenario: 6 players, 1 court
+      // Partnership: player5-3.8 and player6-4.1
+      // When selecting players for the court, if player5 or player6 are candidates for player2 or player4,
+      // they should NOT be selected individually (their partner is also available)
+      const partnership = createFixedPartnership(
+        "partnership1",
+        "player5-3.8",
+        "player6-4.1",
+      );
+
+      const sixPlayers = [
+        mockPlayers[0], // Alice 4.5
+        mockPlayers[1], // Bob 4.0
+        mockPlayers[2], // Charlie 3.5
+        mockPlayers[3], // Diana 4.2
+        mockPlayers[4], // Eve 3.8 (player5-3.8) - partnered with Frank
+        mockPlayers[5], // Frank 4.1 (player6-4.1) - partnered with Eve
+      ];
+
+      const oneCourt = [mockCourts[1]]; // Court with no rating requirement
+
+      const sessionWithPartnership = {
+        ...mockSession,
+        playerIds: sixPlayers.map((p) => p.id),
+        courts: oneCourt,
+        partnershipConstraint: {
+          partnerships: [partnership],
+          enforceAllPairings: true,
+        },
+        liveData: {
+          rounds: [],
+          playerStats: sixPlayers.map((player) => ({
+            playerId: player.id,
+            gamesPlayed: 0,
+            gamesSatOut: 0,
+            consecutiveGames: 0,
+            partners: {},
+            opponents: {},
+            gamesOnCourt: {},
+            fixedPartnershipGames: 0,
+            totalScore: 0,
+            totalScoreAgainst: 0,
+          })),
+        },
+      };
+
+      const assigner = new RoundAssigner(
+        sessionWithPartnership,
+        filterPausedPlayers(sixPlayers, mockPausedPlayers),
+      );
+
+      // Run multiple iterations to ensure consistency (due to randomness)
+      for (let i = 0; i < 10; i++) {
+        const result = assigner.generateRoundAssignment();
+
+        // Should have exactly 1 game with 4 players, 2 sitting out
+        expect(result.gameAssignments).toHaveLength(1);
+        expect(result.sittingOutIds).toHaveLength(2);
+
+        const assignment = result.gameAssignments[0];
+        const allPlayerIds = [
+          assignment.serveTeam.player1Id,
+          assignment.serveTeam.player2Id,
+          assignment.receiveTeam.player1Id,
+          assignment.receiveTeam.player2Id,
+        ];
+
+        // Check if partnership is in the game
+        const hasPlayer5 = allPlayerIds.includes("player5-3.8");
+        const hasPlayer6 = allPlayerIds.includes("player6-4.1");
+
+        // If one partner is playing, the other MUST also be playing (on the same team)
+        // OR both should be sitting out
+        if (hasPlayer5 || hasPlayer6) {
+          // Both must be playing
+          expect(hasPlayer5).toBe(true);
+          expect(hasPlayer6).toBe(true);
+
+          // And they must be on the same team
+          const onServeTeam =
+            [
+              assignment.serveTeam.player1Id,
+              assignment.serveTeam.player2Id,
+            ].includes("player5-3.8") &&
+            [
+              assignment.serveTeam.player1Id,
+              assignment.serveTeam.player2Id,
+            ].includes("player6-4.1");
+
+          const onReceiveTeam =
+            [
+              assignment.receiveTeam.player1Id,
+              assignment.receiveTeam.player2Id,
+            ].includes("player5-3.8") &&
+            [
+              assignment.receiveTeam.player1Id,
+              assignment.receiveTeam.player2Id,
+            ].includes("player6-4.1");
+
+          expect(onServeTeam || onReceiveTeam).toBe(true);
+        } else {
+          // Both must be sitting out
+          expect(result.sittingOutIds).toContain("player5-3.8");
+          expect(result.sittingOutIds).toContain("player6-4.1");
+        }
+      }
     });
   });
 
@@ -421,8 +641,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithRatedCourts,
-        mockPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(mockPlayers, mockPausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 
@@ -462,8 +681,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithHighCourt,
-        lowRatingPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(lowRatingPlayers, mockPausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 
@@ -500,8 +718,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithHistory,
-        mockPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(mockPlayers, mockPausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 
@@ -565,8 +782,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithHistory,
-        mockPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(mockPlayers, mockPausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 
@@ -624,8 +840,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithHistory,
-        mockPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(mockPlayers, mockPausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 
@@ -646,7 +861,10 @@ describe("RoundAssigner - generateRoundAssignment", () => {
         },
       };
 
-      const assigner = new RoundAssigner(emptySession, [], mockPausedPlayers);
+      const assigner = new RoundAssigner(
+        emptySession,
+        filterPausedPlayers([], mockPausedPlayers),
+      );
       const result = assigner.generateRoundAssignment();
 
       expect(result.gameAssignments).toHaveLength(0);
@@ -677,8 +895,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithFewPlayers,
-        fewPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(fewPlayers, mockPausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 
@@ -697,8 +914,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithInactiveCourts,
-        mockPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(mockPlayers, mockPausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 
@@ -714,8 +930,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
       expect(() => {
         new RoundAssigner(
           sessionWithoutLiveData,
-          mockPlayers,
-          mockPausedPlayers,
+          filterPausedPlayers(mockPlayers, mockPausedPlayers),
         );
       }).toThrow("Invalid session: missing required live data");
     });
@@ -746,8 +961,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithoutRatings,
-        playersWithoutRatings,
-        mockPausedPlayers,
+        filterPausedPlayers(playersWithoutRatings, mockPausedPlayers),
       );
 
       expect(() => {
@@ -791,8 +1005,7 @@ describe("RoundAssigner - generateRoundAssignment", () => {
 
       const assigner = new RoundAssigner(
         sessionWithMorePlayers,
-        allPlayers,
-        mockPausedPlayers,
+        filterPausedPlayers(allPlayers, mockPausedPlayers),
       );
       const result = assigner.generateRoundAssignment();
 

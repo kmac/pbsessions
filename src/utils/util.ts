@@ -101,6 +101,18 @@ export function getSessionPausedPlayers(
   });
 }
 
+export function filterPausedPlayers(
+  players: Player[],
+  pausedPlayers: Player[],
+): Player[] {
+  const pausedPlayerIds = new Set<string>(
+    pausedPlayers.map((player) => player.id),
+  );
+  return players.filter((player) => {
+    return !pausedPlayerIds.has(player.id);
+  });
+}
+
 export function getPlayer(players: Player[], playerId: string): Player {
   const player = players.find((p) => p.id === playerId);
   if (player) {
