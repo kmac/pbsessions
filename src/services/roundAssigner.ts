@@ -15,7 +15,7 @@ import { APP_CONFIG } from "../constants";
 import { Alert } from "@/src/utils/alert";
 import { PlayerAssignmentStrategy } from "./strategy/PlayerAssignmentStrategy";
 import { FairWeightedPlayerAssignmentStrategy } from "./strategy/FairWeightedPlayerAssignmentStrategy";
-import { getCurrentRoundIndex } from "./sessionService";
+import { getCurrentRoundNumber } from "./sessionService";
 import {
   getRandomElement,
   getRandomElementRequired,
@@ -27,6 +27,12 @@ New round assigner.  This will replace `sessionCoordinator` for a new approach t
 The main method is `generateRoundAssignment`
 
 Algorithm
+
+Multi-Iteration Round Optimization:
+- Generate 3 complete round assignments
+- Calculate total freshness score for each round (sum of all court scores)
+- Select the round assignment with the lowest total freshness score
+- This ensures we get the freshest possible matchups across the entire round
 
 Input:
 - Session
@@ -153,7 +159,62 @@ export class RoundAssigner {
   }
 
   public generateRoundAssignment(sittingOut?: Player[]): RoundAssignment {
+    // Generate 3 complete round assignments and pick the one with lowest total freshness score
+    const iterations = 3;
+    const candidates: Array<{
+      assignment: RoundAssignment;
+      totalScore: number;
+      courtScores: Array<{ courtName: string; score: number; players: string }>;
+    }> = [];
+
+    const enableLog = false;
+    enableLog &&
+      console.log(
+        `\n=== Generating ${iterations} round assignment candidates ===\n`,
+      );
+
+    for (let i = 0; i < iterations; i++) {
+      const result = this.generateSingleRoundAssignment(sittingOut);
+      candidates.push(result);
+
+      if (enableLog) {
+        console.log(`\n--- Candidate ${i + 1} ---`);
+        result.courtScores.forEach((cs) => {
+          console.log(
+            `Court ${cs.courtName}: ${cs.players} - Score: ${cs.score}`,
+          );
+        });
+        console.log(`Total Freshness Score: ${result.totalScore}`);
+      }
+    }
+
+    // Select the candidate with the lowest total score
+    const best = candidates.reduce((prev, curr) =>
+      curr.totalScore < prev.totalScore ? curr : prev,
+    );
+
+    const bestIndex = candidates.indexOf(best);
+    enableLog &&
+      console.log(
+        `\n✓ Selected Candidate ${bestIndex + 1} with lowest score: ${best.totalScore}\n`,
+      );
+
+    return best.assignment;
+  }
+
+  private generateSingleRoundAssignment(sittingOut?: Player[]): {
+    assignment: RoundAssignment;
+    totalScore: number;
+    courtScores: Array<{ courtName: string; score: number; players: string }>;
+  } {
     const gameAssignments: GameAssignment[] = [];
+    const courtScores: Array<{
+      courtName: string;
+      score: number;
+      players: string;
+    }> = [];
+    let totalScore = 0;
+
     const playersPerRound =
       this.activeCourts.length * APP_CONFIG.MIN_PLAYERS_PER_GAME;
 
@@ -216,16 +277,20 @@ export class RoundAssigner {
       };
       gameAssignments.push(gameAssignment);
 
-      // Calculate and log matchup freshness score
+      // Calculate matchup freshness score
       const freshnessScore = this.calculateMatchupFreshnessScore(
         player1,
         player2,
         player3,
         player4,
       );
-      console.log(
-        `Court ${court.name || court.id}: Players [${player1.name}, ${player2.name}] vs [${player3.name}, ${player4.name}] - Freshness Score: ${freshnessScore}`,
-      );
+      totalScore += freshnessScore;
+
+      courtScores.push({
+        courtName: court.name || court.id,
+        score: freshnessScore,
+        players: `[${player1.name}, ${player2.name}] vs [${player3.name}, ${player4.name}]`,
+      });
 
       // Remove all 4 players from remaining players pool
       const assignedPlayerIds = new Set([
@@ -240,8 +305,12 @@ export class RoundAssigner {
     }
 
     return {
-      gameAssignments,
-      sittingOutIds: sittingOut.map((player) => player.id),
+      assignment: {
+        gameAssignments,
+        sittingOutIds: sittingOut.map((player) => player.id),
+      },
+      totalScore,
+      courtScores,
     };
   }
 
@@ -543,8 +612,9 @@ export class RoundAssigner {
     const players = [player1, player2, player3, player4];
     let totalScore = 0;
 
-    const partnerPenalty = 20; // Higher penalty for recent partners
-    const opponentPenalty = 15; // Lower penalty for recent opponents
+    const roundNumber = getCurrentRoundNumber(this.session);
+    const partnerPenalty = 35 + roundNumber; // Higher penalty for recent partners
+    const opponentPenalty = 15 + roundNumber; // Lower penalty for recent opponents
 
     // Check all pairings
     for (let i = 0; i < players.length; i++) {
@@ -560,17 +630,19 @@ export class RoundAssigner {
         totalScore += partnerCount + opponentCount;
 
         // Add recency penalties
-        // Check if they were recent partners
-        if (statsA.lastPartnerId === playerB.id) {
+        // Check if they were recent partners - ONLY for actual teammates in this game
+        // Teammates are: p1-p2 (i=0,j=1) and p3-p4 (i=2,j=3)
+        const areTeammatesInThisGame =
+          (i === 0 && j === 1) || (i === 2 && j === 3);
+        if (areTeammatesInThisGame && statsA.lastPartnerId === playerB.id) {
           totalScore += partnerPenalty;
         }
-        // Check if they were recent opponents
+        // Check if they were recent opponents - applies to any pairing
         if (statsA.lastOpponentIds?.includes(playerB.id)) {
           totalScore += opponentPenalty;
         }
       }
     }
-
     return totalScore;
   }
 

@@ -40,8 +40,6 @@ export const getCurrentRoundIndex = (session: Session): number =>
   Math.max(0, (session.liveData?.rounds.length || 0) - 1);
 
 export const getCurrentRoundNumber = (session: Session): number => {
-  console.log("getCurrentRoundNumber:")
-  console.log(session.liveData)
   return getRoundNumber(getCurrentRoundIndex(session));
 };
 

@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
 import {
-  Icon,
   Text,
   Surface,
   DataTable,
@@ -12,12 +11,8 @@ import {
   SegmentedButtons,
 } from "react-native-paper";
 import Dropdown from "react-native-input-select";
-import { Score, Session, Player } from "@/src/types";
-import {
-  generateSessionMatchupData,
-  PlayerMatchupStats,
-  SessionMatchupData,
-} from "@/src/utils/playerMatchups";
+import { Session } from "@/src/types";
+import { generateSessionMatchupData } from "@/src/utils/playerMatchups";
 import { getSessionPlayers, getPlayerName } from "@/src/utils/util";
 import { useAppSelector } from "@/src/store";
 import { isNarrowScreen } from "@/src/utils/screenUtil";
@@ -37,24 +32,6 @@ interface MatchupTableRow {
   againstLosses: number;
   sameCourt: number;
   winPercentage: number;
-}
-
-interface GamePartnerInfo {
-  gameIndex: number;
-  partnerId: string;
-  partnerName: string;
-  courtName: string;
-  roundIndex: number;
-}
-
-interface GameOpponentInfo {
-  gameIndex: number;
-  opponent1Id: string;
-  opponent1Name: string;
-  opponent2Id: string;
-  opponent2Name: string;
-  courtName: string;
-  roundIndex: number;
 }
 
 interface RoundParticipation {
