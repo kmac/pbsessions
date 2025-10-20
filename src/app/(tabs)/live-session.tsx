@@ -49,7 +49,7 @@ export default function LiveSessionScreen() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
 
-  const params = useLocalSearchParams<{ action?: string }>();
+  const params = useLocalSearchParams<{ action?: string; sessionId?: string }>();
 
   // useAppSelector, useAppDispatch is redux
   const { sessions } = useAppSelector((state) => state.sessions);
@@ -67,8 +67,11 @@ export default function LiveSessionScreen() {
   const [generateSimulateScoring, setGenerateSimulateScoring] =
     useState<boolean>(false);
 
-  // TODO we should have a way to look this up - probably need to use redux since it will be global
-  const liveSession = sessions.find((s) => s.state === SessionState.Live);
+  // Look up session by ID from route params, with fallback to finding any live session
+  // for backward compatibility
+  const liveSession = params.sessionId
+    ? sessions.find((s) => s.id === params.sessionId)
+    : sessions.find((s) => s.state === SessionState.Live);
 
   // Use a ref to track the last processed action to prevent duplicate handling
   const lastProcessedActionRef = React.useRef<string | undefined>(undefined);

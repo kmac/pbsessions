@@ -140,7 +140,7 @@ export default function BetweenRoundsScreen() {
     );
     router.push({
       pathname: "/live-session",
-      params: { action: "startRound" },
+      params: { sessionId: sessionId, action: "startRound" },
     });
   };
 

@@ -209,7 +209,10 @@ export default function SessionsTab() {
       }),
     );
 
-    router.navigate("/live-session");
+    router.navigate({
+      pathname: "/live-session",
+      params: { sessionId: session.id },
+    });
   };
 
   const handleArchiveSession = (session: Session) => {
@@ -441,6 +444,22 @@ export default function SessionsTab() {
                 </Chip>
               )}
             </View>
+            {false && (
+              <View style={{ flexDirection: "row", gap: 16 }}>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                >
+                  <Icon source="calendar" size={14} />
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    Created: {formatDate(session.dateTime)} :{" "}
+                    {formatTime(session.createdAt)}
+                  </Text>
+                </View>
+              </View>
+            )}
             <View style={{ flexDirection: "row", gap: 16 }}>
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
@@ -450,18 +469,8 @@ export default function SessionsTab() {
                   variant="bodySmall"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  {formatDate(session.dateTime)}
-                </Text>
-              </View>
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-              >
-                <Icon source="clock-outline" size={14} />
-                <Text
-                  variant="bodySmall"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {formatTime(session.dateTime)}
+                  Updated: {formatDate(session.updatedAt)} :{" "}
+                  {formatTime(session.updatedAt)}
                 </Text>
               </View>
             </View>
@@ -481,15 +490,9 @@ export default function SessionsTab() {
             <Chip icon="map-marker-outline" compact={true}>
               {activeCourts.length} courts
             </Chip>
-            <Chip compact={true}>
-              {(() => {
-                const n = getCurrentRoundNumber(session);
-                return isLive(session) ? `Round: ${n}` : `Rounds: ${n}`;
-              })()}
-            </Chip>
             {session.scoring && (
               <Chip icon="scoreboard-outline" compact={true}>
-                Scoring
+                Scores
               </Chip>
             )}
             {activeCourts.some((c) => c.minimumRating) && (
@@ -497,8 +500,33 @@ export default function SessionsTab() {
                 Rated
               </Chip>
             )}
+            {!isLive(session) && (
+              <Chip icon="refresh" compact>
+                {(() => {
+                  const n = getCurrentRoundNumber(session);
+                  return n === 1 ? `${n} round` : `${n} rounds`;
+                })()}
+              </Chip>
+            )}
           </View>
 
+          {false && !isLive(session) && (
+            <View style={{ marginBottom: 8 }}>
+              <Text
+                variant="labelMedium"
+                style={{
+                  color: theme.colors.onSurfaceVariant,
+                  marginBottom: 4,
+                }}
+              >
+                {(() => {
+                  const n = getCurrentRoundNumber(session);
+                  //return `Completed Rounds: ${n}`;
+                  return `${n} Rounds`;
+                })()}
+              </Text>
+            </View>
+          )}
           {sessionPlayers.length > 0 && (
             <View style={{ marginBottom: 12 }}>
               <Text
@@ -523,35 +551,33 @@ export default function SessionsTab() {
           )}
           {session.partnershipConstraint?.partnerships &&
             session.partnershipConstraint.partnerships.length > 0 && (
-            <View style={{ marginBottom: 12 }}>
-              <Text
-                variant="labelMedium"
-                style={{
-                  color: theme.colors.onSurfaceVariant,
-                  marginBottom: 4,
-                }}
-              >
+              <View style={{ marginBottom: 12 }}>
+                <Text
+                  variant="labelMedium"
+                  style={{
+                    color: theme.colors.onSurfaceVariant,
+                    marginBottom: 4,
+                  }}
+                >
                   Fixed Partners (
                   {session.partnershipConstraint!.partnerships.length}):
                 </Text>
-                  <Text
-                    variant="bodySmall"
-                    style={{ color: theme.colors.onSurfaceVariant }}
-                  >
-                    {session
-                      .partnershipConstraint!.partnerships.map(
-                        (partnership) => {
-                          const player1 = players.find(
-                            (p) => p.id === partnership.player1Id,
-                          );
-                          const player2 = players.find(
-                            (p) => p.id === partnership.player2Id,
-                          );
-                          return `${player1?.name} & ${player2?.name}`;
-                        },
-                      )
-                      .join(", ")}
-                  </Text>
+                <Text
+                  variant="bodySmall"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {session
+                    .partnershipConstraint!.partnerships.map((partnership) => {
+                      const player1 = players.find(
+                        (p) => p.id === partnership.player1Id,
+                      );
+                      const player2 = players.find(
+                        (p) => p.id === partnership.player2Id,
+                      );
+                      return `${player1?.name} & ${player2?.name}`;
+                    })
+                    .join(", ")}
+                </Text>
               </View>
             )}
         </Card.Content>
@@ -565,10 +591,18 @@ export default function SessionsTab() {
                   // icon={isNarrowScreen ? undefined : "play"}
                   icon="play"
                   mode="contained"
-                  onPress={() => router.navigate("/live-session")}
+                  onPress={() =>
+                    router.navigate({
+                      pathname: "/live-session",
+                      params: { sessionId: session.id },
+                    })
+                  }
                   compact={narrowScreen}
                 >
-                  {narrowScreen ? "Continue" : "Continue Session"}
+                  {(() => {
+                    const n = getCurrentRoundNumber(session);
+                    return `Round ${n}`;
+                  })()}
                 </Button>
                 <Button
                   // icon={isNarrowScreen ? undefined : "stop"}
