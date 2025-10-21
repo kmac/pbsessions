@@ -23,6 +23,7 @@ import { RoundAssigner } from "@/src/services/roundAssigner";
 import { RoundComponent } from "@/src/components/RoundComponent";
 import { RoundScoreEntryModal } from "@/src/components/RoundScoreEntryModal";
 import { PlayerStatsModal } from "@/src/components/PlayerStatsModal";
+import { Timer } from "@/src/components/Timer";
 import { getRoundNumber } from "@/src/services/sessionService";
 import {
   filterPausedPlayers,
@@ -310,6 +311,14 @@ export default function LiveSessionScreen() {
     setScoreModalVisible(false);
   };
 
+  const handleTimerComplete = (totalTimeElapsed: number) => {
+    const minutes = Math.floor(totalTimeElapsed / 60);
+    Alert.alert(
+      "Timer Complete!",
+      `Time's up! ${minutes} minute${minutes !== 1 ? "s" : ""} elapsed.`
+    );
+  };
+
   const endSession = () => {
     const handleEndSession = () => {
       logSession(liveSession, "Ending session");
@@ -395,11 +404,8 @@ export default function LiveSessionScreen() {
           icon="stop"
           mode="contained"
           onPress={handleCompleteRound}
-          // buttonColor={theme.colors.tertiary}
           contentStyle={{ paddingVertical: 2 }}
-          // style={{ marginBottom: 12 }}
         >
-          {/* {scoring ? "Complete Round" : "Generate Next Round"} */}
           Complete Round
         </Button>
       );
@@ -912,6 +918,18 @@ export default function LiveSessionScreen() {
                 </View>
               </Surface>
             )}
+          </View>
+        )}
+
+        {/* Timer - shown during round */}
+        {isRoundInProgress && (
+          <View style={{ marginBottom: 20, alignItems: "center" }}>
+            <Timer
+              visible={true}
+              minutes={15}
+              seconds={0}
+              onComplete={handleTimerComplete}
+            />
           </View>
         )}
 
