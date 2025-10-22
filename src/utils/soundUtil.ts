@@ -1,71 +1,30 @@
-import { Audio } from "expo-av";
+import { AudioPlayer, createAudioPlayer } from "expo-audio";
 
-let timerCompleteSound: Audio.Sound | null = null;
+let player: AudioPlayer | null = null;
 
-export const initializeTimerSound = async () => {
+export const playSound = (
+  audioSource: any,
+  loop: boolean = false,
+): AudioPlayer | null => {
   try {
-    // Set audio mode for playback
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-    });
+    player = createAudioPlayer(audioSource);
+    player.loop = loop;
+    player.play();
+    return player;
 
-    // Using a free notification sound URL
-    // You can replace this with a local sound file by importing it
-    const { sound } = await Audio.Sound.createAsync(
-      require("@/assets/sounds/alarm.mp3"),
-    );
-    // const { sound } = await Audio.Sound.createAsync(
-    //   // Using a simple notification sound
-    //   // Alternative: require("@/assets/sounds/timer-complete.mp3") if you add a local file
-    //   {
-    //     uri: "https://actions.google.com/sounds/v1/alarms/beep_short.ogg",
-    //   },
-    //   { shouldPlay: false }
-    // );
-
-    timerCompleteSound = sound;
   } catch (error) {
-    console.error("Error initializing timer sound:", error);
+    console.error("Error playing sound:", error);
+    return null;
   }
 };
 
-export const playTimerCompleteSound = async (loop: boolean = false) => {
+export const stopSound = (player: AudioPlayer) => {
   try {
-    if (!timerCompleteSound) {
-      await initializeTimerSound();
-    }
-
-    if (timerCompleteSound) {
-      // Reset to beginning if already played
-      await timerCompleteSound.setPositionAsync(0);
-      // Set looping if requested
-      await timerCompleteSound.setIsLoopingAsync(loop);
-      await timerCompleteSound.playAsync();
+    if (player) {
+      player.pause();
+      player.release();
     }
   } catch (error) {
-    console.error("Error playing timer complete sound:", error);
-  }
-};
-
-export const stopTimerSound = async () => {
-  try {
-    if (timerCompleteSound) {
-      await timerCompleteSound.stopAsync();
-      await timerCompleteSound.setPositionAsync(0);
-    }
-  } catch (error) {
-    console.error("Error stopping timer sound:", error);
-  }
-};
-
-export const cleanupTimerSound = async () => {
-  try {
-    if (timerCompleteSound) {
-      await timerCompleteSound.unloadAsync();
-      timerCompleteSound = null;
-    }
-  } catch (error) {
-    console.error("Error cleaning up timer sound:", error);
+    console.error("Error stopping sound:", error);
   }
 };

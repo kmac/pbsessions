@@ -96,6 +96,16 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="timer"
+          options={{
+            headerShown: false,
+            title: "Timer",
+            tabBarIcon: ({ color, size }) => (
+              <Icon source="timer" color={color} size={size || 24} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="settings"
           options={{
             headerShown: false,
