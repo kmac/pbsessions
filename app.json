@@ -3,7 +3,7 @@
     "name": "Pickleball Sessions",
     "slug": "pickleball-sessions",
     "scheme": "Pickleball Sessions",
-    "version": "0.1.10",
+    "version": "0.1.12",
     "platforms": ["ios", "android", "web"],
     "orientation": "portrait",
     "icon": "./assets/images/pbsessions.png",
